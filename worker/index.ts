@@ -36,13 +36,19 @@ export default {
 		if (url.pathname === "/api/me") return Response.json({ who });
 
 		if (url.pathname === "/api/turn") {
-			// TURN_URL: a Metered/Open Relay credentials URL (it returns an iceServers array). Optional.
-			let turn: unknown[] = [];
+			// Relays for networks that block a direct connection. Both are optional and can be combined:
+			// - TURN_SERVER (var) + TURN_USERNAME / TURN_PASSWORD (secrets): fixed credentials, e.g. ExpressTURN's free plan.
+			// - TURN_URL (secret): a Metered/Open Relay credentials URL (it returns an iceServers array).
+			const turn: unknown[] = [];
+			if (env.TURN_SERVER && env.TURN_USERNAME && env.TURN_PASSWORD) {
+				const host = env.TURN_SERVER;
+				turn.push({ urls: [`turn:${host}?transport=udp`, `turn:${host}?transport=tcp`], username: env.TURN_USERNAME, credential: env.TURN_PASSWORD });
+			}
 			if (env.TURN_URL) {
 				try {
 					const res = await fetch(env.TURN_URL);
 					const j = (await res.json()) as unknown;
-					turn = Array.isArray(j) ? j : ((j as { iceServers?: unknown[] })?.iceServers ?? []);
+					turn.push(...(Array.isArray(j) ? j : ((j as { iceServers?: unknown[] })?.iceServers ?? [])));
 				} catch {
 					console.warn("TURN_URL did not return ice servers"); // the call still works on direct/STUN paths
 				}

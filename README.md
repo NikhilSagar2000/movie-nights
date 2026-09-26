@@ -25,10 +25,12 @@ Open the printed URL in two browser windows (one normal, one guest/incognito) an
    npx wrangler secret put USERS            # paste: {"a":"your long passphrase","b":"her long passphrase"}
    npx wrangler secret put SESSION_SECRET   # paste the output of: openssl rand -base64 32
    ```
-   Optional TURN relay, for networks where a direct connection fails (e.g. some mobile hotspots): make a free account at metered.ca → Open Relay, then
+   TURN relay, for networks where a direct connection fails (you can see yourselves but not each other). Make a free account at expressturn.com (1000 GB a month), then paste the username and password from its dashboard:
    ```sh
-   npx wrangler secret put TURN_URL         # paste: https://<your-app>.metered.live/api/v1/turn/credentials?apiKey=<key>
+   npx wrangler secret put TURN_USERNAME
+   npx wrangler secret put TURN_PASSWORD
    ```
+   The server address is `TURN_SERVER` in `wrangler.jsonc` (`free.expressturn.com:3478`). A Metered/Open Relay credentials URL works too: `npx wrangler secret put TURN_URL` with `https://<your-app>.metered.live/api/v1/turn/credentials?apiKey=<key>`.
 3. Deploy:
    ```sh
    npm run deploy

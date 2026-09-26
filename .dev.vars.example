@@ -1,4 +1,8 @@
 USERS={"a":"your-long-passphrase","b":"her-long-passphrase"}
 SESSION_SECRET=any-long-random-string
-# Optional: Metered/Open Relay credentials URL (includes apiKey)
+# Optional relay (TURN) for networks that block direct connections. Either or both:
+# the fixed username/password for TURN_SERVER in wrangler.jsonc (e.g. ExpressTURN's free plan)
+# TURN_USERNAME=...
+# TURN_PASSWORD=...
+# or a Metered/Open Relay credentials URL (includes apiKey)
 # TURN_URL=https://<app>.metered.live/api/v1/turn/credentials?apiKey=...

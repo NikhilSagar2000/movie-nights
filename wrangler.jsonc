@@ -12,5 +12,7 @@
 	},
 	// Free plan only allows SQLite-backed Durable Objects.
 	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
-	"observability": { "enabled": true }
+	"observability": { "enabled": true },
+	// The relay's address (not secret). Its username and password are secrets: TURN_USERNAME, TURN_PASSWORD.
+	"vars": { "TURN_SERVER": "free.expressturn.com:3478" }
 }
