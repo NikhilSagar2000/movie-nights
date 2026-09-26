@@ -7,24 +7,57 @@ import {
 	useRef,
 	useState,
 	useSyncExternalStore,
-	type ComponentProps,
 	type CSSProperties,
 	type FormEvent,
 	type KeyboardEvent as ReactKeyboardEvent,
 	type MouseEvent,
 	type PointerEvent as ReactPointerEvent,
 } from "react";
-import { LIMITS, other } from "../shared/types";
+import {
+	ArrowsOutLineHorizontal,
+	CaretDown,
+	ChatCircleDots,
+	CornersIn,
+	CornersOut,
+	FrameCorners,
+	HandPalm,
+	Heart,
+	Microphone,
+	MicrophoneSlash,
+	PaperPlaneTilt,
+	Screencast,
+	SlidersHorizontal,
+	SpeakerHigh,
+	Sticker,
+	Ticket,
+	VideoCamera,
+	VideoCameraSlash,
+	WarningCircle,
+	X,
+} from "@phosphor-icons/react";
+import { LIMITS, other, type Who } from "../shared/types";
+import { Duo, Face, Flower, FlowerRain, Head, type HeadProps } from "./Character";
 import { onRelay, profileOf, relay, send, useRoom, type RoomState } from "./room";
 import { dismissReshare, setCam, setMic, setQuality, startShare, stopShare, useCall, type CallState, type Quality } from "./rtc";
-import Teddy from "./Teddy";
 import "./theater.css";
 
-type Mood = NonNullable<ComponentProps<typeof Teddy>["mood"]>;
 export type Vars = CSSProperties & Record<`--${string}`, string | number>;
 
-const REACTIONS = ["💗", "😂", "😭", "😱", "🥰", "🍿"];
-const STICKERS: Mood[] = ["love", "cheer", "popcorn", "sleep", "peek", "sad"];
+/** "💗" stays on the wire (older tabs understand it) but is drawn as his flower. */
+const FLOWER = "💗";
+const REACTIONS = [FLOWER, "😂", "😭", "😱", "🥰", "🍿"];
+const Emoji = ({ e }: { e: string }) => (e === FLOWER ? <Flower /> : <>{e}</>);
+/** Sticker ids are stored in chat history, so they never change; each one is the sender's head in a pose. */
+const STICKERS = ["love", "cheer", "popcorn", "sleep", "peek", "sad"] as const;
+type StickerId = (typeof STICKERS)[number];
+const POSES: Record<StickerId, Pick<HeadProps, "mood" | "moment" | "blush" | "twinkle">> = {
+	love: { blush: true, moment: "wiggle" },
+	cheer: { mood: "hop" },
+	popcorn: { mood: "bob" },
+	sleep: { mood: "away" },
+	peek: { twinkle: true },
+	sad: { mood: "aww" },
+};
 const MAX_FLOATERS = 40;
 const QUALITIES = [1440, 1080, 720, 480] as const;
 const STAGE_KEYS = { ArrowRight: 0.05, ArrowUp: 0.05, ArrowLeft: -0.05, ArrowDown: -0.05 };
@@ -33,40 +66,6 @@ export const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.ma
 const isTyping = (t: EventTarget | null) =>
 	t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
 const timeOf = (at: number) => new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-
-// ---------- icons ----------
-const ICONS = {
-	mic: "M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5 11a7 7 0 0 0 14 0M12 18v3",
-	cam: "M4 7h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zM15 11l6-3.5v9L15 13",
-	eye: "M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z",
-	expand: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
-	shrink: "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5",
-	chat: "M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z",
-	heart: "M12 20s-7-4.3-8.8-8.6C1.9 8.2 4 5 7.2 5c2 0 3.3 1.1 4.8 2.9C13.5 6.1 14.8 5 16.8 5 20 5 22.1 8.2 20.8 11.4 19 15.7 12 20 12 20z",
-	grip: "M20 13l-7 7M20 6L6 20",
-	close: "M6 6l12 12M18 6L6 18",
-	minus: "M5 12h14",
-} as const;
-
-export function Icon({ name, off, filled, className }: { name: keyof typeof ICONS; off?: boolean; filled?: boolean; className?: string }) {
-	return (
-		<svg
-			className={`th-icon${className ? ` ${className}` : ""}`}
-			viewBox="0 0 24 24"
-			width="22"
-			height="22"
-			aria-hidden="true"
-			fill={filled ? "currentColor" : "none"}
-			stroke="currentColor"
-			strokeWidth="2.2"
-			strokeLinecap="round"
-			strokeLinejoin="round"
-		>
-			<path d={ICONS[name]} />
-			{off && <path d="M3 3l18 18" />}
-		</svg>
-	);
-}
 
 // ---------- media helpers ----------
 
@@ -213,8 +212,6 @@ function flashTitle(text: string, ms = 6000) {
 	}, 700);
 }
 
-const HUG_HEARTS = Array.from({ length: 16 }, (_, i) => ({ x: (i * 37 + 11) % 100, d: (i % 5) * 0.18, s: 18 + ((i * 7) % 24) }));
-
 export function NudgeListener() {
 	const room = useRoom();
 	const [nudge, setNudge] = useState<{ kind: "pause" | "hug"; key: number } | null>(null);
@@ -222,46 +219,68 @@ export function NudgeListener() {
 	useEffect(
 		() =>
 			onRelay((_, d) => {
-				if (d.k !== "nudge" || (d.kind !== "pause" && d.kind !== "hug")) return;
+				if (d.k !== "nudge" || (d.kind !== "pause" && d.kind !== "hug")) return; // "boop" belongs to Home
 				setNudge({ kind: d.kind, key: Date.now() });
 				if (d.kind === "pause") {
 					chime([784, 587]);
-					flashTitle("🥺 pause please!");
+					flashTitle("Please pause");
 				} else chime([523, 659, 784]);
 			}),
 		[],
 	);
 	useEffect(() => {
 		if (!nudge) return;
-		const t = setTimeout(() => setNudge(null), nudge.kind === "hug" ? 2600 : 7000);
+		const t = setTimeout(() => setNudge(null), nudge.kind === "hug" ? 4500 : 7000); // the hug waits for the flower to land
 		return () => clearTimeout(t);
 	}, [nudge]);
 
 	if (!room || !nudge) return null;
-	const them = profileOf(room, other(room.you));
-	if (nudge.kind === "hug")
-		return (
-			<div className="fc-hug" role="status" key={nudge.key}>
-				{HUG_HEARTS.map((h, i) => (
-					<span key={i} className="fc-hug-heart" style={{ "--x": `${h.x}%`, "--d": `${h.d}s`, "--s": `${h.s}px` } as Vars}>
-						<Icon name="heart" filled />
-					</span>
-				))}
-				<span className="fc-hug-teddy">
-					<Teddy mood="love" size={200} accent={them.color} />
-				</span>
-				<p className="fc-hug-text">{them.name} sent you a big hug 🤗</p>
-			</div>
-		);
+	const partner = other(room.you);
+	const them = profileOf(room, partner);
+	if (nudge.kind === "hug") return <HugOverlay key={nudge.key} name={them.name} onClose={() => setNudge(null)} />;
 	return (
 		<div className="fc-pause" role="alert" key={nudge.key}>
-			<Teddy mood="sad" size={64} accent={them.color} />
+			<span className="fc-pause-head">
+				<Head who={partner} moment="knock" h="6.2em" />
+			</span>
 			<div className="fc-pause-copy">
-				<strong>{them.name} asks: please pause 🥺</strong>
+				<strong>{them.name} asks to pause</strong>
 				<span>Press ⏯ on your keyboard or use Chrome's media control.</span>
 			</div>
-			<button className="btn icon ghost" aria-label="Dismiss" onClick={() => setNudge(null)}>
-				<Icon name="close" />
+			<button className="btn icon ghost sm" aria-label="Dismiss" onClick={() => setNudge(null)}>
+				<X aria-hidden />
+			</button>
+		</div>
+	);
+}
+
+/** A hug arriving: they lean in and his flower flies from his hair to hers; she hops and blushes when it lands. */
+function HugOverlay({ name, onClose }: { name: string; onClose: () => void }) {
+	const [landed, setLanded] = useState(false);
+	useEffect(() => {
+		const t = setTimeout(() => setLanded(true), 2500); // .fc-hug-fly lands at 0.3s + 70% of 3.2s
+		return () => clearTimeout(t);
+	}, []);
+	useEffect(() => {
+		const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+		addEventListener("keydown", esc);
+		return () => removeEventListener("keydown", esc);
+	}, [onClose]);
+	const hugBack = () => {
+		relay({ k: "nudge", kind: "hug" });
+		onClose();
+	};
+	return (
+		<div className="fc-hug" role="status" onClick={(e) => e.target === e.currentTarget && onClose()}>
+			<span className="face fc-hug-face">
+				<Duo h="10.5em" together a={{ flowerGone: true }} b={{ moment: landed ? "happy" : null, blush: landed }}>
+					<Flower className="fc-hug-fly" />
+				</Duo>
+			</span>
+			<h2>{name} sent you a hug</h2>
+			<button className="btn blush" onClick={hugBack}>
+				<Flower />
+				Hug back
 			</button>
 		</div>
 	);
@@ -450,24 +469,21 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 	const [hiddenError, setHiddenError] = useState<string | null>(null);
 	const [ending, setEnding] = useState(false);
 	const status = !partnerHere ? "away" : call.connection === "connected" ? "together" : "connecting";
+	const bob = (w: Who) => ({ mood: w === partner && !partnerHere ? ("away" as const) : ("bob" as const) });
 
 	return (
 		<main className={`page theater${sharing ? " lights-off" : ""}`}>
+			{sharing && <i className="stars th-stars" />}
 			<div className="th-col">
 				<div className="th-above" ref={aboveRef}>
-					<header className="th-head">
-						<h1>The Theater</h1>
-						<span className={`th-status ${status}`} role="status">
-							{status === "away" ? `${them.name} is away 💤` : status === "together" ? "together 💞" : "connecting…"}
-						</span>
-					</header>
+					<h1 className="sr-only">The Theater</h1>
 
 					{call.error && call.error !== hiddenError && (
 						<div className="th-banner" role="alert">
-							<Teddy mood="think" size={44} accent={me.color} />
+							<WarningCircle aria-hidden />
 							<p>{call.error}</p>
-							<button className="btn icon ghost" aria-label="Dismiss" onClick={() => setHiddenError(call.error)}>
-								<Icon name="close" />
+							<button className="btn icon ghost sm" aria-label="Dismiss" onClick={() => setHiddenError(call.error)}>
+								<X aria-hidden />
 							</button>
 						</div>
 					)}
@@ -475,58 +491,60 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 					<div className="th-toolbar">
 						<div className="th-group">
 							<button
-								className={`btn icon ${call.micOn ? "soft" : "is-off"}`}
+								className={`btn icon glass${call.micOn ? "" : " is-off"}`}
 								aria-label="Microphone"
 								aria-pressed={call.micOn}
 								disabled={!call.localCam}
 								onClick={() => setMic(!call.micOn)}
 							>
-								<Icon name="mic" off={!call.micOn} />
+								{call.micOn ? <Microphone aria-hidden /> : <MicrophoneSlash aria-hidden />}
 							</button>
 							<button
-								className={`btn icon ${call.camOn ? "soft" : "is-off"}`}
-								aria-label="Camera (what your love sees)"
+								className={`btn icon glass${call.camOn ? "" : " is-off"}`}
+								aria-label={`Camera (what ${them.name} sees)`}
 								aria-pressed={call.camOn}
 								disabled={!call.localCam}
 								onClick={() => setCam(!call.camOn)}
 							>
-								<Icon name="cam" off={!call.camOn} />
+								{call.camOn ? <VideoCamera aria-hidden /> : <VideoCameraSlash aria-hidden />}
 							</button>
-							{talking ? (
-								<span className="th-ptt on" role="status">
-									🎙️ talking…
-								</span>
-							) : (
-								<span className="th-ptt">
-									Hold <kbd>Space</kbd> to talk
-								</span>
-							)}
+							<span className={`chip ${status === "together" ? "sage" : "glass"} th-status`} role="status">
+								{status === "together" ? <Heart weight="fill" aria-hidden /> : <span className="on-dot off" />}
+								{status === "away" ? `${them.name} is away` : status === "together" ? "Together" : "Connecting"}
+							</span>
 						</div>
 						<div className="th-group">
-							<button className="btn soft" disabled={!partnerHere || sent === "pause"} onClick={() => nudge("pause")}>
-								{sent === "pause" ? "Asked 💌" : "Please pause 🥺"}
+							<button className="btn glass th-tool" disabled={!partnerHere || sent === "pause"} onClick={() => nudge("pause")}>
+								<HandPalm aria-hidden />
+								<span className="th-lbl">{sent === "pause" ? "Asked" : "Please pause"}</span>
 							</button>
-							<button className="btn soft" disabled={!partnerHere || sent === "hug"} onClick={() => nudge("hug")}>
-								{sent === "hug" ? "Hug sent 💌" : "Send a hug 🤗"}
+							<button className="btn glass th-tool" disabled={!partnerHere || sent === "hug"} onClick={() => nudge("hug")}>
+								<Flower />
+								<span className="th-lbl">{sent === "hug" ? "Hug sent" : "Send a hug"}</span>
 							</button>
-						</div>
-						<div className="th-group">
 							<ViewMenu view={v} partnerName={them.name} />
-							<label className="th-quality" title="The picture quality you receive when your love shares">
-								<span>My picture</span>
-								<select value={call.quality ?? ""} onChange={(e) => setQuality(e.target.value ? (+e.target.value as Quality) : null)}>
-									<option value="">Auto</option>
-									{QUALITIES.map((q) => (
-										<option key={q} value={q}>
-											{q}p
-										</option>
-									))}
-								</select>
+							<label className="th-quality" title={`The picture quality you receive when ${them.name} shares`}>
+								<SlidersHorizontal className="th-quality-ico" aria-hidden />
+								<span className="th-lbl">My picture</span>
+								<span className="th-select">
+									<select value={call.quality ?? ""} onChange={(e) => setQuality(e.target.value ? (+e.target.value as Quality) : null)}>
+										<option value="">Auto</option>
+										{QUALITIES.map((q) => (
+											<option key={q} value={q}>
+												{q}p
+											</option>
+										))}
+									</select>
+									<CaretDown aria-hidden />
+								</span>
 							</label>
-							<button className="btn" onClick={() => setEnding(true)}>
-								End movie night 🎟️
-							</button>
 						</div>
+						<button className="btn paper th-end-btn" onClick={() => setEnding(true)}>
+							<Ticket aria-hidden />
+							<span>
+								End<span className="th-lbl"> movie night</span>
+							</span>
+						</button>
 					</div>
 				</div>
 
@@ -540,8 +558,8 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 					<div className={`th-stage-top${v.hideMovie ? " bar" : ""}`}>
 						{v.hideMovie && (
 							<>
-								<span>{sharing ? "Movie hidden — sound still playing 🔊" : "Movie screen hidden"}</span>
-								<button className="btn sm soft" onClick={() => setView({ hideMovie: false })}>
+								<span>{sharing ? "Movie hidden. The sound keeps playing." : "Movie screen hidden"}</span>
+								<button className="btn sm glass" onClick={() => setView({ hideMovie: false })}>
 									Show
 								</button>
 							</>
@@ -549,57 +567,63 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 						<div className="th-stage-tools">
 							<button
 								ref={chatBtn}
-								className="btn icon soft th-chat-toggle"
+								className="btn icon glass th-chat-toggle"
 								aria-label={unread ? `Chat, ${unread} unread` : "Chat"}
 								aria-expanded={chatOpen}
 								onClick={() => (chatOpen ? closeChat() : setChatOpen(true))}
 							>
-								<Icon name="chat" />
+								<ChatCircleDots aria-hidden />
 								{unread > 0 && <span className="th-badge">{unread > 9 ? "9+" : unread}</span>}
 							</button>
-							<button className="btn icon soft" aria-label={full ? "Exit fullscreen" : "Fullscreen"} onClick={toggleFull}>
-								<Icon name={full ? "shrink" : "expand"} />
+							<button className="btn icon glass" aria-label={full ? "Exit fullscreen" : "Fullscreen"} onClick={toggleFull}>
+								{full ? <CornersIn aria-hidden /> : <CornersOut aria-hidden />}
 							</button>
 						</div>
 					</div>
-					<div className={`th-stage${v.hideMovie ? " collapsed" : ""}`} onDoubleClick={burst}>
+					<div className={`th-stage${v.hideMovie ? " collapsed" : ""}${showing ? "" : " arch"}`} onDoubleClick={burst}>
 						{hosting ? <LocalPreview stream={call.localScreen!} /> : call.peerSharing ? <RemoteMovie stream={call.remoteScreen} volume={volume} /> : null}
 
+						{/* Sheer misty curtains: drawn until a picture arrives, then they part. */}
 						<div className={`th-curtains${showing ? " open" : ""}`} aria-hidden="true">
 							<i className="th-curtain l" />
 							<i className="th-curtain r" />
-							<i className="th-valance" />
 						</div>
 
 						{!showing && (
 							<div className="th-empty">
-								<span className="th-teddy">
-									<Teddy mood="popcorn" size={104} accent={me.color} />
-								</span>
-								{call.peerSharing ? (
-									<p className="th-marquee">{them.name} is starting the movie…</p>
-								) : call.wasSharing ? (
-									<>
-										<p className="th-marquee">The projector blinked!</p>
-										<div className="th-cta">
-											<button className="btn big" onClick={() => void startShare()}>
-												Re-share the movie 🎬
+								<i className="stars" />
+								<i className="moon th-moon" />
+								<div className="th-plate">
+									{call.peerSharing ? (
+										<p className="th-ticket">{them.name} is starting the movie</p>
+									) : call.wasSharing ? (
+										<>
+											<p className="th-ticket">The projector blinked</p>
+											<div className="th-cta">
+												<button className="btn paper" onClick={() => void startShare()}>
+													<Screencast aria-hidden />
+													Re-share the movie
+												</button>
+												<button className="btn glass" onClick={dismissReshare}>
+													Not now
+												</button>
+											</div>
+										</>
+									) : (
+										<>
+											<p className="th-ticket">
+												Now showing: {me.name} and {them.name}
+											</p>
+											<button className="btn paper" onClick={() => void startShare()}>
+												<Screencast aria-hidden />
+												Share a tab
 											</button>
-											<button className="btn ghost sm on-curtain" onClick={dismissReshare}>
-												Not now
-											</button>
-										</div>
-									</>
-								) : (
-									<>
-										<p className="th-marquee">
-											Now showing: {me.name} &amp; {them.name}
-										</p>
-										<button className="btn big" onClick={() => void startShare()}>
-											Share a tab to start the movie 🎬
-										</button>
-									</>
-								)}
+											<p className="th-plate-hint">Pick the Chrome tab and tick "Also share tab audio"</p>
+										</>
+									)}
+								</div>
+								<Duo className="th-duo" a={bob("a")} b={bob("b")} />
+								<i className="clouds th-clouds" />
 							</div>
 						)}
 
@@ -611,38 +635,56 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 									style={{ left: `${f.x * 100}%`, "--drift": `${f.drift}px`, "--dur": `${f.dur}s`, "--scale": f.size } as Vars}
 									onAnimationEnd={() => setFloaters((fs) => fs.filter((o) => o.id !== f.id))}
 								>
-									{f.emoji}
+									<Emoji e={f.emoji} />
 								</span>
 							))}
 						</div>
-
 					</div>
 
 					<div className="th-bar">
-						<div className="th-reactions" role="group" aria-label="Reactions">
-							{REACTIONS.map((e, i) => (
-								<button key={e} className="th-react" aria-label={`Send ${e} (key ${i + 1})`} title={`Key ${i + 1}`} onClick={() => react(e)}>
-									{e}
-								</button>
-							))}
+						<div className="th-pill">
+							<div className="th-reactions" role="group" aria-label="Reactions">
+								{REACTIONS.map((e, i) => (
+									<button
+										key={e}
+										className="th-react"
+										aria-label={`Send ${e === FLOWER ? "a flower" : e} (key ${i + 1})`}
+										title={`Key ${i + 1}`}
+										onClick={() => react(e)}
+									>
+										<Emoji e={e} />
+									</button>
+								))}
+							</div>
+							{call.peerSharing && !hosting && (
+								<label className="th-volume">
+									<SpeakerHigh aria-hidden />
+									<span>Movie volume</span>
+									<input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => setVolume(+e.target.value)} />
+								</label>
+							)}
 						</div>
 						{hosting && (
 							<div className="th-share-note">
-								<button className="btn sm" onClick={stopShare}>
+								<button className="btn sm paper" onClick={stopShare}>
 									Stop sharing
 								</button>
-								<span>
-									Your movie plays in its own tab. Stay here with your love 💕 (pause with the ⏯ key)
-									<br />
-									Sending to {them.name} in {call.peerQuality ? `${call.peerQuality}p` : "Auto"}
-								</span>
+								<p className="th-hint">
+									Your movie plays in its own tab, so stay here with {them.name}. Pause it with the ⏯ key. Sending in{" "}
+									{call.peerQuality ? `${call.peerQuality}p` : "Auto"}.
+								</p>
 							</div>
 						)}
-						{call.peerSharing && !hosting && (
-							<label className="th-volume">
-								<span>Movie volume</span>
-								<input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => setVolume(+e.target.value)} />
-							</label>
+						{call.peerSharing && !hosting && <p className="th-hint">You are watching {them.name}'s tab. The sound comes from their side.</p>}
+						{talking ? (
+							<span className="chip sage th-ptt on" role="status">
+								<Microphone aria-hidden />
+								Talking
+							</span>
+						) : (
+							<span className="th-ptt">
+								Hold <kbd>Space</kbd> to talk
+							</span>
 						)}
 					</div>
 
@@ -656,20 +698,17 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 							onPointerCancel={sizeUp}
 							onKeyDown={sizeKey}
 						>
-							<Icon name="grip" />
+							<ArrowsOutLineHorizontal aria-hidden />
 						</button>
 					)}
 				</section>
 
 				{!sharing && (
 					<aside className="th-tips" aria-label="Sharing tips">
-						<p>
-							<strong>How to share:</strong> pick a <b>Chrome tab</b> with the movie and tick <b>“Also share tab audio”</b>. Headphones help avoid
-							echo.
-						</p>
+						<p>Headphones help avoid echo.</p>
 						<details>
 							<summary>Movie has no sound?</summary>
-							<p>Some downloaded .mkv files use AC3/DTS audio that Chrome can't play. Convert it once (the picture stays untouched):</p>
+							<p>Some downloaded .mkv files use AC3 or DTS audio that Chrome cannot play. Convert it once (the picture stays untouched):</p>
 							<code className="th-cmd">ffmpeg -i movie.mkv -c:v copy -c:a aac movie.mp4</code>
 						</details>
 					</aside>
@@ -686,8 +725,9 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 function ViewMenu({ view: v, partnerName }: { view: View; partnerName: string }) {
 	return (
 		<>
-			<button className="btn soft th-view-btn" popoverTarget="th-view-menu">
-				View 👁
+			<button className="btn glass th-tool th-view-btn" popoverTarget="th-view-menu">
+				<FrameCorners aria-hidden />
+				<span className="th-lbl">View</span>
 			</button>
 			<div id="th-view-menu" popover="auto" className="th-view-menu">
 				<p className="th-view-title">On this device only</p>
@@ -748,8 +788,9 @@ function RemoteMovie({ stream, volume }: { stream: MediaStream | null; volume: n
 				</span>
 			)}
 			{blocked && (
-				<button className="btn th-tap-sound" onClick={unblock}>
-					Tap for sound 🔊
+				<button className="btn paper th-tap-sound" onClick={unblock}>
+					<SpeakerHigh aria-hidden />
+					Tap for sound
 				</button>
 			)}
 		</>
@@ -777,37 +818,43 @@ function ChatDrawer({ room, open, onClose }: { room: RoomState; open: boolean; o
 		send({ t: "chat", text: t });
 		setText("");
 	};
-	const sticker = (s: Mood) => {
+	const sticker = (s: StickerId) => {
 		send({ t: "chat", sticker: s });
 		setPicker(false);
 	};
+	const me = profileOf(room, room.you);
 
 	return (
 		<aside className={`th-chat${open ? " open" : ""}`} aria-label="Chat" inert={!open} onKeyDown={(e) => e.key === "Escape" && onClose()}>
 			<header className="th-chat-head">
-				<h2>Whispers 💌</h2>
-				<button className="btn icon ghost" aria-label="Close chat" onClick={onClose}>
-					<Icon name="close" />
+				<h2>Whispers</h2>
+				<button className="btn icon sm glass" aria-label="Close chat" onClick={onClose}>
+					<X aria-hidden />
 				</button>
 			</header>
 			<ol className="th-chat-list" ref={listRef} aria-live="polite">
 				{room.chat.length === 0 && (
 					<li className="th-chat-empty">
-						<Teddy mood="peek" size={84} />
-						<p>No whispers yet. Say hi 💌</p>
+						<span className="th-peek">
+							<Duo h="6em" a={{ mood: "bob" }} b={{ mood: "bob" }} />
+						</span>
+						<p>No whispers yet. Say hi.</p>
 					</li>
 				)}
 				{room.chat.map((m, i) => {
 					const p = profileOf(room, m.from);
+					const mine = m.from === room.you;
 					const first = i === 0 || room.chat[i - 1].from !== m.from;
-					const mood = STICKERS.find((s) => s === m.sticker);
+					const pose = POSES[STICKERS.find((s) => s === m.sticker) ?? "love"];
 					return (
-						<li key={m.id} className={`th-msg${m.from === room.you ? " mine" : ""}`} style={{ "--who": p.color } as Vars}>
-							{first && <span className="th-msg-name">{p.name}</span>}
+						<li key={m.id} className={`th-msg${mine ? " mine" : ""}`}>
 							{m.sticker ? (
-								<Teddy mood={mood ?? "love"} size={76} accent={p.color} label={`${m.sticker} teddy sticker`} />
+								<Face who={m.from} ring={p.color} s="5em" rw=".25em" {...pose} label={`${p.name}: ${m.sticker} sticker`} />
 							) : (
-								<p className="th-msg-text">{m.text}</p>
+								<p className="th-msg-text">
+									{first && <small className={mine ? "sr-only" : "th-msg-name"}>{p.name}</small>}
+									{m.text}
+								</p>
 							)}
 							<time dateTime={new Date(m.at).toISOString()}>{timeOf(m.at)}</time>
 						</li>
@@ -815,10 +862,10 @@ function ChatDrawer({ room, open, onClose }: { room: RoomState; open: boolean; o
 				})}
 			</ol>
 			{picker && (
-				<div className="th-stickers" role="group" aria-label="Teddy stickers">
+				<div className="th-stickers" role="group" aria-label="Stickers">
 					{STICKERS.map((s) => (
-						<button key={s} className="th-sticker" aria-label={`Send ${s} teddy`} onClick={() => sticker(s)}>
-							<Teddy mood={s} size={40} accent={profileOf(room, room.you).color} />
+						<button key={s} className="th-sticker" aria-label={`Send the ${s} sticker`} title={s} onClick={() => sticker(s)}>
+							<Face who={room.you} ring={me.color} s="2.9em" {...POSES[s]} />
 						</button>
 					))}
 				</div>
@@ -826,12 +873,12 @@ function ChatDrawer({ room, open, onClose }: { room: RoomState; open: boolean; o
 			<form className="th-chat-form" onSubmit={submit}>
 				<button
 					type="button"
-					className={`btn icon soft${picker ? " is-on" : ""}`}
-					aria-label="Teddy stickers"
+					className={`btn icon glass${picker ? " is-on" : ""}`}
+					aria-label="Stickers"
 					aria-expanded={picker}
 					onClick={() => setPicker((p) => !p)}
 				>
-					<Teddy mood="love" size={26} />
+					<Sticker aria-hidden />
 				</button>
 				<input
 					ref={inputRef}
@@ -839,11 +886,11 @@ function ChatDrawer({ room, open, onClose }: { room: RoomState; open: boolean; o
 					value={text}
 					onChange={(e) => setText(e.target.value)}
 					maxLength={LIMITS.chat}
-					placeholder="Say something sweet…"
+					placeholder="Whisper something"
 					aria-label="Message"
 				/>
-				<button className="btn" disabled={!text.trim()}>
-					Send
+				<button className="btn icon paper" aria-label="Send" disabled={!text.trim()}>
+					<PaperPlaneTilt aria-hidden />
 				</button>
 			</form>
 		</aside>
@@ -853,10 +900,21 @@ function ChatDrawer({ room, open, onClose }: { room: RoomState; open: boolean; o
 function EndNightDialog({ initial, hosting, onClose }: { initial: string; hosting: boolean; onClose: () => void }) {
 	const ref = useRef<HTMLDialogElement>(null);
 	const [title, setTitle] = useState(initial);
+	// Curtain call first: both bow while flowers rain, then the stub form opens. A click skips the bow.
+	const [bowing, setBowing] = useState(true);
+	const [raining, setRaining] = useState(true);
+	useEffect(() => {
+		const bow = setTimeout(() => setBowing(false), matchMedia("(prefers-reduced-motion: reduce)").matches ? 800 : 3400);
+		const rain = setTimeout(() => setRaining(false), 5000);
+		return () => {
+			clearTimeout(bow);
+			clearTimeout(rain);
+		};
+	}, []);
 	useEffect(() => {
 		const d = ref.current;
-		if (d && !d.open) d.showModal(); // native modal: focus stays inside, Esc closes
-	}, []);
+		if (!bowing && d && !d.open) d.showModal(); // native modal: focus stays inside, Esc closes
+	}, [bowing]);
 	const submit = (e: FormEvent) => {
 		e.preventDefault();
 		const t = title.trim();
@@ -866,32 +924,53 @@ function EndNightDialog({ initial, hosting, onClose }: { initial: string; hostin
 		location.hash = "#/memories";
 	};
 	return (
-		<dialog ref={ref} className="th-end" onClose={onClose} aria-labelledby="end-h">
-			<form onSubmit={submit}>
-				<Teddy mood="popcorn" size={92} />
-				<h2 id="end-h">That's a wrap! 🎟️</h2>
-				<p className="muted">What did you two watch tonight? We'll print a ticket stub for your memories wall.</p>
-				<label className="sr-only" htmlFor="end-title">
-					Movie title
-				</label>
-				<input
-					id="end-title"
-					className="input"
-					autoFocus
-					maxLength={LIMITS.title}
-					value={title}
-					onChange={(e) => setTitle(e.target.value)}
-					placeholder="Movie title"
-				/>
-				<div className="th-end-actions">
-					<button type="button" className="btn ghost" onClick={() => ref.current?.close()}>
-						Not yet
-					</button>
-					<button className="btn" disabled={!title.trim()}>
-						Print our stub
-					</button>
+		<>
+			{bowing && (
+				<div className="th-bow" onClick={() => setBowing(false)}>
+					<div className="th-bow-stage arch">
+						<i className="stars" />
+						<i className="th-curtain l" />
+						<i className="th-curtain r" />
+						<Duo h="11em" a={{ moment: "bow-r" }} b={{ moment: "bow-l" }} />
+						<i className="clouds th-clouds" />
+					</div>
+					<p className="th-bow-text" role="status">
+						That's a wrap
+					</p>
 				</div>
-			</form>
-		</dialog>
+			)}
+			{raining && <FlowerRain count={20} />}
+			<dialog ref={ref} className="th-end" onClose={onClose} aria-labelledby="end-h">
+				<form onSubmit={submit}>
+					<span className="th-end-peek">
+						<Duo h="5.4em" />
+					</span>
+					<p className="th-end-admit">Admit two</p>
+					<h2 id="end-h">That's a wrap</h2>
+					<p className="th-end-copy">What did you two watch tonight? We will print a ticket stub for your memories.</p>
+					<label className="sr-only" htmlFor="end-title">
+						Movie title
+					</label>
+					<input
+						id="end-title"
+						className="input"
+						autoFocus
+						maxLength={LIMITS.title}
+						value={title}
+						onChange={(e) => setTitle(e.target.value)}
+						placeholder="Movie title"
+					/>
+					<div className="th-end-actions">
+						<button type="button" className="btn ghost" onClick={() => ref.current?.close()}>
+							Not yet
+						</button>
+						<button className="btn" disabled={!title.trim()}>
+							<Ticket aria-hidden />
+							Print our stub
+						</button>
+					</div>
+				</form>
+			</dialog>
+		</>
 	);
 }

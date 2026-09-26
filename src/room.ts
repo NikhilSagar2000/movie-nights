@@ -121,6 +121,24 @@ export const getRoom = () => state;
 export const useRoom = () => useSyncExternalStore(subscribe, getRoom);
 
 /** Display name + color for a person, with soft defaults until they pick their own. */
+/** The ring colors you can pick for your love. Defaults: a = blush, b = misty sky. */
+export const RINGS = [
+	{ name: "Blush", hex: "#f7c8d3" },
+	{ name: "Misty sky", hex: "#a9b7c6" },
+	{ name: "Sage", hex: "#a8b58a" },
+	{ name: "Haze", hex: "#eaeff4" },
+	{ name: "Rosewood", hex: "#b46a72" },
+];
+export const ringOf = (who: Who, color?: string) => RINGS.find((r) => r.hex === color?.toLowerCase())?.hex ?? (who === "a" ? RINGS[0].hex : RINGS[1].hex);
+
 export function profileOf(room: RoomState, who: Who) {
-	return room.profiles[who] ?? { name: who === room.you ? "You" : "Your love", color: who === "a" ? "#fb6f92" : "#c9a0ff" };
+	const p = room.profiles[who];
+	// colors picked in the old pink theme aren't in RINGS; they fall back to the default ring
+	return { name: p?.name ?? (who === room.you ? "You" : "Your love"), color: ringOf(who, p?.color) };
+}
+
+export async function logout() {
+	await fetch("/api/logout", { method: "POST" }).catch(() => {});
+	location.hash = "";
+	location.reload();
 }

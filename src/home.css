@@ -1,712 +1,708 @@
-/* ===== Nav, Home, Login, Name-your-love, Door (Home.tsx + Login.tsx). Uses the tokens in styles.css. ===== */
+/* ===== Home lane: Nav, Home, Login, Name your love, Door, and the replaced-tab screen (Home.tsx, Login.tsx, main.tsx).
+   Every class is hm-*, except the hooks other code relies on (.nav, .love-input, .love-save). Tokens from styles.css. ===== */
 
-/* ---- Stage: velvet curtains, scalloped valance, pink floor. Shared by Door and Home. ---- */
-.velvet {
-	--velvet: #e0557a;
-	--velvet-dark: #bf3e64;
-	--velvet-light: #fb7d9c;
-	--gold: #ffd98a;
-	--curtain: clamp(26px, 8vw, 96px);
-	--bear: clamp(110px, 24vw, 210px);
-	--gap: clamp(18px, 6vw, 110px);
-	position: relative;
-	overflow: hidden;
-	isolation: isolate;
-	padding-top: 58px;
-	border-radius: var(--r-lg) var(--r-lg) var(--r-md) var(--r-md);
-	background:
-		radial-gradient(ellipse 50% 75% at 50% 10%, rgba(255, 246, 233, 0.95), rgba(255, 246, 233, 0) 72%),
-		#ffd0dc;
-	box-shadow: 0 8px 0 rgba(61, 26, 46, 0.08);
-}
-.velvet::before {
-	content: "";
-	position: absolute;
-	inset: 0 0 auto;
-	z-index: 3;
-	height: 46px;
-	background:
-		linear-gradient(var(--gold) 0 0) 0 19px / 100% 3px no-repeat,
-		linear-gradient(var(--velvet-dark) 0 0) 0 0 / 100% 24px no-repeat,
-		radial-gradient(circle 20px at 50% 0, var(--velvet-dark) 96%, transparent 100%) 0 23px / 40px 20px repeat-x;
-}
-.velvet-curtain {
-	position: absolute;
-	top: 0;
-	bottom: 0;
-	z-index: 2;
-	width: var(--curtain);
-	background: repeating-linear-gradient(90deg, var(--velvet-dark) 0, var(--velvet) 8px, var(--velvet-light) 14px, var(--velvet) 20px, var(--velvet-dark) 28px);
-}
-.velvet-curtain-l {
-	left: 0;
-	border-bottom-right-radius: 100% 36%;
-}
-.velvet-curtain-r {
-	right: 0;
-	border-bottom-left-radius: 100% 36%;
-}
-.velvet-curtain::after {
-	content: "";
-	position: absolute;
-	top: 58%;
-	width: 72%;
-	height: 9px;
-	border-radius: 5px;
-	background: var(--gold);
-	box-shadow: 0 2px 0 rgba(61, 26, 46, 0.18);
-}
-.velvet-curtain-l::after {
-	left: 0;
-}
-.velvet-curtain-r::after {
-	right: 0;
-}
-
-.velvet-duo {
-	position: relative;
-	z-index: 1;
-	display: flex;
-	justify-content: center;
-	align-items: flex-end;
-	gap: var(--gap);
-}
-.velvet-bear {
-	position: relative;
-	transform-origin: 50% 100%;
-	transition: transform 0.9s var(--ease-bounce);
-}
-.velvet-bear .teddy {
-	display: block;
-	width: var(--bear);
-	height: auto;
-}
-.velvet-bear::after {
-	content: "";
-	position: absolute;
-	z-index: -1;
-	left: 24%;
-	right: 24%;
-	bottom: calc(var(--bear) * 0.05);
-	height: calc(var(--bear) * 0.07);
-	border-radius: 50%;
-	background: rgba(61, 26, 46, 0.14);
-}
-/* both online: the teddies scoot together and lean into a hug */
-.velvet-duo.together .velvet-bear--left {
-	transform: translateX(calc(var(--gap) / 2 + var(--bear) * 0.14)) rotate(5deg);
-}
-.velvet-duo.together .velvet-bear--right {
-	transform: translateX(calc(var(--gap) / -2 - var(--bear) * 0.14)) rotate(-5deg);
-}
-.hug-hearts {
-	position: absolute;
-	left: 50%;
-	bottom: calc(var(--bear) * 0.9);
-	width: 0;
-	pointer-events: none;
-}
-.hug-hearts svg {
-	position: absolute;
-	left: -12px;
-	width: 24px;
-	height: 24px;
-	fill: var(--hot);
-	animation: hug-heart 2.7s ease-out infinite;
-}
-.hug-hearts svg:nth-child(2) {
-	left: -30px;
-	width: 16px;
-}
-.hug-hearts svg:nth-child(3) {
-	left: 10px;
-	width: 18px;
-}
-@keyframes hug-heart {
-	0% { opacity: 0; transform: translateY(20px) scale(0.4); }
-	20% { opacity: 1; transform: translateY(0) scale(1); }
-	100% { opacity: 0; transform: translateY(-64px) scale(0.8); }
-}
-
-.velvet-floor {
-	position: relative;
-	min-height: 40px;
-	margin-top: calc(var(--bear) * -0.1);
-	padding: calc(var(--bear) * 0.1 + 12px) var(--curtain) 16px;
-	background:
-		linear-gradient(rgba(255, 255, 255, 0.55) 0 0) 0 0 / 100% 5px no-repeat,
-		repeating-linear-gradient(90deg, transparent 0 62px, rgba(61, 26, 46, 0.07) 62px 64px),
-		linear-gradient(#ffa9bf, #ff97b2);
-}
-
-/* ---- Nav: a cream awning with a scalloped edge ---- */
+/* ---------- Nav: a floating cream pill ---------- */
 .nav {
 	position: sticky;
-	top: 0;
+	top: 1.2em;
 	z-index: 40;
 	display: flex;
 	align-items: center;
-	gap: clamp(6px, 2vw, 16px);
-	padding: 6px var(--gutter);
-	background: var(--cream);
+	gap: 1em;
+	width: min(100% - 2 * var(--gutter), 1100px);
+	margin: 1.2em auto 0;
+	padding: 0.45em 0.5em 0.45em 1.1em;
+	border-radius: 999px;
+	background: rgb(255 247 230 / 0.9);
+	color: var(--night);
+	box-shadow: var(--lift);
+	-webkit-backdrop-filter: blur(10px);
+	backdrop-filter: blur(10px);
 }
-.nav::after {
-	content: "";
-	position: absolute;
-	top: 100%;
-	left: 0;
-	right: 0;
-	height: 11px;
-	pointer-events: none;
-	background: radial-gradient(circle 11px at 50% 0, var(--cream) 96%, transparent 100%) 0 0 / 22px 11px repeat-x;
-	filter: drop-shadow(0 3px 0 rgba(251, 111, 146, 0.25));
-}
-.nav-brand {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	font-family: var(--font-display);
-	font-weight: 700;
-	font-size: 1.15rem;
-	white-space: nowrap;
-}
-.nav-mark {
-	flex: none;
-	width: 44px;
-	height: 34px;
-	overflow: hidden;
-}
-.nav-mark .teddy {
-	display: block;
-	margin-top: -5px;
-}
-.nav-mark .teddy-bob {
-	animation: none;
-}
-.nav-links {
-	display: flex;
-	gap: 4px;
-	margin-inline: auto;
-}
-.nav-link {
+.hm-brand {
 	display: inline-flex;
 	align-items: center;
-	justify-content: center;
 	gap: 0.4em;
-	min-height: 44px;
-	padding: 0.45em 0.85em;
-	border-radius: var(--r-sm);
-	color: var(--plum);
-	font-family: var(--font-display);
-	font-weight: 500;
-	text-decoration: none;
-	transition: background 0.15s;
+	font: 500 1.15em var(--display);
+	white-space: nowrap;
+	--petal-line: var(--night); /* yellow on light paper needs its ink line */
 }
-.nav-link:hover {
-	background: var(--blush);
+.hm-links {
+	display: flex;
+	gap: 0.2em;
+	margin: 0 auto;
 }
-.nav-link[aria-current="page"] {
-	background: var(--petal);
-	box-shadow: inset 0 -3px 0 var(--hot);
-}
-.nav-presence {
+.hm-link {
 	display: inline-flex;
 	align-items: center;
-	gap: 0.45em;
-	font-weight: 700;
-	font-size: 0.9rem;
-	color: var(--plum-soft);
+	gap: 0.4em;
+	padding: 0.6em 1em;
+	border-radius: 999px;
+	color: var(--ink-soft);
+	font-weight: 600;
+	text-decoration: none;
+	transition: background 0.15s, color 0.15s;
+}
+.hm-link svg {
+	flex: none;
+	width: 1.15em;
+	height: 1.15em;
+}
+.hm-link:hover {
+	background: var(--haze);
+	color: var(--night);
+}
+.hm-link[aria-current="page"] {
+	background: var(--fog);
+	color: var(--night);
+}
+.hm-who {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5em;
+	padding: 0.3em 0.9em 0.3em 0.3em;
+	border-radius: 999px;
+	background: var(--haze);
+	font-weight: 600;
 	white-space: nowrap;
 }
-.nav-dot {
-	width: 12px;
-	height: 12px;
-	border-radius: 50%;
-	border: 2.5px solid var(--plum-soft);
-}
-.nav-presence.on .nav-dot {
-	background: var(--hot);
-	border-color: var(--hot);
-	box-shadow: 0 0 0 3px var(--petal);
-}
-.nav-pname {
-	max-width: 10em;
+.hm-who-name {
+	max-width: 9em;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
-.nav-out {
-	color: var(--plum-soft);
+.hm-out {
+	background: transparent;
+	color: var(--ink-soft);
 }
-@media (max-width: 760px) {
-	.nav-name {
+.hm-out:hover {
+	background: var(--haze);
+	color: var(--night);
+}
+
+/* the theater is dark: the nav turns to misty glass */
+body:has(.theater) .nav {
+	--focus: var(--haze);
+	background: rgb(45 58 71 / 0.5);
+	color: var(--haze);
+	box-shadow: inset 0 0 0 1px rgb(234 239 244 / 0.12);
+}
+body:has(.theater) .hm-brand {
+	--petal-line: none; /* the dark nav needs no outline */
+}
+body:has(.theater) .hm-link,
+body:has(.theater) .hm-out {
+	color: var(--fog);
+}
+body:has(.theater) .hm-link:hover,
+body:has(.theater) .hm-out:hover {
+	background: rgb(169 183 198 / 0.14);
+	color: var(--cream);
+}
+body:has(.theater) .hm-link[aria-current="page"] {
+	background: rgb(169 183 198 / 0.22);
+	color: var(--cream);
+}
+body:has(.theater) .hm-who {
+	background: rgb(169 183 198 / 0.18);
+}
+
+@media (max-width: 960px) {
+	.hm-who-name {
 		display: none;
+	}
+	.hm-who {
+		padding-right: 0.7em;
+	}
+}
+@media (max-width: 900px) and (min-width: 761px) {
+	.hm-brand-name {
+		display: none;
+	}
+}
+/* phone: brand and their face on top, the links as a compact icon row underneath */
+@media (max-width: 760px) {
+	.nav {
+		top: 0.6em;
+		flex-wrap: wrap;
+		gap: 0.3em 0.5em;
+		margin-top: 0.6em;
+		padding: 0.45em 0.45em 0.35em 1em;
+		border-radius: 1.6em;
+	}
+	.hm-brand {
+		margin-right: auto;
+	}
+	.hm-links {
+		order: 1;
+		width: 100%;
+		margin: 0;
+		padding-top: 0.3em;
+		box-shadow: 0 -1px 0 rgb(45 58 71 / 0.08);
+	}
+	body:has(.theater) .hm-links {
+		box-shadow: 0 -1px 0 rgb(234 239 244 / 0.12);
+	}
+	.hm-link {
+		flex: 1;
+		flex-direction: column;
+		gap: 0.1em;
+		min-height: 44px;
+		padding: 0.35em 0.2em;
+		border-radius: 1em;
+		font-size: 0.78em;
+	}
+	.hm-link svg {
+		width: 1.6em;
+		height: 1.6em;
+	}
+}
+
+/* ---------- Home: sky outside, a dusk window with the two of you in it ---------- */
+.page.hm-home {
+	display: grid;
+	grid-template-columns: minmax(0, 30em) minmax(0, 1fr);
+	align-items: center;
+	gap: clamp(2.5em, 6vw, 5.5em);
+	padding-top: 2.6em;
+}
+.hm-window {
+	--h: 17em;
+	--focus: var(--cream);
+	position: relative;
+	aspect-ratio: 3 / 4;
+	margin: 0.7em;
+	background: var(--blue-hour);
+	box-shadow: 0 0 0 0.7em var(--cream), var(--lift);
+}
+.hm-window-moon {
+	top: 13%;
+	right: 17%;
+}
+.hm-window .ch-duo {
+	position: absolute;
+	left: 50%;
+	bottom: 2.6em;
+	translate: -50% 0;
+}
+/* boop: a real button over their head */
+.hm-boop {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 52%;
+	padding: 0;
+	border: 0;
+	border-radius: 45% 45% 1em 1em;
+	background: transparent;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+.hm-boop.l {
+	left: 0;
+}
+.hm-boop.r {
+	right: 0;
+}
+.hm-pop {
+	position: absolute;
+	bottom: 82%;
+	width: 2em;
+	height: auto;
+	opacity: 0;
+	pointer-events: none;
+	animation: hm-pop 0.9s var(--spring) forwards;
+}
+.hm-pop.l {
+	left: 24%;
+}
+.hm-pop.r {
+	left: 66%;
+}
+@keyframes hm-pop {
+	0% {
+		opacity: 1;
+		transform: scale(0);
+	}
+	50% {
+		opacity: 1;
+		transform: translate(0.7em, -2.2em) scale(1.2) rotate(90deg);
+	}
+	100% {
+		opacity: 0;
+		transform: translate(1em, -3.4em) scale(0.8) rotate(180deg);
+	}
+}
+
+.hm-copy {
+	display: grid;
+	gap: 0.8em;
+	justify-items: start;
+}
+.hm-copy h1 {
+	margin: 0;
+	font-size: 3.4em;
+	overflow-wrap: anywhere;
+	text-wrap: balance;
+}
+.hm-lede {
+	max-width: 30ch;
+	margin: 0;
+	font-size: 1.15em;
+}
+.hm-rows {
+	display: grid;
+	gap: 0.8em;
+	width: 100%;
+	margin-top: 1em;
+}
+.hm-row {
+	display: flex;
+	align-items: center;
+	gap: 1em;
+	padding: 0.9em 1.2em 0.9em 0.9em;
+	border-radius: 1.6em;
+	background: var(--cream);
+	color: var(--night);
+	box-shadow: var(--lift);
+	text-decoration: none;
+	transition: transform 0.25s var(--spring);
+}
+.hm-row:hover {
+	transform: translateY(-2px);
+}
+.hm-row:active {
+	transform: scale(0.99);
+}
+.hm-row-text {
+	min-width: 0;
+}
+.hm-row-text b {
+	display: block;
+	font: 500 1.3em var(--display);
+}
+.hm-row-text span {
+	display: block;
+	color: var(--ink-soft);
+	font-size: 0.92em;
+}
+.hm-row.go {
+	background: var(--dusk);
+	color: var(--cream);
+}
+.hm-row.go .hm-row-text span {
+	color: var(--haze);
+}
+.hm-ico {
+	display: grid;
+	place-items: center;
+	flex: none;
+	width: 2.6em;
+	aspect-ratio: 1;
+	border-radius: 50%;
+	background: var(--fog);
+	color: var(--dusk);
+	font-size: 1.2em;
+}
+.hm-ico svg {
+	width: 1em;
+	height: 1em;
+}
+.hm-row.go .hm-ico {
+	background: rgb(234 239 244 / 0.16);
+	color: var(--cream);
+}
+.hm-arrow {
+	flex: none;
+	width: 1.3em;
+	height: 1.3em;
+	margin-left: auto;
+}
+.hm-names {
+	margin: 0.6em 0 0;
+	color: var(--night); /* sits on the sky, where ink-soft is too faint */
+	font-size: 0.95em;
+}
+.hm-rename {
+	padding: 0.3em 0.1em;
+	border: 0;
+	background: none;
+	color: inherit;
+	font-weight: 600;
+	text-decoration: underline;
+	text-underline-offset: 0.2em;
+	cursor: pointer;
+}
+.hm-rename:hover {
+	text-decoration-thickness: 2px;
+}
+
+.hm-rename-dialog {
+	width: min(40em, 100vw - 2em);
+	max-width: none;
+	max-height: calc(100dvh - 2em);
+	padding: 0;
+	border: 0;
+	border-radius: 1.6em;
+	background: transparent;
+	color: var(--night);
+	overflow: auto;
+}
+.hm-rename-dialog::backdrop {
+	background: rgb(45 58 71 / 0.55);
+	-webkit-backdrop-filter: blur(3px);
+	backdrop-filter: blur(3px);
+}
+.hm-rename-dialog .hm-love {
+	width: 100%;
+}
+.hm-rename-x {
+	position: absolute;
+	top: 0.8em;
+	right: 0.8em;
+}
+
+@media (max-width: 860px) {
+	.page.hm-home {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 1.6em;
+		padding-top: 1.4em;
+	}
+	.hm-window {
+		--h: 11em;
+		aspect-ratio: auto;
+		height: 21em;
+	}
+	.hm-window .ch-duo {
+		bottom: 1.6em;
+	}
+	.hm-window .clouds {
+		font-size: 0.7em;
+	}
+	.hm-window-moon {
+		top: 3.4em;
+		right: 3em;
+		font-size: 0.8em;
+	}
+	.hm-copy {
+		gap: 0.6em;
+	}
+	.hm-copy h1 {
+		font-size: 2.4em;
 	}
 }
 @media (max-width: 600px) {
-	.nav-links {
-		gap: 0;
-	}
-	.nav-link {
-		min-width: 44px;
-		padding: 0.4em;
-		font-size: 1.25rem;
-	}
-	.nav-label {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip: rect(0 0 0 0);
-		white-space: nowrap;
-	}
-	.nav-pname {
+	.hm-row-text span {
 		display: none;
 	}
 }
 
-/* ---- Home ---- */
-.home-stage {
-	padding-top: 66px;
+/* ---------- Login: daylight sky, the two of you peeking over a cream card ---------- */
+.hm-login-moon {
+	top: 9%;
+	right: 14%;
 }
-.home-greeting {
+.hm-login-col {
 	position: relative;
-	z-index: 1;
-	padding: 0 calc(var(--curtain) + 12px);
-	text-align: center;
-}
-.home-greeting h1 {
-	margin: 0;
-	text-wrap: balance;
-	font-size: clamp(1.75rem, 4.6vw, 3rem);
-	overflow-wrap: anywhere;
-}
-.home-greeting p {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: center;
-	align-items: center;
-	gap: 0.3em 0.6em;
-	max-width: 36em;
-	margin: 0.35em auto 0;
-	color: var(--plum-soft);
-	font-weight: 600;
-	text-wrap: pretty;
-}
-.together-chip {
-	background: var(--white);
-	box-shadow: 0 2px 0 var(--petal);
-}
-.home-stage .velvet-duo {
-	margin-top: 16px;
-}
-.placards {
 	display: grid;
-	grid-template-columns: repeat(2, calc(var(--bear) + var(--gap) / 2));
-	column-gap: calc(var(--gap) / 2);
-	justify-content: center;
-	align-items: start;
+	justify-items: center;
+	width: min(26em, 100%);
+	margin-top: -3em;
 }
-.placard {
-	justify-self: center;
-	max-width: 100%;
-	margin: 0;
-	padding: 0.35em 0.8em;
-	border-radius: var(--r-sm);
-	background: var(--cream);
-	box-shadow: 0 3px 0 rgba(61, 26, 46, 0.12);
-	font-size: 0.9rem;
-	font-weight: 600;
-	text-align: center;
-	overflow-wrap: anywhere;
-}
-.placard b {
-	font-family: var(--font-display);
-	font-size: 1.05rem;
-	font-weight: 600;
-}
-.rename {
-	min-height: 32px;
-	margin-left: 0.3em;
-	padding: 0.2em 0.4em;
-	border: 0;
-	border-radius: 8px;
-	background: none;
-	color: #b8365c;
-	font-size: 0.85rem;
-	font-weight: 700;
-	text-decoration: underline;
-	text-underline-offset: 3px;
-	cursor: pointer;
-}
-.rename:hover {
-	background: var(--blush);
-}
-.rename-dialog {
-	width: min(440px, calc(100vw - 32px));
-	max-height: calc(100dvh - 32px);
-	padding: 0;
-	border: 0;
-	background: transparent;
-	overflow: auto;
-}
-.rename-dialog::backdrop {
-	background: rgba(61, 26, 46, 0.45);
-}
-.rename-dialog .love-card {
-	width: 100%;
-}
-.rename-dialog .love-ticket::before,
-.rename-dialog .love-ticket::after {
-	display: none;
-}
-.rename-x {
-	position: absolute;
-	top: 8px;
-	right: 8px;
-}
-
-/* tiles: three doors into the rest of the site, each with its own surface */
-.tiles {
-	display: grid;
-	gap: 22px;
-	margin-top: 30px;
-}
-@media (min-width: 880px) {
-	.tiles {
-		grid-template-columns: repeat(3, 1fr);
-	}
-}
-.tile {
-	position: relative;
+.hm-wordmark {
 	display: flex;
 	align-items: center;
-	gap: 16px;
-	padding: 22px 22px 22px 14px;
-	border-radius: var(--r-md);
-	color: inherit;
-	text-decoration: none;
-	transition: transform 0.2s var(--ease-bounce);
+	gap: 0.3em;
+	margin: 0 0 0.6em;
+	font-size: clamp(1.75em, 8.4vw, 2.1em);
+	white-space: nowrap;
+	--petal-line: var(--night); /* yellow on light paper needs its ink line */
 }
-.tile:hover {
-	transform: translateY(-3px);
-}
-.tile:active {
-	transform: translateY(2px);
-}
-.tile .teddy {
-	flex: none;
-	width: clamp(92px, 24vw, 116px);
-	height: auto;
-}
-.tile h2 {
-	margin: 0 0 0.15em;
-	font-size: 1.45rem;
-}
-.tile p {
-	margin: 0;
-	font-weight: 600;
-}
-.tile-theater {
-	padding-block: 34px;
-	background: var(--plum);
-	color: var(--cream);
-	box-shadow: 0 6px 0 #26101d;
-}
-.tile-theater::before,
-.tile-theater::after {
-	content: "";
-	position: absolute;
-	left: 14px;
-	right: 14px;
-	height: 9px;
-	background: linear-gradient(90deg, rgba(255, 229, 236, 0.85) 0 11px, transparent 11px) 0 0 / 22px 100% repeat-x;
-}
-.tile-theater::before {
-	top: 10px;
-}
-.tile-theater::after {
-	bottom: 10px;
-}
-.tile-games {
-	background: radial-gradient(rgba(255, 255, 255, 0.4) 2px, transparent 2.5px) 0 0 / 18px 18px, var(--rose);
-	box-shadow: 0 6px 0 var(--hot-deep);
-}
-.tile-memories {
-	background: var(--cream);
-	box-shadow: 0 6px 0 var(--petal);
-}
-.tile-memories::before,
-.tile-memories::after {
-	content: "";
-	position: absolute;
-	top: calc(50% - 13px);
-	width: 26px;
-	height: 26px;
-	border-radius: 50%;
-	background: var(--blush);
-}
-.tile-memories::before {
-	left: -13px;
-}
-.tile-memories::after {
-	right: -13px;
-}
-.tile-memories .tile-text {
-	align-self: stretch;
+/* the heads stand behind the card's top edge; the box crops them there */
+.hm-peek {
+	--h: 10em;
 	display: flex;
-	flex-direction: column;
+	align-items: flex-end;
 	justify-content: center;
-	padding-left: 16px;
-	border-left: 3px dashed var(--petal);
-}
-
-/* ---- Ticket surface (login + name form) ---- */
-.love-ticket {
-	position: relative;
-	padding: 26px clamp(20px, 5vw, 30px) 18px;
-	border-radius: var(--r-md);
-	background: var(--cream);
-	box-shadow: 0 6px 0 rgba(61, 26, 46, 0.08), 0 18px 40px rgba(251, 111, 146, 0.18);
-}
-.love-ticket::before,
-.love-ticket::after {
-	content: "";
-	position: absolute;
-	top: calc(50% - 13px);
-	width: 26px;
-	height: 26px;
-	border-radius: 50%;
-	background: var(--blush);
-}
-.love-ticket::before {
-	left: -13px;
-}
-.love-ticket::after {
-	right: -13px;
-}
-
-/* ---- Login ---- */
-.login {
-	background:
-		radial-gradient(40% 30% at 10% 90%, rgba(255, 255, 255, 0.65), transparent 70%),
-		radial-gradient(35% 28% at 92% 10%, rgba(255, 255, 255, 0.55), transparent 70%),
-		var(--blush);
-}
-.login-wrap {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	width: min(100%, 390px);
-}
-/* a login-marquee sign with warm bulbs around the edge */
-.login-marquee {
-	position: relative;
-	margin: 0;
-	padding: 0.55em 1.1em 0.6em;
-	border-radius: var(--r-md);
-	background: var(--plum);
-	color: var(--cream);
-	font-size: clamp(2rem, 9vw, 2.9rem);
-	font-weight: 700;
-	line-height: 1.02;
-	box-shadow: 0 6px 0 #26101d, 0 16px 34px rgba(61, 26, 46, 0.25);
-}
-.login-marquee span {
-	display: block;
-}
-.login-marquee::before {
-	--bulb: radial-gradient(circle, #fff1b8 0 2.6px, rgba(255, 225, 140, 0.35) 3.4px, transparent 5px);
-	content: "";
-	position: absolute;
-	inset: 5px;
-	pointer-events: none;
-	background:
-		var(--bulb) top / 18px 10px repeat-x,
-		var(--bulb) bottom / 18px 10px repeat-x,
-		var(--bulb) left / 10px 18px repeat-y,
-		var(--bulb) right / 10px 18px repeat-y;
-}
-/* the teddy hides behind the ticket's top edge; the wrapper crops the empty sky above it */
-.login-bear {
-	display: flex;
-	justify-content: center;
+	gap: 0.4em;
 	width: 100%;
-	margin-top: 10px;
+	height: 8em;
 	overflow: hidden;
 }
-.login-bear .teddy {
-	display: block;
-	margin-top: -72px;
+.hm-peek .ch-her {
+	translate: 0 36%;
 }
-.login-teddy.teddy--sad {
-	--t-y: 58px;
+.hm-peek .ch-him {
+	translate: 0 26%;
 }
-.login-ticket {
+/* typing: both duck until only hair and his flower show */
+.hm-peek.duck .ch-head {
+	transform: translateY(47%);
+}
+/* show passcode: she peeks back up, tilted */
+.hm-peek.show .ch-her {
+	transform: translateY(16%) rotate(-8deg);
+}
+.hm-login-card {
+	position: relative;
 	width: 100%;
 	text-align: left;
 }
-.login-label {
-	display: block;
-	margin-bottom: 0.4em;
-	font-family: var(--font-display);
-	font-size: 1.1rem;
-	font-weight: 600;
+.hm-login-card.shake {
+	animation: hm-shake 0.5s ease-in-out;
 }
-.pass-field {
+@keyframes hm-shake {
+	20% {
+		transform: translateX(-10px) rotate(-1deg);
+	}
+	40% {
+		transform: translateX(9px) rotate(1deg);
+	}
+	60% {
+		transform: translateX(-6px);
+	}
+	80% {
+		transform: translateX(4px);
+	}
+}
+.hm-pass {
 	position: relative;
 }
-.pass-field .input {
-	padding-right: 4.8em;
+.hm-pass .input {
+	padding-right: 3.3em;
 }
-.pass-toggle {
+.hm-eye {
 	position: absolute;
 	top: 50%;
-	right: 7px;
-	transform: translateY(-50%);
-	min-height: 34px;
-	padding: 0.35em 0.75em;
+	right: 0.35em;
+	display: grid;
+	place-items: center;
+	width: 2.5em;
+	height: 2.5em;
+	translate: 0 -50%;
 	border: 0;
-	border-radius: 10px;
-	background: var(--blush);
-	font-size: 0.85rem;
-	font-weight: 800;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--ink-soft);
 	cursor: pointer;
 }
-.pass-toggle:hover {
-	background: var(--petal);
+.hm-eye:hover {
+	background: var(--haze);
+	color: var(--night);
 }
-.login-go {
+.hm-eye svg {
+	width: 1.25em;
+	height: 1.25em;
+}
+.hm-login-err:empty {
+	margin: 0;
+}
+.hm-login-err svg {
+	flex: none;
+	width: 1.2em;
+	height: 1.2em;
+}
+.hm-go {
 	width: 100%;
-	margin-top: 14px;
+	margin-top: 1em;
 }
-.login-error {
-	min-height: 1.5em;
-	margin: 10px 0 0;
-	color: #b8365c;
-	font-weight: 700;
+.hm-login-hint {
 	text-align: center;
 }
-.login-foot {
-	margin: 18px 0 0;
-	font-weight: 600;
-}
-.login-ticket.shake {
-	animation: ticket-shake 0.5s ease-in-out;
-}
-@keyframes ticket-shake {
-	0%, 100% { transform: translateX(0); }
-	20% { transform: translateX(-10px) rotate(-1deg); }
-	40% { transform: translateX(9px) rotate(1deg); }
-	60% { transform: translateX(-6px); }
-	80% { transform: translateX(4px); }
-}
-
-/* ---- Name your love ---- */
-.love-card {
-	width: min(100%, 420px);
-	padding-top: 16px;
+.hm-replaced {
 	text-align: center;
 }
-.love-preview {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	margin-bottom: 14px;
-}
-.nametag {
-	position: relative;
-	max-width: 100%;
-	min-width: 4em;
-	margin-top: -6px;
-	padding: 0.2em 0.9em;
-	border-radius: var(--r-sm);
-	background: var(--white);
-	box-shadow: 0 3px 0 var(--petal);
-	font-family: var(--font-display);
-	font-size: 1.15rem;
-	font-weight: 600;
-	overflow-wrap: anywhere;
-}
-.nametag.empty {
-	color: var(--plum-soft);
-}
-.love-card h1 {
-	font-size: clamp(1.4rem, 5.5vw, 1.9rem);
+.hm-replaced-title {
+	font-size: 1.6em;
 	text-wrap: balance;
 }
-.love-help {
-	margin: 0 0 14px;
+
+/* ---------- Name your love ---------- */
+.clouds.hm-haze-clouds {
+	--c: var(--haze);
 }
-.swatches {
-	margin: 18px 0 20px;
+.hm-love {
+	position: relative;
+	display: grid;
+	grid-template-columns: 12em minmax(0, 1fr);
+	align-items: center;
+	gap: 1.8em;
+	width: min(40em, 100%);
+	text-align: left;
+}
+.hm-portrait {
+	--h: 12.5em;
+	display: grid;
+	place-items: end center;
+	height: 16em;
+	margin: 0.35em;
+	background: var(--sky);
+	box-shadow: 0 0 0 0.35em var(--ring);
+}
+.hm-love-title {
+	margin-bottom: 0.5em;
+	font-size: 1.75em;
+	text-wrap: balance;
+}
+.hm-love .love-input {
+	margin-bottom: 1em;
+}
+.hm-swatches {
+	min-width: 0;
+	margin: 0;
 	padding: 0;
 	border: 0;
 }
-.swatches legend {
-	width: 100%;
-	margin-bottom: 10px;
+.hm-swatches legend {
 	padding: 0;
-	font-family: var(--font-display);
-	font-weight: 600;
-	text-align: center;
 }
-.swatch-row {
+.hm-swatch-row {
 	display: flex;
 	flex-wrap: wrap;
-	justify-content: center;
-	gap: 10px;
+	gap: 0.7em;
+	padding: 0.4em;
 }
-.swatch {
-	position: relative;
+.hm-swatch {
+	display: block;
 	cursor: pointer;
 }
-.swatch-dot {
-	display: block;
-	width: 40px;
-	height: 40px;
-	border: 3px solid var(--white);
+.hm-swatch-dot {
+	display: grid;
+	place-items: center;
+	width: 2.3em;
+	aspect-ratio: 1;
 	border-radius: 50%;
-	box-shadow: 0 0 0 2px var(--petal);
-	transition: transform 0.15s var(--ease-bounce), box-shadow 0.15s;
+	color: var(--night);
+	box-shadow: inset 0 0 0 1px rgb(45 58 71 / 0.15);
+	transition: transform 0.2s var(--spring);
 }
-.swatch input:checked + .swatch-dot {
-	box-shadow: 0 0 0 3px var(--plum);
-	transform: scale(1.12);
+.hm-swatch:hover .hm-swatch-dot {
+	transform: scale(1.08);
 }
-.swatch input:focus-visible + .swatch-dot {
-	outline: 3px solid var(--hot);
-	outline-offset: 4px;
+.hm-swatch input:checked + .hm-swatch-dot {
+	box-shadow: 0 0 0 0.2em var(--cream), 0 0 0 0.38em var(--night);
 }
-.love-save {
-	width: 100%;
+.hm-swatch input:focus-visible + .hm-swatch-dot {
+	outline: 2px solid var(--dusk);
+	outline-offset: 0.6em;
+}
+.hm-swatch-dot svg {
+	width: 1.1em;
+	height: 1.1em;
+}
+.hm-love .love-save {
+	margin-top: 1.2em;
+}
+@media (max-width: 640px) {
+	.hm-love {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 1.4em;
+	}
+	.hm-portrait {
+		--h: 9.5em;
+		justify-self: center;
+		width: 9.5em;
+		height: 12em;
+	}
 }
 
-/* ---- Door: curtains mostly closed until you come in ---- */
-.door-wrap {
-	width: min(100%, 680px);
+/* ---------- Door: they peek out from behind it when they're inside ---------- */
+.center-screen.hm-door-page {
+	place-items: end center;
+	padding-bottom: 1.4em; /* the door stands in the clouds' solid band */
 }
-.door-title {
-	font-size: clamp(2rem, 6vw, 3.2rem);
+.hm-door-moon {
+	top: 11%;
+	left: 44%;
+}
+.hm-door-scene {
+	position: relative;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 3em;
+	width: min(100%, 46em);
+	font-size: clamp(1em, 1.2vw + 0.4em, 1.3em);
+	text-align: left;
+}
+.hm-door-copy {
+	display: grid;
+	justify-items: start;
+	gap: 0.8em;
+	padding-bottom: 4em;
+}
+.hm-door-copy h1 {
+	margin: 0;
+	font-size: 3em;
 	overflow-wrap: anywhere;
 }
-.velvet--closed {
-	--curtain: clamp(44px, 17vw, 180px);
-	--bear: clamp(96px, 24vw, 160px);
-	--gap: clamp(8px, 3vw, 36px);
-	padding-top: 70px;
+.hm-door-status {
+	margin: 0;
+	font-size: 1.15em;
 }
-.door-status {
-	margin: 20px 0 14px;
-	font-family: var(--font-display);
-	font-size: 1.2rem;
-	font-weight: 500;
+.hm-door-note {
+	max-width: 26em;
+	margin: 0.4em 0 0;
+	font-size: 0.8em;
 }
-.door-go {
-	padding: 0.8em 1.9em;
-	font-size: 1.3rem;
+.hm-door {
+	--ay: 32%;
+	--h: 10em;
+	position: relative;
+	width: 13em;
+	height: 20em;
+	margin: 0.6em;
+	background: linear-gradient(var(--cream), var(--blush) 160%);
+	box-shadow: 0 0 0 0.6em var(--cream), var(--lift);
 }
-.door-note {
-	max-width: 30em;
-	margin: 16px auto 0;
-	font-size: 0.9rem;
+.hm-door-head {
+	position: absolute;
+	left: 54%;
+	bottom: 4.5em;
+	rotate: -12deg;
+}
+.hm-leaf {
+	position: absolute;
+	inset: 0;
+	background: var(--dusk);
+	transform-origin: 0 50%;
+	transition: transform 0.9s var(--spring);
+}
+.hm-knob {
+	position: absolute;
+	top: 55%;
+	left: calc(100% - 1.8em);
+	width: 0.9em;
+	aspect-ratio: 1;
+	border-radius: 50%;
+	background: var(--blush);
+	transition: transform 0.9s var(--spring);
+}
+/* ajar: the leaf swings to 62% and the knob rides along */
+.hm-door.open .hm-leaf {
+	transform: scaleX(0.62);
+}
+.hm-door.open .hm-knob {
+	transform: translateX(-4.94em);
+}
+@media (max-width: 720px) {
+	.hm-door-moon {
+		top: 4%;
+		left: auto;
+		right: 12%;
+		font-size: 0.8em;
+	}
+	.hm-door-scene {
+		grid-template-columns: minmax(0, 1fr);
+		justify-items: center;
+		gap: 2em;
+		text-align: center;
+	}
+	.hm-door-copy {
+		justify-items: center;
+		padding-bottom: 0;
+	}
+	.hm-door-copy h1 {
+		font-size: 2.6em;
+	}
 }

@@ -4,7 +4,7 @@ import "./styles.css";
 import { other, type Who } from "../shared/types";
 import { connect, useRoom } from "./room";
 import { startCall, useCall } from "./rtc";
-import Teddy from "./Teddy";
+import { Head, Loader } from "./Character";
 import { Door, Login, ProfilePicker } from "./Login";
 import { Home, Nav } from "./Home";
 import Theater from "./Theater";
@@ -25,19 +25,10 @@ function useRoute(): Route {
 	return route;
 }
 
-export async function logout() {
-	await fetch("/api/logout", { method: "POST" }).catch(() => {});
-	location.hash = "";
-	location.reload();
-}
-
 function Splash({ text }: { text: string }) {
 	return (
 		<main className="center-screen">
-			<div>
-				<Teddy mood="sleep" size={140} />
-				<p className="muted">{text}</p>
-			</div>
+			<Loader text={text} />
 		</main>
 	);
 }
@@ -59,18 +50,25 @@ function App() {
 		if (auth !== "checking" && auth !== "out") connect(() => setAuth("out"));
 	}, [auth]);
 
-	if (auth === "checking") return <Splash text="Warming up the popcorn…" />;
+	if (auth === "checking") return <Splash text="Warming up the popcorn" />;
 	if (auth === "out") return <Login onIn={setAuth} />;
-	if (!room) return <Splash text="Opening the theater doors…" />;
+	if (!room) return <Splash text="Opening the theater" />;
 	if (room.replaced)
 		return (
-			<main className="center-screen">
-				<div>
-					<Teddy mood="peek" size={140} />
-					<h2>You opened the theater in another tab 💕</h2>
-					<button className="btn" onClick={() => location.reload()}>
-						Use this tab instead
-					</button>
+			<main className="center-screen hm-login">
+				<i className="clouds" />
+				<div className="hm-login-col">
+					<div className="hm-peek">
+						<Head who="b" mood="bob" />
+						<Head who="a" mood="bob" />
+					</div>
+					<div className="card hm-login-card hm-replaced">
+						<h1 className="hm-replaced-title">You opened the theater in another tab</h1>
+						<p className="hint">Only one tab can be in the room at a time.</p>
+						<button className="btn hm-go" onClick={() => location.reload()}>
+							Use this tab instead
+						</button>
+					</div>
 				</div>
 			</main>
 		);

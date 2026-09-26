@@ -54,7 +54,7 @@ export function c4Move(s: Grid, col: number, who: Who): Grid | null {
 }
 
 // ---- Memory match ----
-export const MEMORY_FACES = ["🧸", "💗", "🍿", "🎬", "🌸", "🍓", "🎀", "⭐"];
+export const MEMORY_FACES = ["🌙", "💗", "🍿", "🎬", "🌸", "🍓", "🎀", "⭐"];
 /** `found` maps card index → who found it (JSON turns the keys into strings; lookups still work). */
 export type Memory = { deck: string[]; up: number[]; found: Record<number, Who>; turn: Who; starter: Who };
 
@@ -121,8 +121,8 @@ export const doodleInit = (starter: Who): Doodle => ({ drawer: starter, round: 0
 export const doodleSolved = (s: Doodle, word: string, by: Who): Doodle => ({ drawer: other(s.drawer), round: s.round + 1, last: { word, guessedBy: by } });
 
 export const WORDS = [
-	"teddy", "pizza", "rainbow", "cat", "sun", "popcorn", "heart", "balloon", "flower", "moon",
-	"star", "cloud", "house", "tree", "fish", "dog", "bunny", "cake", "ice cream", "cupcake",
+	"kitten", "pizza", "rainbow", "cat", "sun", "popcorn", "heart", "balloon", "flower", "moon",
+	"star", "cloud", "house", "tree", "fish", "dog", "robot", "cake", "ice cream", "cupcake",
 	"donut", "cookie", "apple", "banana", "strawberry", "cherry", "carrot", "bee", "butterfly", "snail",
 	"ladybug", "duck", "frog", "penguin", "owl", "turtle", "whale", "octopus", "snowman", "umbrella",
 	"rocket", "car", "bicycle", "boat", "train", "kite", "guitar", "crown", "ring", "gift",

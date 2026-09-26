@@ -42,7 +42,7 @@ export type RelayData =
 	/** The resolution this person wants to RECEIVE (null = auto); the sharer encodes to match. */
 	| { k: "quality"; height: 480 | 720 | 1080 | 1440 | null }
 	| { k: "react"; emoji: string; x: number }
-	| { k: "nudge"; kind: "pause" | "hug" }
+	| { k: "nudge"; kind: "pause" | "hug" | "boop" }
 	| { k: "doodle"; strokes: Stroke[] }
 	| { k: "doodle:clear" }
 	| { k: "doodle:guess"; text: string };

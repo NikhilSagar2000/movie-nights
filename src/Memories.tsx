@@ -1,12 +1,13 @@
 // Memories: the watchlist jar (add, remove, shake → server pick → reveal) and the ticket stubs wall.
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { LIMITS, other, type Stub, type Who } from "../shared/types";
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { FilmSlate, Heart, Plus, Shuffle, X } from "@phosphor-icons/react";
+import { LIMITS, other, type JarItem, type Stub, type Who } from "../shared/types";
+import { Flower, FlowerBurst, Head } from "./Character";
 import { profileOf, send, useRoom, type RoomState } from "./room";
-import Teddy from "./Teddy";
-import { Icon, type Vars } from "./Theater";
 import "./memories.css";
 
 type Pick = NonNullable<RoomState["picked"]>;
+type Vars = CSSProperties & Record<`--${string}`, string>;
 
 /** Stable pseudo-random tilt per id, so a stub/slip leans the same way on both screens and every render. */
 const tilt = (id: string, max: number) => {
@@ -16,17 +17,23 @@ const tilt = (id: string, max: number) => {
 
 function fmtDate(iso: string) {
 	const d = new Date(`${iso.slice(0, 10)}T12:00:00`); // local noon: no off-by-one from UTC parsing
-	return isNaN(+d) ? iso : d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+	const year = d.getFullYear() === new Date().getFullYear() ? undefined : "numeric"; // "Sat 13 Sep", like a real stub
+	return isNaN(+d) ? iso : d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year });
 }
+
+/** Both heads asleep, peeking up from the bottom of a clip: the empty states. */
+const Peek = () => (
+	<span className="mem-peek" aria-hidden="true">
+		<Head who="b" mood="away" />
+		<Head who="a" mood="away" />
+	</span>
+);
 
 export default function Memories() {
 	const room = useRoom();
 	return room ? (
-		<main className="page memories">
-			<header className="mem-head">
-				<h1>Memories</h1>
-				<p className="muted">The movies you're dreaming of, and the nights you've already shared.</p>
-			</header>
+		<main className="page mem-page">
+			<h1 className="sr-only">Memories</h1>
 			<JarSection room={room} />
 			<StubWall room={room} />
 		</main>
@@ -61,60 +68,86 @@ function JarSection({ room }: { room: RoomState }) {
 		send({ t: "jar:shake" });
 	};
 
+	// The last pick floats above the jar (once the wobble settles) while it's still in there.
+	const out = !shaking && picked && room.jar.some((j) => j.id === picked.item.id) ? picked : null;
+	const slips = out ? room.jar.filter((j) => j.id !== out.item.id) : room.jar;
+
 	return (
-		<section className="mem-jar-section" aria-labelledby="jar-h">
+		<section className="card mem-jar-card" aria-labelledby="jar-h">
 			<div className="mem-jar-copy">
 				<h2 id="jar-h">The watchlist jar</h2>
-				<p className="muted">Drop in anything you both want to watch. Can't decide? Give it a shake and let the jar pick tonight's movie.</p>
-				<form className="mem-jar-form" onSubmit={add}>
-					<label htmlFor="jar-in" className="sr-only">
-						Add a movie to the jar
+				<p className="muted">Drop in a movie you both want to see. When you cannot decide, the jar picks.</p>
+				<form className="mem-add" onSubmit={add}>
+					<label htmlFor="jar-in" className="label">
+						Add a movie
 					</label>
-					<input
-						id="jar-in"
-						className="input"
-						placeholder="Add a movie to the jar"
-						maxLength={LIMITS.title}
-						value={title}
-						onChange={(e) => setTitle(e.target.value)}
-					/>
-					<button className="btn" disabled={!title.trim()}>
-						Drop it in
-					</button>
+					<div className="mem-inline">
+						<input
+							id="jar-in"
+							className="input"
+							placeholder="A movie title"
+							maxLength={LIMITS.title}
+							value={title}
+							onChange={(e) => setTitle(e.target.value)}
+						/>
+						<button className="btn ghost icon" aria-label="Add it to the jar" disabled={!title.trim()}>
+							<Plus aria-hidden />
+						</button>
+					</div>
 				</form>
-				<button className="btn soft mem-shake" onClick={shake} disabled={!room.jar.length || shaking}>
-					Shake the jar!
+				<button className="btn mem-pick" onClick={shake} disabled={!room.jar.length || shaking}>
+					<Shuffle aria-hidden />
+					Pick for us
 				</button>
 			</div>
 
-			<div className={`mem-jar${shaking ? " shaking" : ""}`}>
-				<div className="mem-jar-lid" aria-hidden="true" />
-				<div className="mem-jar-body">
+			<div className="mem-jar-col">
+				<div className="mem-jar-top">
+					{out && (
+						<div className="mem-picked" key={out.at}>
+							<span className="sr-only">Last pick: </span>
+							<Slip item={out.item} room={room} />
+						</div>
+					)}
+				</div>
+				<div className={`mem-jar${shaking ? " shaking" : ""}`}>
 					{room.jar.length ? (
 						<ul className="mem-slips" aria-label={`${room.jar.length} ${room.jar.length === 1 ? "movie" : "movies"} in the jar`}>
-							{room.jar.map((j) => (
-								<li key={j.id} className="mem-slip" style={{ "--tilt": tilt(j.id, 6), "--who": profileOf(room, j.addedBy).color } as Vars}>
-									<span className="mem-slip-title" title={j.title}>
-										{j.title}
-									</span>
-									<button className="mem-slip-x" aria-label={`Take “${j.title}” out of the jar`} onClick={() => send({ t: "jar:remove", id: j.id })}>
-										<Icon name="close" />
-									</button>
+							{slips.map((j) => (
+								<li key={j.id} className="mem-slip-li" style={{ "--tilt": tilt(j.id, 6) } as Vars}>
+									<Slip item={j} room={room} />
 								</li>
 							))}
 						</ul>
 					) : (
 						<div className="mem-jar-empty">
-							<Teddy mood="peek" size={88} />
-							<p>The jar is empty — drop in a movie you both want to see 🫙</p>
+							<p>
+								<b>The jar is empty</b>
+								<br />
+								Add the first movie.
+							</p>
+							<Peek />
 						</div>
 					)}
 				</div>
-				<span className="mem-jar-tag" aria-hidden="true">
-					movies ♥
-				</span>
 			</div>
 		</section>
+	);
+}
+
+function Slip({ item, room }: { item: JarItem; room: RoomState }) {
+	const by = profileOf(room, item.addedBy);
+	return (
+		<span className="mem-slip" style={{ "--who": by.color } as Vars}>
+			<i className="mem-slip-dot" aria-hidden="true" />
+			<span className="mem-slip-title" title={item.title}>
+				{item.title}
+			</span>
+			<span className="sr-only">, added by {item.addedBy === room.you ? "you" : by.name}</span>
+			<button className="mem-slip-x" aria-label={`Take “${item.title}” out of the jar`} onClick={() => send({ t: "jar:remove", id: item.id })}>
+				<X aria-hidden />
+			</button>
+		</span>
 	);
 }
 
@@ -139,33 +172,52 @@ export function JarReveal() {
 
 function RevealDialog({ room, pick, onClose }: { room: RoomState; pick: Pick; onClose: () => void }) {
 	const ref = useRef<HTMLDialogElement>(null);
+	const [settled, setSettled] = useState(false); // the shaker is dizzy while the pick unfolds
 	useEffect(() => {
 		const d = ref.current;
 		if (d && !d.open) d.showModal();
+		const t = setTimeout(() => setSettled(true), 2600);
+		return () => clearTimeout(t);
 	}, []);
 	const by = profileOf(room, pick.by);
+	// the shaker is dizzy, then happy; the other one is happy the moment the slip lands
+	const head = (w: Who) =>
+		w === pick.by ? <Head who={w} mood={settled ? "idle" : "dizzy"} moment={settled ? "happy" : null} /> : <Head who={w} moment="happy" twinkle />;
 	return (
 		<dialog ref={ref} className="mem-reveal" onClose={onClose} aria-labelledby="reveal-title">
-			<button className="btn icon ghost mem-reveal-x" aria-label="Close" onClick={() => ref.current?.close()}>
-				<Icon name="close" />
+			<button className="btn ghost icon sm mem-reveal-x" aria-label="Close" onClick={() => ref.current?.close()}>
+				<X aria-hidden />
 			</button>
-			<Teddy mood="cheer" size={92} accent={by.color} />
-			<p className="mem-reveal-kicker">The jar has spoken…</p>
-			<div className="mem-reveal-slip">
-				<h2 id="reveal-title">{pick.item.title}</h2>
+			<div className="mem-reveal-scene arch">
+				<h2 id="reveal-title" className="mem-reveal-slip">
+					<span className="sr-only">The jar picked </span>
+					{pick.item.title}
+				</h2>
+				<div className="mem-reveal-row" aria-hidden="true">
+					{head("b")}
+					<span className="mem-jar mem-jar-mini">
+						<span className="mem-reveal-burst">
+							<FlowerBurst />
+						</span>
+						<span className="mem-slips">
+							{room.jar.slice(0, 7).map((j) => (
+								<i key={j.id} className="mem-slip" style={{ "--tilt": tilt(j.id, 8) } as Vars} />
+							))}
+						</span>
+					</span>
+					{head("a")}
+				</div>
+				<span className="clouds" />
 			</div>
-			<p className="mem-reveal-by">
-				picked by{" "}
-				<b className="mem-who" style={{ "--who": by.color } as Vars}>
-					{by.name}
-				</b>
-			</p>
+			<p className="mem-reveal-by">{pick.by === room.you ? "You shook the jar." : `${by.name} shook the jar.`} This one is for tonight.</p>
 			<div className="mem-reveal-actions">
 				<a className="btn" href="#/theater" onClick={() => ref.current?.close()}>
-					Let's watch it 🍿
+					<FilmSlate aria-hidden />
+					Let's watch it
 				</a>
-				<button className="btn soft" disabled={!room.jar.length} onClick={() => send({ t: "jar:shake" })}>
-					Shake again
+				<button className="btn ghost" disabled={!room.jar.length} onClick={() => send({ t: "jar:shake" })}>
+					<Shuffle aria-hidden />
+					Pick again
 				</button>
 			</div>
 		</dialog>
@@ -190,8 +242,9 @@ function StubWall({ room }: { room: RoomState }) {
 			<div className="mem-stubs-head">
 				<h2 id="stubs-h">Ticket stubs</h2>
 				{!adding && (
-					<button className="btn soft" onClick={() => setAdding(true)}>
-						+ New stub
+					<button className="btn paper sm" onClick={() => setAdding(true)}>
+						<Plus aria-hidden />
+						New stub
 					</button>
 				)}
 			</div>
@@ -211,7 +264,7 @@ function StubWall({ room }: { room: RoomState }) {
 						onKeyDown={(e) => e.key === "Escape" && setAdding(false)}
 					/>
 					<button className="btn" disabled={!title.trim()}>
-						Print stub 🎟️
+						Print stub
 					</button>
 					<button type="button" className="btn ghost" onClick={() => setAdding(false)}>
 						Cancel
@@ -226,8 +279,16 @@ function StubWall({ room }: { room: RoomState }) {
 				</ul>
 			) : (
 				<div className="mem-empty">
-					<Teddy mood="sleep" size={104} />
-					<p>No stubs yet — your first movie night will live here 🎟️</p>
+					<Peek />
+					<p>
+						<b>No stubs yet</b>
+						<br />
+						Your first movie night will live here.
+					</p>
+					<a className="btn" href="#/theater">
+						<FilmSlate aria-hidden />
+						Start one
+					</a>
 				</div>
 			)}
 		</section>
@@ -236,32 +297,37 @@ function StubWall({ room }: { room: RoomState }) {
 
 function StubCard({ stub, room }: { stub: Stub; room: RoomState }) {
 	const [confirm, setConfirm] = useState(false);
+	const both = stub.hearts.a !== undefined && stub.hearts.b !== undefined;
+	// full row when your half still needs rating, or a note needs the room
+	const wide = stub.hearts[room.you] === undefined || Object.values(stub.notes).some((n) => (n?.length ?? 0) > 70);
 	return (
-		<li className="mem-stub-wrap" style={{ "--tilt": tilt(stub.id, 2.2) } as Vars}>
+		<li className={`mem-stub-li${wide ? " wide" : ""}`} style={{ "--tilt": tilt(stub.id, 1.2) } as Vars}>
 			<article className="mem-stub" aria-label={`Ticket stub: ${stub.title}`}>
 				<div className="mem-stub-top">
-					<p className="mem-admit">Admit two</p>
-					<h3 className="mem-stub-title">{stub.title}</h3>
-					<p className="mem-stub-date">
+					<header className="mem-stub-head">
+						<span className="mem-admit">Admit two</span>
 						<time dateTime={stub.date}>{fmtDate(stub.date)}</time>
-					</p>
-					{confirm ? (
+						{!confirm && (
+							<button className="mem-x mem-stub-del" aria-label={`Delete the stub for ${stub.title}`} onClick={() => setConfirm(true)}>
+								<X aria-hidden />
+							</button>
+						)}
+					</header>
+					{both && <Flower className="mem-stub-flw" />}
+					<h3 className="mem-stub-title">{stub.title}</h3>
+					{confirm && (
 						<div className="mem-stub-confirm" role="group" aria-label="Delete this stub?">
 							<span>Tear up this stub?</span>
 							<button className="btn sm" onClick={() => send({ t: "stub:delete", id: stub.id })}>
 								Tear it up
 							</button>
-							<button className="btn sm soft" onClick={() => setConfirm(false)}>
+							<button className="btn sm ghost" autoFocus onClick={() => setConfirm(false)}>
 								Keep
 							</button>
 						</div>
-					) : (
-						<button className="mem-stub-del" aria-label={`Delete the stub for ${stub.title}`} onClick={() => setConfirm(true)}>
-							<Icon name="close" />
-						</button>
 					)}
 				</div>
-				<div className="mem-stub-bottom">
+				<div className="mem-halves">
 					{[room.you, other(room.you)].map((w) => (
 						<Half key={w} stub={stub} who={w} room={room} />
 					))}
@@ -275,7 +341,7 @@ function Hearts({ n }: { n: number }) {
 	return (
 		<span className="mem-hearts" role="img" aria-label={`${n} of 5 hearts`}>
 			{[1, 2, 3, 4, 5].map((i) => (
-				<Icon key={i} name="heart" filled className={i <= n ? "on" : ""} />
+				<Heart key={i} weight={i <= n ? "fill" : "regular"} aria-hidden />
 			))}
 		</span>
 	);
@@ -284,23 +350,24 @@ function Hearts({ n }: { n: number }) {
 function Half({ stub, who, room }: { stub: Stub; who: Who; room: RoomState }) {
 	const p = profileOf(room, who);
 	const hearts = stub.hearts[who];
-	if (hearts === undefined && who === room.you) return <RateForm stub={stub} name={p.name} color={p.color} />;
+	const side = who === room.you ? "me" : "them";
+	if (hearts === undefined && who === room.you) return <RateForm stub={stub} name={p.name} />;
 	return (
-		<div className={`mem-half${hearts === undefined ? " pending" : ""}`} style={{ "--who": p.color } as Vars}>
-			<p className="mem-half-name">{p.name}</p>
+		<div className={`mem-half ${side}${hearts === undefined ? " pending" : ""}`}>
+			<b className="mem-half-name">{p.name}</b>
 			{hearts === undefined ? (
-				<p className="mem-half-wait">Hasn't rated yet… 🧸</p>
+				<p className="mem-wait">Has not rated yet</p>
 			) : (
 				<>
 					<Hearts n={hearts} />
-					{stub.notes[who] && <p className="mem-half-note">“{stub.notes[who]}”</p>}
+					{stub.notes[who] && <p className="note">{stub.notes[who]}</p>}
 				</>
 			)}
 		</div>
 	);
 }
 
-function RateForm({ stub, name, color }: { stub: Stub; name: string; color: string }) {
+function RateForm({ stub, name }: { stub: Stub; name: string }) {
 	const [hearts, setHearts] = useState(0);
 	const [hover, setHover] = useState(0);
 	const [note, setNote] = useState("");
@@ -309,13 +376,16 @@ function RateForm({ stub, name, color }: { stub: Stub; name: string; color: stri
 		if (hearts) send({ t: "stub:rate", id: stub.id, hearts, note: note.trim() });
 	};
 	return (
-		<form className="mem-half mem-rate" style={{ "--who": color } as Vars} onSubmit={submit}>
+		<form className="mem-half me mem-rate" onSubmit={submit}>
 			<fieldset className="mem-heart-pick" onMouseLeave={() => setHover(0)}>
-				<legend className="mem-half-name">{name} · your hearts</legend>
+				<legend className="mem-half-name">
+					{name}
+					<span className="sr-only">, your hearts</span>
+				</legend>
 				{[1, 2, 3, 4, 5].map((n) => (
 					<label key={n} className={n <= (hover || hearts) ? "on" : ""} onMouseEnter={() => setHover(n)}>
 						<input type="radio" className="sr-only" name={`hearts-${stub.id}`} value={n} checked={hearts === n} onChange={() => setHearts(n)} />
-						<Icon name="heart" filled />
+						<Heart weight={n <= (hover || hearts) ? "fill" : "regular"} aria-hidden />
 						<span className="sr-only">
 							{n} {n === 1 ? "heart" : "hearts"}
 						</span>
@@ -323,10 +393,10 @@ function RateForm({ stub, name, color }: { stub: Stub; name: string; color: stri
 				))}
 			</fieldset>
 			<textarea
-				className="input"
+				className="input mem-note-in"
 				rows={2}
 				maxLength={LIMITS.note}
-				placeholder="A little note about tonight…"
+				placeholder="A little note about tonight"
 				aria-label="Your note"
 				value={note}
 				onChange={(e) => setNote(e.target.value)}

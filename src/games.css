@@ -1,15 +1,13 @@
-/* ===== Games — hub, boards, sealed games, doodle. Tokens only (see styles.css). ===== */
+/* ===== Games: hub, boards, sealed games, doodle. Tokens only (see styles.css).
+   Every class is gm-/hub-/ttt/c4/mg-/rps-/mm-/dd- prefixed (all CSS loads globally). ===== */
 
-/* ---- Hub ---- */
+/* ---- Hub: cream cards on the sky, one night card for Mind Meld ---- */
 .hub-head {
-	display: flex;
-	align-items: center;
-	gap: 16px;
-	margin-bottom: 22px;
+	margin: 0.3em 0 1.4em;
 }
 .hub-head h1 {
 	margin: 0;
-	font-size: clamp(2rem, 6vw, 3rem);
+	font-size: 2.3em;
 }
 .hub-head p {
 	margin: 0.2em 0 0;
@@ -20,301 +18,311 @@
 	margin: 0;
 	padding: 0;
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-	gap: 24px 20px;
+	grid-template-columns: repeat(4, 1fr);
+	grid-auto-rows: 12.5em;
+	gap: 1em;
+}
+.hub-grid .hub-wide {
+	grid-column: span 2;
 }
 .hub-card {
-	display: grid;
-	align-content: start;
-	gap: 2px;
+	position: relative;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	gap: 0.15em;
 	width: 100%;
 	height: 100%;
-	padding: 12px 12px 18px;
+	padding: 1.1em 1.2em;
 	border: 0;
-	border-radius: var(--r-lg);
-	background: var(--white);
-	box-shadow: 0 6px 0 var(--petal);
+	border-radius: 1.6em;
+	background: var(--cream);
+	color: var(--night);
+	box-shadow: var(--lift);
 	text-align: left;
 	cursor: pointer;
-	rotate: -1deg;
-	transition:
-		transform 0.2s var(--ease-bounce),
-		rotate 0.2s var(--ease-bounce),
-		box-shadow 0.2s;
+	transition: transform 0.35s var(--spring);
 }
-.hub-grid li:nth-child(even) .hub-card {
-	rotate: 1.2deg;
-}
-.hub-grid li .hub-card:hover {
-	transform: translateY(-5px);
-	rotate: 0deg;
-	box-shadow: 0 11px 0 var(--petal);
+.hub-card:hover {
+	transform: translateY(-0.3em);
 }
 .hub-card:active {
-	transform: translateY(3px);
-	box-shadow: 0 2px 0 var(--petal);
-}
-.hub-art {
-	display: block;
-	margin-bottom: 10px;
-	padding: 6px;
-	border-radius: var(--r-md);
-	background-color: var(--tint, var(--petal));
-	background-image: radial-gradient(color-mix(in srgb, var(--white) 60%, transparent) 1.5px, transparent 2px);
-	background-size: 14px 14px;
-}
-.hub-art > svg {
-	display: block;
-	width: 100%;
-	height: auto;
-	max-height: 150px;
-}
-.hub-card:hover .hub-art > svg {
-	animation: wiggle 0.55s ease-in-out;
-}
-.hub-card[data-kind="c4"] {
-	--tint: var(--cream);
-}
-.hub-card[data-kind="memory"] {
-	--tint: color-mix(in srgb, var(--lilac) 32%, var(--white));
-}
-.hub-card[data-kind="rps"] {
-	--tint: var(--blush);
-}
-.hub-card[data-kind="mindmeld"] {
-	--tint: color-mix(in srgb, var(--rose) 40%, var(--white));
-}
-.hub-card[data-kind="doodle"] {
-	--tint: color-mix(in srgb, var(--fur-light) 38%, var(--white));
+	transform: scale(0.98);
 }
 .hub-name {
-	padding: 0 6px;
-	font-family: var(--font-display);
-	font-weight: 600;
-	font-size: 1.3rem;
+	position: relative;
+	font: 500 1.35em/1.15 var(--display);
 }
 .hub-blurb {
-	padding: 0 6px;
-	color: var(--plum-soft);
+	position: relative;
+	color: var(--ink-soft);
+	font-size: 0.9em;
 }
-
-/* Illustration + token fills */
-.k-hot { fill: var(--hot); }
-.k-rose { fill: var(--rose); }
-.k-petal { fill: var(--petal); }
-.k-blush { fill: var(--blush); }
-.k-cream { fill: var(--cream); }
-.k-white { fill: var(--white); }
-.k-lilac { fill: var(--lilac); }
-.k-fur { fill: var(--fur); }
-.k-fur-light { fill: var(--fur-light); }
-.k-plum { fill: var(--plum); }
-.st {
-	fill: none;
-	stroke-width: 4;
-	stroke-linecap: round;
-	stroke-linejoin: round;
-}
-.st.thin { stroke-width: 2.5; }
-.st.dash {
-	stroke-width: 3.5;
-	stroke-dasharray: 2 7;
-}
-.st-rose { stroke: var(--rose); }
-.st-hot { stroke: var(--hot); }
-.st-plum { stroke: var(--plum); }
-.st-petal { stroke: var(--petal); }
-
-.tok { overflow: visible; }
-.tok-light {
-	fill: var(--white);
-	opacity: 0.6;
-}
-.tok-ink { fill: var(--plum); }
-.tok-line {
-	fill: none;
-	stroke: var(--plum);
-	stroke-width: 1.6;
-	stroke-linecap: round;
-}
-.tok-cheek {
-	fill: var(--plum);
-	opacity: 0.14;
-}
-
-/* ---- Game screen chrome ---- */
-.gm-head {
+.hub-ico {
+	position: absolute;
+	top: 0.75em;
+	left: 0.75em;
 	display: grid;
-	grid-template-columns: 1fr auto 1fr;
-	align-items: center;
-	gap: 12px 16px;
-	margin-bottom: 18px;
+	place-items: center;
+	width: 2.6em;
+	aspect-ratio: 1;
+	border-radius: 50%;
+	background: var(--fog);
+	color: var(--dusk);
+	font-size: 1.2em;
+	transition: transform 0.35s var(--spring);
 }
-.gm-back {
-	justify-self: start;
-	min-height: 44px;
-	padding: 0.55em 1em;
-	font-size: 0.95rem;
+.hub-ico svg {
+	width: 1.1em;
+	height: 1.1em;
 }
-.gm-title {
-	margin: 0;
-	font-size: clamp(1.5rem, 4vw, 2.2rem);
-	text-align: center;
+.hub-card:hover .hub-ico {
+	transform: rotate(-10deg) scale(1.08);
 }
-.gm-turn {
-	justify-self: end;
-	display: inline-flex;
-	align-items: center;
-	gap: 0.45em;
-	margin: 0;
-	min-height: 44px;
-	padding: 0.35em 0.9em 0.35em 0.55em;
-	border-radius: var(--r-sm);
-	background: var(--white);
-	box-shadow: 0 3px 0 var(--petal);
-	font-weight: 800;
-}
-.gm-turn .tok {
-	width: 28px;
-	height: 28px;
-	flex: none;
-}
-.gm-turn.mine {
-	background: var(--hot);
-	color: var(--white);
-	box-shadow: 0 3px 0 var(--hot-deep);
-	animation: nudge 1.8s ease-in-out infinite;
-}
-@media (max-width: 640px) {
-	.gm-head {
-		grid-template-columns: auto auto;
-		justify-content: space-between;
-	}
-	.gm-title {
-		grid-column: 1 / -1;
-		grid-row: 2;
-		text-align: left;
-	}
+.hub-here {
+	position: absolute;
+	top: 1em;
+	right: 1em;
 }
 
+/* Mind Meld: dusk night card, text on the solid dusk half, the two of them clipped by the bottom edge */
+.hub-mindmeld {
+	justify-content: flex-start;
+	background: linear-gradient(var(--dusk) 45%, var(--mist));
+	color: var(--cream);
+}
+.hub-mindmeld .hub-blurb {
+	max-width: 19em;
+	color: var(--haze);
+}
+.hub-card .hub-duo {
+	position: absolute;
+	right: 1.8em;
+	bottom: -1.4em;
+}
+/* hovering the card makes them lean in */
+.hub-card:hover .hub-duo > .ch-her {
+	transform: translateX(6%) rotate(4deg);
+}
+.hub-card:hover .hub-duo > .ch-him {
+	transform: translateX(-6%) rotate(-4deg);
+}
+
+/* Doodle: a dot-grid page with the partner's head bobbing at the corner */
+.hub-doodle {
+	background:
+		radial-gradient(circle 0.12em, var(--mist) 95%, #0000) 0 0 / 1.3em 1.3em,
+		var(--cream);
+}
+.hub-card .hub-peek {
+	position: absolute;
+	right: 1.8em;
+	bottom: -1.8em;
+	rotate: -10deg;
+}
+
+/* ---- Away: their head asleep, peeking from the bottom of a paper strip ---- */
 .gm-away {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	margin-bottom: 18px;
-	padding: 8px 16px;
-	border: 2px dashed var(--petal);
-	border-radius: var(--r-md);
+	gap: 1em;
+	margin: 0 0 1.4em;
+	padding: 0 1.4em 0 1.2em;
+	border-radius: 1.6em;
 	background: var(--cream);
-	color: var(--plum-soft);
-	font-weight: 700;
+	color: var(--night);
+	box-shadow: var(--lift);
 }
 .gm-away p {
 	margin: 0;
+	padding: 0.9em 0;
+}
+.gm-away-peek {
+	align-self: flex-end;
+	display: flex;
+	clip-path: inset(-6em -6em 0 -6em); /* only the bottom edge clips; the zzz float free */
+}
+.gm-away-peek .ch-head {
+	translate: 0 16%;
 }
 
+/* ---- Game screen chrome (Connect Four mockup): one centered column ---- */
+.gm-screen {
+	max-width: calc(46em + 2 * var(--gutter));
+}
+.gm-back {
+	margin-bottom: 0.9em;
+}
+.gm-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6em 1em;
+}
+.gm-title {
+	margin: 0;
+	font-size: 2em;
+}
+.gm-turn {
+	margin: 0;
+	min-height: 2.4em;
+	font-size: 0.95em;
+	--s: 1.7em;
+}
+.gm-turn:has(.face) {
+	padding-left: 0.3em;
+}
+.gm-turn.mine {
+	animation: gm-nudge 2.6s ease-in-out infinite;
+}
+.gm-players {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6em;
+	margin: 0.8em 0 1.3em;
+}
+.gm-player {
+	padding: 0.3em 0.9em 0.3em 0.3em;
+	font-size: 1em;
+	--s: 1.9em;
+}
 .gm-body {
 	display: grid;
 	justify-items: center;
-	gap: 18px;
+	gap: 1.4em;
 }
-.gm-rule {
-	max-width: 46ch;
-	margin: 0 auto;
+.gm-body:has(.gm-done) .gm-hint {
+	display: none; /* the finish strip says it all */
+}
+.gm-body:has(.gm-done) .c4 {
+	margin-top: 0; /* no disc hovers once it's over */
+}
+.gm-hint {
+	margin: 0;
+	max-width: 44ch;
 	text-align: center;
-	font-weight: 700;
-	color: var(--plum-soft);
+	font-weight: 600;
+	color: var(--night); /* on the sky: night text, never ink-soft */
+}
+.gm-say {
+	margin: 0;
+	text-align: center;
+	font-weight: 600;
+}
+.gm-say.big {
+	font: 500 1.7em/1.15 var(--display);
 }
 .gm-lock {
 	margin: 0;
-	padding: 0.3em 0.8em;
-	border-radius: var(--r-sm);
-	background: var(--petal);
-	font-weight: 800;
-	animation: pop-in 0.4s var(--ease-bounce) both;
+	animation: gm-pop 0.4s var(--spring) both;
 }
 
-/* Win banner: a little ticket with a dashed inner edge */
+/* A player's piece: their face in their ring */
+.gm-tok {
+	--rw: 0.2em;
+}
+
+/* Finished: a paper strip, the two heads peeking up from its bottom edge (winner hops, the other goes aww) */
 .gm-done {
 	display: flex;
-	align-items: center;
-	gap: 14px;
-	width: min(100%, 520px);
-	padding: 14px 20px;
-	border-radius: var(--r-lg);
+	align-items: flex-end;
+	gap: 1.4em;
+	max-width: 100%;
+	padding: 0 2em 0 1.4em;
+	border-radius: 1.6em;
 	background: var(--cream);
-	box-shadow: var(--shadow-soft);
-	outline: 2px dashed var(--petal);
-	outline-offset: -8px;
-	animation: pop-in 0.5s var(--ease-bounce) both;
+	color: var(--night);
+	box-shadow: var(--lift);
+	animation: gm-pop 0.5s var(--spring) both;
+}
+.gm-done-heads {
+	display: flex;
+	padding-top: 1.4em;
+	clip-path: inset(-10em -10em 0 -10em);
+}
+.gm-done-heads .ch-duo {
+	translate: 0 14%;
+}
+.gm-done-copy {
+	align-self: center;
+	padding: 1.1em 0;
 }
 .gm-done h2 {
-	margin: 0 0 0.45em;
-	font-size: clamp(1.15rem, 4vw, 1.45rem);
+	margin: 0 0 0.5em;
+	font-size: 1.6em;
+}
+.gm-duo.ch-duo > .ch-him {
+	margin-left: 6%; /* a little air between them, so a bump reads */
 }
 
-/* ---- Tic-tac-toe ---- */
+
+/* ---- Tic-tac-toe: paper board, haze squares, faces as pieces ---- */
 .ttt {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
-	gap: 10px;
-	width: min(100%, 360px);
-	padding: 12px;
-	border-radius: var(--r-lg);
-	background: var(--petal);
-	box-shadow: 0 6px 0 var(--rose);
+	gap: 0.6em;
+	width: min(100%, 22em);
+	padding: 1em;
+	border-radius: 1.6em;
+	background: var(--cream);
+	box-shadow: var(--lift);
 }
 .ttt-cell {
 	display: grid;
 	place-items: center;
 	aspect-ratio: 1;
-	padding: 14%;
+	padding: 16%;
 	border: 0;
-	border-radius: var(--r-md);
-	background: var(--white);
-	box-shadow: inset 0 -5px 0 var(--blush);
+	border-radius: 1em;
+	background: var(--haze);
+	box-shadow: inset 0 0.2em 0.3em rgb(45 58 71 / 0.12);
 	cursor: pointer;
-	transition:
-		transform 0.15s var(--ease-bounce),
-		background 0.15s;
+	transition: background 0.15s;
 }
 .ttt-cell:disabled {
 	cursor: default;
 }
 .ttt-cell:not(:disabled):hover {
-	background: var(--cream);
-	transform: translateY(-2px);
+	background: var(--fog);
 }
-.ttt-cell .tok {
-	width: 100%;
-	height: 100%;
-	animation: tok-pop 0.4s var(--ease-bounce) both;
+.ttt-cell .gm-tok {
+	--s: 100%;
+	--rw: 0.25em;
+	font-size: 1.1em;
+	animation: gm-pop 0.45s var(--spring) both;
 }
 .ttt-cell.win {
-	background: var(--cream);
-	box-shadow: inset 0 0 0 4px var(--hot);
+	background: var(--sage);
 }
-.ttt-cell.win .tok,
-.c4-hole.win .tok {
-	animation: tok-bob 0.8s ease-in-out infinite alternate;
+.ttt-cell.win .gm-tok {
+	animation:
+		gm-pop 0.45s var(--spring) both,
+		gm-throb 0.8s 0.5s ease-in-out infinite alternate;
 }
 
-/* ---- Connect Four ---- */
+/* ---- Connect Four: dusk board, dark holes, discs in each person's ring color ---- */
 .c4 {
 	display: grid;
 	grid-template-columns: repeat(7, 1fr);
-	width: min(100%, 470px);
-	padding: 5px;
-	border-radius: var(--r-md);
-	background: var(--hot);
-	box-shadow: 0 7px 0 var(--hot-deep);
+	gap: 0.55em;
+	width: min(100%, 27.5em);
+	margin-top: 3.4em; /* room for the hovering disc */
+	padding: 1.1em;
+	border-radius: 1.6em;
+	background: var(--dusk);
+	box-shadow: var(--lift);
+	--focus: var(--haze);
 }
 .c4-col {
+	position: relative;
 	display: grid;
+	gap: 0.55em;
 	min-width: 0;
 	padding: 0;
 	border: 0;
-	border-radius: var(--r-sm);
+	border-radius: 999px;
 	background: transparent;
 	cursor: pointer;
 	transition: background 0.15s;
@@ -322,157 +330,250 @@
 .c4-col:disabled {
 	cursor: default;
 }
-.c4-col:not(:disabled):hover,
-.c4-col:not(:disabled):focus-visible {
-	background: color-mix(in srgb, var(--who, var(--white)) 45%, transparent);
+.c4-col:focus-visible {
+	background: rgb(234 239 244 / 0.12);
 }
 .c4-hole {
 	display: grid;
-	place-items: center;
 	aspect-ratio: 1;
-	margin: 3px;
 	border-radius: 50%;
-	background: var(--blush);
-	box-shadow: inset 0 4px 0 color-mix(in srgb, var(--plum) 16%, transparent);
+	background: rgb(45 58 71 / 0.6);
+	box-shadow: inset 0 0.2em 0.3em rgb(0 0 0 / 0.25);
 }
-.c4-hole.win {
-	background: var(--cream);
-	box-shadow: 0 0 0 3px var(--cream);
+.c4-piece,
+.c4-ghost {
+	border-radius: 50%;
+	background: var(--p);
+	box-shadow: inset 0 -0.28em 0 rgb(45 58 71 / 0.2);
 }
 .c4-piece {
-	display: block;
-	width: 92%;
-	height: 92%;
 	animation: c4-drop calc(0.3s + var(--row) * 0.06s) both;
 }
-.c4-piece .tok {
-	display: block;
-	width: 100%;
-	height: 100%;
+/* both picked the same ring color: her discs get a cream inner ring */
+.c4-piece.twin,
+.c4-ghost.twin {
+	box-shadow:
+		inset 0 -0.28em 0 rgb(45 58 71 / 0.2),
+		inset 0 0 0 0.45em var(--p),
+		inset 0 0 0 0.7em var(--cream);
+}
+.c4-piece.last {
+	outline: 0.18em solid var(--cream);
+	outline-offset: 0.14em;
+}
+.c4-hole.win .c4-piece {
+	outline: 0.2em solid var(--sage);
+	outline-offset: 0.12em;
+	animation:
+		c4-drop calc(0.3s + var(--row) * 0.06s) both,
+		gm-throb 0.8s 0.7s ease-in-out infinite alternate;
+}
+/* the disc you're about to drop hovers over the column */
+.c4-ghost {
+	--p: var(--who);
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: calc(100% + 1.1em + 0.6em);
+	aspect-ratio: 1;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.15s;
+}
+.c4-col:not(:disabled):focus-visible .c4-ghost {
+	opacity: 0.7;
+	animation: gm-bob 1.4s ease-in-out infinite;
+}
+@media (hover: hover) {
+	/* hover only where hover is real: a tap on a phone shouldn't leave a column lit */
+	.c4-col:not(:disabled):hover {
+		background: rgb(234 239 244 / 0.12);
+	}
+	.c4-col:not(:disabled):hover .c4-ghost {
+		opacity: 0.7;
+		animation: gm-bob 1.4s ease-in-out infinite;
+	}
 }
 
-/* ---- Memory ---- */
-.mem {
+/* ---- Memory match: dusk backs with his flower, cream fronts ---- */
+.mg {
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
-	gap: 10px;
-	width: min(100%, 440px);
+	gap: 0.7em;
+	width: min(100%, 28em);
 }
-.mem-card {
+.mg-card {
 	aspect-ratio: 1;
 	padding: 0;
 	border: 0;
-	border-radius: var(--r-md);
+	border-radius: 1.1em;
 	background: none;
 	perspective: 700px;
 	cursor: pointer;
 }
-.mem-card:disabled {
+.mg-card:disabled {
 	cursor: default;
 }
-.mem-inner {
+.mg-inner {
 	position: relative;
 	display: block;
 	width: 100%;
 	height: 100%;
 	transform-style: preserve-3d;
-	transition: transform 0.5s var(--ease-bounce);
+	transition: transform 0.5s var(--spring);
 }
-.mem-card:not(:disabled):hover .mem-inner {
-	transform: translateY(-3px) rotate(-2deg);
+.mg-card:not(:disabled):hover .mg-inner {
+	transform: translateY(-0.2em) rotate(-2deg);
 }
-.mem-card.up .mem-inner {
+.mg-card.up .mg-inner {
 	transform: rotateY(180deg);
 }
-.mem-back,
-.mem-front {
+.mg-back,
+.mg-front {
 	position: absolute;
 	inset: 0;
 	display: grid;
 	place-items: center;
-	border-radius: var(--r-md);
+	border-radius: 1.1em;
 	-webkit-backface-visibility: hidden;
 	backface-visibility: hidden;
 }
-.mem-back {
+.mg-back {
 	background:
-		radial-gradient(circle, var(--rose) 16%, transparent 19%) 0 0 / 14px 14px,
-		var(--hot);
-	box-shadow: inset 0 -5px 0 var(--hot-deep);
+		radial-gradient(circle 0.08em, var(--cream) 98%, #0000) 0.4em 0.5em / 1.6em 1.3em,
+		linear-gradient(var(--dusk), var(--steel));
+	box-shadow: var(--lift);
 }
-.mem-back svg {
-	width: 40%;
-	fill: var(--white);
+.mg-back .flw {
+	height: 38%;
 }
-.mem-front {
+.mg-front {
 	transform: rotateY(180deg);
 	background: var(--cream);
-	box-shadow: inset 0 -5px 0 var(--petal);
+	box-shadow: var(--lift);
 }
-.mem-face {
+.mg-face {
 	font-size: clamp(1.8rem, 8vw, 2.6rem);
 	line-height: 1;
 }
-.mem-card.found .mem-front {
+.mg-card.found .mg-front {
 	box-shadow:
-		inset 0 0 0 4px var(--who),
-		inset 0 -5px 0 var(--petal);
+		inset 0 0 0 0.25em var(--who),
+		var(--lift);
 }
-.mem-front .tok {
+.mg-front .gm-tok {
 	position: absolute;
-	right: 5px;
-	bottom: 8px;
-	width: 22px;
-	height: 22px;
+	right: 0.4em;
+	bottom: 0.4em;
+	--s: 1.5em;
 }
 
-/* ---- Rock paper scissors ---- */
-.rps-stage {
+/* ---- Rock paper scissors: a paper table, her seat left, his right ---- */
+.rps {
 	display: grid;
 	justify-items: center;
-	gap: 14px;
-	width: min(100%, 560px);
+	gap: 1.2em;
+	width: min(100%, 34em);
 	text-align: center;
 }
-.rps-stage h2 {
-	margin: 0;
-	font-size: clamp(1.3rem, 4vw, 1.8rem);
+.rps-table {
+	position: relative;
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	align-items: center;
+	gap: 0.6em;
+	width: 100%;
+	padding: 2.4em 1.2em 1.2em;
+	border-radius: 1.6em;
+	background: var(--cream);
+	color: var(--night);
+	box-shadow: var(--lift);
 }
-.rps-stage p {
+.rps-table > .ch-burst {
+	bottom: 45%;
+	font-size: 1.6em;
+	--petal-line: var(--night); /* yellow on light paper needs its ink line */
+}
+.rps-seat {
+	display: grid;
+	grid-template-rows: 6.5em auto auto; /* her head is taller; both stand on the same line */
+	justify-items: center;
+	align-items: end;
+	gap: 0.7em;
 	margin: 0;
+}
+.rps-seat figcaption {
+	font-weight: 600;
+}
+.rps-hand {
+	display: grid;
+	place-items: center;
+	width: 5.4em;
+	aspect-ratio: 1;
+	border-radius: 50%;
+	background: var(--haze);
+	color: var(--dusk);
+	box-shadow: 0 0 0 0.3em var(--who);
+	animation: gm-pop 0.45s var(--spring) both;
+}
+.rps-hand svg {
+	width: 58%;
+	height: 58%;
+}
+.rps-hand.empty {
+	background: transparent;
+	box-shadow: inset 0 0 0 0.14em var(--steel);
+}
+.rps-hand.flip svg {
+	scale: -1 1;
+}
+.rps-hand.shake {
+	animation: rps-shake 0.52s ease-in-out infinite;
+}
+.rps-hand.won {
+	box-shadow:
+		0 0 0 0.3em var(--who),
+		0 0 0 0.65em var(--sage);
+	animation:
+		gm-pop 0.45s var(--spring) both,
+		gm-throb 0.9s 0.5s ease-in-out infinite alternate;
+}
+.rps-vs {
+	font: 500 1.3em var(--display);
+	color: var(--ink-soft);
+}
+.rps-count {
+	min-width: 1.2ch;
+	font: 500 3.4em/1 var(--display);
+	color: var(--dusk);
+	animation: gm-pop 0.45s var(--spring) both;
 }
 .rps-choices {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
-	gap: 12px;
+	gap: 0.8em;
 	width: 100%;
 }
 .rps-choice {
 	display: grid;
 	justify-items: center;
-	gap: 8px;
-	padding: 16px 6px 14px;
+	gap: 0.5em;
+	padding: 1em 0.5em 0.9em;
 	border: 0;
-	border-radius: var(--r-lg);
-	background: var(--white);
-	box-shadow: 0 6px 0 var(--petal);
-	color: var(--plum);
-	font-family: var(--font-display);
-	font-weight: 600;
-	font-size: 1.05rem;
+	border-radius: 1.6em;
+	background: var(--cream);
+	color: var(--night);
+	box-shadow: var(--lift);
+	font: 500 1.1em var(--display);
 	text-transform: capitalize;
 	cursor: pointer;
-	transition:
-		transform 0.15s var(--ease-bounce),
-		box-shadow 0.15s;
+	transition: transform 0.3s var(--spring);
 }
 .rps-choice:not(:disabled):hover {
-	transform: translateY(-4px) rotate(-2deg);
-	box-shadow: 0 10px 0 var(--petal);
+	transform: translateY(-0.25em) rotate(-2deg);
 }
 .rps-choice:not(:disabled):active {
-	transform: translateY(4px);
-	box-shadow: 0 2px 0 var(--petal);
+	transform: scale(0.97);
 }
 .rps-choice:disabled {
 	opacity: 0.5;
@@ -481,74 +582,75 @@
 .rps-icon {
 	display: grid;
 	place-items: center;
-	width: min(72px, 100%);
+	width: 3.2em;
 	aspect-ratio: 1;
 	border-radius: 50%;
-	background: var(--blush);
-	font-size: 2.3rem;
+	background: var(--fog);
+	color: var(--dusk);
 }
-.rps-hands {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: clamp(14px, 6vw, 48px);
-}
-.rps-hand {
-	display: grid;
-	place-items: center;
-	width: clamp(92px, 27vw, 140px);
-	aspect-ratio: 1;
-	border-radius: 50%;
-	background: var(--white);
-	box-shadow:
-		0 0 0 5px var(--who, var(--petal)),
-		0 9px 0 5px color-mix(in srgb, var(--who, var(--petal)) 35%, transparent);
-	font-size: clamp(2.8rem, 12vw, 4.4rem);
-	line-height: 1;
-}
-.rps-hand.flip {
-	scale: -1 1;
-}
-.rps-hand.shake {
-	animation: rps-shake 0.52s ease-in-out infinite;
-}
-.rps-count {
-	min-width: 1.2ch;
-	font-family: var(--font-display);
-	font-weight: 700;
-	font-size: clamp(2.6rem, 11vw, 4.5rem);
-	color: var(--hot);
-	animation: tok-pop 0.45s var(--ease-bounce) both;
-}
-.rps-reveal {
-	display: grid;
-	justify-items: center;
-	gap: 12px;
-	margin: 0;
-	font-weight: 800;
-}
-.rps-reveal .rps-hand {
-	animation: tok-pop 0.5s var(--ease-bounce) both;
-}
-.rps-reveal.won .rps-hand {
-	animation:
-		tok-pop 0.5s var(--ease-bounce) both,
-		tok-bob 0.9s 0.5s ease-in-out infinite alternate;
-}
-.rps-reveal.won figcaption::after {
-	content: " 💗";
+.rps-icon svg {
+	width: 1.7em;
+	height: 1.7em;
 }
 
-/* ---- Mind Meld ---- */
+/* ---- Mind Meld: the dusk sky with the two of them, then the chain of words ---- */
 .mm {
 	display: grid;
 	justify-items: center;
-	gap: 16px;
-	width: min(100%, 560px);
+	gap: 1.2em;
+	width: min(100%, 34em);
+}
+.mm-sky {
+	position: relative;
+	overflow: hidden;
+	display: grid;
+	justify-items: center;
+	align-content: space-between;
+	gap: 0.8em;
+	width: 100%;
+	min-height: 14em;
+	padding: 1.4em 1.4em 0;
+	border-radius: 1.6em;
+	/* solid dusk behind every word of text; it only mists over where the heads stand */
+	background: linear-gradient(var(--dusk) calc(100% - 6.5em), var(--mist));
+	color: var(--cream);
+	box-shadow: var(--lift);
+	text-align: center;
+	--focus: var(--haze);
+}
+.mm-say {
+	position: relative;
+	margin: 0;
+	font-weight: 600;
+}
+.mm-win {
+	position: relative;
+	display: grid;
+	justify-items: center;
+	gap: 0.3em;
+}
+.mm-win h2 {
+	margin: 0;
+	font-size: 2.4em;
+	animation: gm-pop 0.6s var(--spring) both;
+}
+.mm-win p {
+	margin: 0 0 0.6em;
+	color: var(--haze);
+}
+.mm-duo {
+	translate: 0 12%;
+}
+.mm-duo .ch-burst,
+.dd-yay-head .ch-burst {
+	font-size: 1.6em;
+}
+.dd-yay-head .ch-burst {
+	--petal-line: var(--night); /* yellow on light paper needs its ink line */
 }
 .mm-chain {
 	display: grid;
-	gap: 10px;
+	gap: 0.5em;
 	width: 100%;
 	margin: 0;
 	padding: 0;
@@ -558,80 +660,41 @@
 	display: grid;
 	grid-template-columns: 1fr auto 1fr;
 	align-items: center;
-	gap: 8px;
-	animation: pop-in 0.45s var(--ease-bounce) both;
+	gap: 0.5em;
+	animation: gm-pop 0.45s var(--spring) both;
 }
 .mm-word {
 	padding: 0.5em 0.9em;
-	border-radius: var(--r-md);
-	background: color-mix(in srgb, var(--who) 20%, var(--white));
-	box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--who) 40%, transparent);
-	font-family: var(--font-display);
-	font-weight: 600;
-	font-size: 1.1rem;
+	border-radius: 1em;
+	background: var(--cream);
+	color: var(--night);
+	box-shadow: inset 0 0 0 0.18em var(--who);
+	font: 500 1.1em var(--display);
 	text-align: center;
 	overflow-wrap: anywhere;
 }
 .mm-link {
-	width: 22px;
-	fill: var(--petal);
+	height: 1.3em;
 }
 .mm-pair.same .mm-word {
-	background: var(--hot);
-	color: var(--white);
-	box-shadow: inset 0 -3px 0 var(--hot-deep);
+	background: var(--sage);
 }
 .mm-pair.same .mm-link {
-	fill: var(--hot);
-	animation: heartbeat 0.9s ease-in-out infinite;
-}
-.mm-win {
-	display: grid;
-	justify-items: center;
-	gap: 6px;
-	width: 100%;
-	padding: 20px;
-	border-radius: var(--r-lg);
-	background: var(--cream);
-	box-shadow: var(--shadow-soft);
-	outline: 2px dashed var(--petal);
-	outline-offset: -8px;
-	text-align: center;
-}
-.mm-win h2 {
-	margin: 0;
-	font-size: clamp(2.2rem, 9vw, 3.4rem);
-	color: var(--hot);
-	animation: big-pop 0.7s var(--ease-bounce) both;
-}
-.mm-win p {
-	margin: 0 0 8px;
-	font-weight: 700;
-}
-.mm-wait {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	padding: 10px 18px;
-	border-radius: var(--r-md);
-	background: var(--white);
-	box-shadow: 0 4px 0 var(--petal);
-}
-.mm-wait p {
-	margin: 0;
+	--petal-line: var(--night); /* yellow on light paper needs its ink line */
+	animation: gm-throb 0.9s ease-in-out infinite alternate;
 }
 .mm-form {
 	display: grid;
-	gap: 8px;
+	gap: 0.5em;
 	width: 100%;
 }
 .mm-form label {
 	text-align: center;
-	font-weight: 700;
+	font-weight: 600;
 }
 .mm-row {
 	display: flex;
-	gap: 10px;
+	gap: 0.6em;
 	width: 100%;
 }
 .mm-row .input {
@@ -642,137 +705,157 @@
 	flex: none;
 }
 
-/* ---- Doodle & Guess ---- */
+/* ---- Doodle and guess: a dotted paper page, the partner peeking over its top edge ---- */
 .dd {
 	display: grid;
-	gap: 14px;
-	width: min(100%, 720px);
+	gap: 1em;
+	width: min(100%, 44em, (100dvh - 26em) * 4 / 3); /* the page, tools included, fits a laptop screen */
+	min-width: min(100%, 26em);
 }
 .dd-word {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	justify-content: center;
-	gap: 4px 12px;
+	gap: 0.3em 0.9em;
 	margin: 0;
-	padding: 10px 16px;
-	border-radius: var(--r-md);
+	margin-right: 6.5em; /* the partner's head peeks over the paper here */
+	padding: 0.6em 0.8em 0.6em 1.3em;
+	min-height: 3.4em;
+	border-radius: 1.6em;
 	background: var(--cream);
-	font-weight: 700;
-	text-align: center;
+	color: var(--night);
+	box-shadow: var(--lift);
+	font-weight: 600;
 }
 .dd-word strong {
-	font-family: var(--font-display);
-	font-weight: 600;
-	font-size: 1.7rem;
-	color: var(--hot);
-}
-.dd-skip {
-	min-height: 44px;
-	padding: 0.4em 0.8em;
-	font-size: 0.9rem;
+	font: 500 1.6em/1.1 var(--display);
+	color: var(--rose-ink);
 }
 .dd-stage {
 	position: relative;
+	margin-top: -0.4em;
 }
 .dd-canvas {
+	position: relative;
+	z-index: 1;
 	display: block;
 	width: 100%;
-	aspect-ratio: 4 / 3;
-	border-radius: var(--r-lg);
-	background: var(--white);
-	box-shadow:
-		0 0 0 4px var(--petal),
-		0 9px 0 4px var(--petal);
+	aspect-ratio: 4 / 3; /* strokes are stored 0..1, so the shape must never change */
+	border-radius: 1.6em;
+	background:
+		radial-gradient(circle 0.1em, var(--fog) 95%, #0000) 0 0 / 1.3em 1.3em,
+		var(--paper);
+	box-shadow: var(--lift);
 }
 .dd-canvas.can-draw {
 	touch-action: none;
 	cursor: crosshair;
 }
+.dd-stage .dd-peek {
+	position: absolute;
+	right: 1.4em;
+	bottom: calc(100% - 1.5em);
+	z-index: 0;
+}
 .dd-bubbles {
 	position: absolute;
 	inset: 0;
+	z-index: 2;
 	overflow: hidden;
-	border-radius: var(--r-lg);
+	border-radius: 1.6em;
 	pointer-events: none;
 }
 .dd-bubble {
 	position: absolute;
 	left: var(--x);
-	bottom: 14px;
+	bottom: 1em;
 	max-width: 60%;
-	padding: 0.35em 0.85em;
-	border-radius: var(--r-md) var(--r-md) var(--r-md) 4px;
-	background: var(--petal);
-	font-weight: 800;
+	padding: 0.4em 0.9em;
+	border-radius: 1.2em 1.2em 1.2em 0.35em;
+	background: var(--fog);
+	color: var(--night);
+	font-weight: 600;
 	overflow-wrap: anywhere;
-	animation: float-up 2.8s ease-out both;
+	animation: dd-float 2.8s ease-out both;
 }
 .dd-yay {
 	position: absolute;
 	top: 50%;
 	left: 50%;
+	z-index: 3;
 	translate: -50% -50%;
 	display: grid;
 	justify-items: center;
-	gap: 2px;
+	gap: 0.2em;
 	width: max-content;
 	max-width: 90%;
-	padding: 14px 22px;
-	border-radius: var(--r-lg);
+	padding: 1.2em 1.8em 1.1em;
+	border-radius: 1.6em;
 	background: var(--cream);
-	box-shadow: var(--shadow-soft);
+	color: var(--night);
+	box-shadow: var(--lift);
 	text-align: center;
 	pointer-events: none;
-	animation: pop-in 0.5s var(--ease-bounce) both;
+	animation: gm-pop 0.5s var(--spring) both;
+}
+.dd-yay-head {
+	position: relative;
+	display: flex;
+	margin-bottom: 0.3em;
 }
 .dd-yay p {
 	margin: 0;
-	font-weight: 800;
-	font-size: 1.15rem;
+	font: 500 1.3em var(--display);
+}
+.dd-next {
+	color: var(--ink-soft);
 }
 .dd-tools {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	justify-content: space-between;
-	gap: 12px;
-	margin-top: 6px;
+	gap: 0.8em;
 }
 .dd-swatches,
 .dd-sizes {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
+	gap: 0.5em;
 }
-.dd-swatch {
-	width: 44px;
-	height: 44px;
-	border: 0;
-	border-radius: 50%;
-	background: var(--ink);
-	box-shadow:
-		inset 0 0 0 3px var(--white),
-		0 0 0 2px var(--petal);
-	cursor: pointer;
-	transition: transform 0.15s var(--ease-bounce);
-}
-.dd-swatch.on {
-	transform: scale(1.08);
-	box-shadow:
-		inset 0 0 0 3px var(--white),
-		0 0 0 4px var(--hot);
-}
+.dd-swatch,
 .dd-size {
 	display: grid;
 	place-items: center;
-	width: 44px;
-	height: 44px;
+	width: 2.3em;
+	height: 2.3em;
+	padding: 0;
 	border: 0;
-	border-radius: var(--r-sm);
-	background: var(--white);
-	box-shadow: 0 3px 0 var(--petal);
+	border-radius: 50%;
 	cursor: pointer;
+	transition: transform 0.25s var(--spring);
+}
+.dd-swatch {
+	background: var(--ink);
+	box-shadow: inset 0 0 0 1px rgb(45 58 71 / 0.15);
+}
+.dd-size {
+	background: var(--cream);
+	box-shadow: var(--lift);
+}
+.dd-swatch.on,
+.dd-size.on {
+	transform: scale(1.06);
+	box-shadow:
+		0 0 0 0.2em var(--cream),
+		0 0 0 0.38em var(--night);
+}
+@media (pointer: coarse) {
+	.dd-swatch,
+	.dd-size {
+		width: 2.75em; /* finger-sized */
+		height: 2.75em;
+	}
 }
 .dd-size span {
 	width: var(--dot);
@@ -780,68 +863,73 @@
 	border-radius: 50%;
 	background: var(--ink);
 }
-.dd-size.on {
-	box-shadow: 0 0 0 3px var(--hot);
+
+/* ---- Phone ---- */
+@media (max-width: 640px) {
+	.hub-head h1 {
+		font-size: 2em;
+	}
+	.hub-grid {
+		grid-template-columns: repeat(2, 1fr);
+		grid-auto-rows: 10.5em;
+		gap: 0.8em;
+	}
+	.hub-card {
+		padding: 1em;
+	}
+	.hub-name {
+		font-size: 1.2em;
+	}
+	.hub-card .hub-duo,
+	.hub-card .hub-peek {
+		right: 1em;
+		font-size: 0.8em;
+	}
+	.hub-mindmeld {
+		background: linear-gradient(var(--dusk) 60%, var(--mist)); /* the blurb wraps to three lines here */
+	}
+	.hub-mindmeld .hub-blurb {
+		max-width: 11em;
+	}
+	.gm-title {
+		font-size: 1.6em;
+	}
+	.c4 {
+		gap: 0.4em;
+		padding: 0.8em;
+	}
+	.c4-col {
+		gap: 0.4em;
+	}
+	.c4-ghost {
+		bottom: calc(100% + 0.8em + 0.5em);
+	}
+	.rps-table {
+		padding-inline: 0.6em;
+	}
+	.rps-hand {
+		width: 4.4em;
+	}
+	.gm-done {
+		gap: 0.8em;
+		padding: 0 1em 0 0.8em;
+	}
+	.gm-done-heads {
+		font-size: 0.8em;
+	}
+	.gm-done h2 {
+		font-size: 1.35em;
+	}
+	.dd-word {
+		margin-right: 5.2em;
+	}
+	.dd-stage .dd-peek {
+		right: 1em;
+		font-size: 0.8em;
+	}
 }
 
-/* ---- Confetti (portaled to body) ---- */
-.confetti {
-	position: fixed;
-	inset: 0;
-	z-index: 60;
-	overflow: hidden;
-	pointer-events: none;
-}
-.confetti i {
-	position: absolute;
-	top: 42%;
-	left: 50%;
-	width: 10px;
-	height: 14px;
-	border-radius: 3px;
-	background: var(--c);
-	opacity: 0;
-	animation: confetti 1.9s var(--d) forwards;
-}
-.confetti .s1 {
-	width: 11px;
-	height: 11px;
-	border-radius: 50%;
-}
-.confetti .s2 {
-	width: auto;
-	height: auto;
-	background: none;
-	color: var(--c);
-	font-size: 20px;
-	line-height: 1;
-}
-.confetti .s2::before {
-	content: "♥";
-}
-.confetti .c0 { --c: var(--hot); }
-.confetti .c1 { --c: var(--rose); }
-.confetti .c2 { --c: var(--lilac); }
-.confetti .c3 { --c: var(--fur-light); }
-.confetti .c4 { --c: var(--petal); }
-
-/* ---- Motion ---- */
-@keyframes confetti {
-	0% {
-		opacity: 1;
-		transform: translate(-50%, 0) rotate(0deg) scale(0.6);
-		animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
-	}
-	30% {
-		opacity: 1;
-		transform: translate(calc(-50% + var(--dx) * 0.55), var(--up)) rotate(calc(var(--r) * 0.4)) scale(1);
-		animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6);
-	}
-	100% {
-		opacity: 0;
-		transform: translate(calc(-50% + var(--dx)), 58vh) rotate(var(--r));
-	}
-}
+/* ---- Motion (transform and opacity only) ---- */
 @keyframes c4-drop {
 	0% {
 		transform: translateY(calc((var(--row) + 1) * -118%));
@@ -859,67 +947,41 @@
 		transform: translateY(0);
 	}
 }
-@keyframes tok-pop {
+@keyframes gm-pop {
 	from {
-		transform: scale(0.3) rotate(-12deg);
+		transform: scale(0.6);
 		opacity: 0;
 	}
 }
-@keyframes tok-bob {
-	to {
-		transform: translateY(-8%) scale(1.06);
-	}
-}
-@keyframes pop-in {
-	from {
-		transform: scale(0.85) translateY(8px);
-		opacity: 0;
-	}
-}
-@keyframes big-pop {
-	from {
-		transform: scale(0.4) rotate(-6deg);
-		opacity: 0;
-	}
-}
-@keyframes heartbeat {
+@keyframes gm-bob {
 	50% {
-		transform: scale(1.25);
+		transform: translateY(-12%);
 	}
 }
-@keyframes nudge {
+@keyframes gm-throb {
+	to {
+		transform: scale(1.08);
+	}
+}
+@keyframes gm-nudge {
 	0%,
 	80%,
 	100% {
-		transform: rotate(0deg);
+		transform: none;
 	}
 	86% {
-		transform: rotate(-4deg);
+		transform: rotate(-3deg);
 	}
 	93% {
-		transform: rotate(4deg);
-	}
-}
-@keyframes wiggle {
-	33% {
-		transform: rotate(-3deg) scale(1.03);
-	}
-	66% {
-		transform: rotate(3deg) scale(1.03);
+		transform: rotate(3deg);
 	}
 }
 @keyframes rps-shake {
-	0%,
-	100% {
-		translate: 0 0;
-		rotate: 0deg;
-	}
 	50% {
-		translate: 0 -22px;
-		rotate: -12deg;
+		transform: translateY(-0.9em) rotate(-12deg);
 	}
 }
-@keyframes float-up {
+@keyframes dd-float {
 	0% {
 		opacity: 0;
 		transform: translateY(10px) scale(0.8);
@@ -938,11 +1000,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	/* Keep guesses readable (they're removed by JS) and skip the burst entirely. */
+	/* Guesses are removed by JS timers; skip the fade-out end state so they stay readable until then. */
 	.dd-bubble {
-		animation: none;
-	}
-	.confetti {
-		display: none;
+		animation-fill-mode: backwards;
 	}
 }

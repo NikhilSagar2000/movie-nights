@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { ArrowLeft, ArrowsClockwise, Cards, CirclesFour, Eraser, HandFist, HandPalm, HandPeace, Hash, Question, ScribbleLoop, type Icon } from "@phosphor-icons/react";
 import { LIMITS, other, type Game, type GameKind, type Stroke, type Who } from "../shared/types";
 import { getRoom, onRelay, profileOf, relay, send, useRoom, type RoomState } from "./room";
-import Teddy from "./Teddy";
+import { Duo, Face, Flower, FlowerBurst, FlowerRain, Head, type HeadProps, type Mood } from "./Character";
 import * as L from "./gameLogic";
 import "./games.css";
 
@@ -46,16 +47,24 @@ type Ctx = {
 	again: () => void;
 };
 
-type Meta = { name: string; blurb: string; init: (starter: Who) => unknown; turnBased?: boolean };
+type Meta = { name: string; blurb: string; hint: string; icon?: Icon; init: (starter: Who) => unknown; turnBased?: boolean };
+// Hub order: Mind Meld leads (wide night card), Doodle closes (wide dotted card).
 const GAMES: Record<GameKind, Meta> = {
-	ttt: { name: "Tic-tac-toe", blurb: "Teddy vs bunny, three in a row.", init: L.tttInit, turnBased: true },
-	c4: { name: "Connect Four", blurb: "Drop your pieces and line up four.", init: L.c4Init, turnBased: true },
-	memory: { name: "Memory Match", blurb: "Flip cards and find all eight pairs.", init: (s) => L.memoryInit(s), turnBased: true },
-	rps: { name: "Rock Paper Scissors", blurb: "Pick in secret, reveal on three.", init: () => null },
-	mindmeld: { name: "Mind Meld", blurb: "Keep going until you say the same word.", init: () => null },
-	doodle: { name: "Doodle & Guess", blurb: "One draws, one guesses, then swap.", init: L.doodleInit },
+	mindmeld: {
+		name: "Mind Meld",
+		blurb: "Say a word each until you both say the same one",
+		hint: "Round one: say any word. Then both say a word that links your last two, until you say the same one.",
+		init: () => null,
+	},
+	ttt: { name: "Tic-tac-toe", blurb: "Three in a row", hint: "Tap a square. Three in a row wins.", icon: Hash, init: L.tttInit, turnBased: true },
+	c4: { name: "Connect Four", blurb: "Four in a line", hint: "Tap a column to drop your piece", icon: CirclesFour, init: L.c4Init, turnBased: true },
+	memory: { name: "Memory match", blurb: "Find the pairs together", hint: "Find a pair and you go again", icon: Cards, init: (s) => L.memoryInit(s), turnBased: true },
+	rps: { name: "Rock paper scissors", blurb: "Choose in secret", hint: "Nothing shows until you have both picked", icon: HandFist, init: () => null },
+	doodle: { name: "Doodle and guess", blurb: "One draws, the other guesses", hint: "Guess it right and you swap", icon: ScribbleLoop, init: L.doodleInit },
 };
 const KINDS = Object.keys(GAMES) as GameKind[];
+/** Her on the left, him on the right, the same as the Duo. */
+const SEATS: Who[] = ["b", "a"];
 
 /** Whose move it is right now, or null when finished / both play at once. */
 function turnOf(g: Game): Who | null {
@@ -74,11 +83,15 @@ export default function Games() {
 	return room.game ? <GameScreen room={room} game={room.game} /> : <Hub room={room} />;
 }
 
-function Away({ name }: { name: string }) {
+function Away({ who, name }: { who: Who; name: string }) {
 	return (
 		<div className="gm-away" role="status">
-			<Teddy mood="sleep" size={44} />
-			<p>{name} isn't here right now, and games need both of you 💤</p>
+			<span className="gm-away-peek">
+				<Head who={who} mood="away" h="4.4em" />
+			</span>
+			<p>
+				<b>{name} is away right now.</b> Games wait until you are both here.
+			</p>
 		</div>
 	);
 }
@@ -86,28 +99,40 @@ function Away({ name }: { name: string }) {
 function Hub({ room }: { room: RoomState }) {
 	const them = other(room.you);
 	const live = room.online.some((p) => p.who === them);
+	const partner = profileOf(room, them).name;
+	const mood = (w: Who): Mood => (w === them && !live ? "away" : "idle");
 	return (
-		<main className="page games">
+		<main className="page">
 			<header className="hub-head">
-				<Teddy mood="wave" size={92} accent={profileOf(room, room.you).color} />
-				<div>
-					<h1>Game corner</h1>
-					<p className="muted">Pick something to play with {profileOf(room, them).name}. Whoever picks goes first.</p>
-				</div>
+				<h1>Game corner</h1>
+				<p>Six little games. Nobody keeps score.</p>
 			</header>
-			{!live && <Away name={profileOf(room, them).name} />}
+			{!live && <Away who={them} name={partner} />}
 			<ul className="hub-grid">
-				{KINDS.map((k) => (
-					<li key={k}>
-						<button className="hub-card" data-kind={k} onClick={() => send({ t: "game:new", kind: k, state: GAMES[k].init(room.you) })}>
-							<span className="hub-art" aria-hidden="true">
-								<Art kind={k} />
-							</span>
-							<span className="hub-name">{GAMES[k].name}</span>
-							<span className="hub-blurb">{GAMES[k].blurb}</span>
-						</button>
-					</li>
-				))}
+				{KINDS.map((k) => {
+					const Ico = GAMES[k].icon;
+					return (
+						<li key={k} className={cls((k === "mindmeld" || k === "doodle") && "hub-wide")}>
+							<button className={`hub-card hub-${k}`} onClick={() => send({ t: "game:new", kind: k, state: GAMES[k].init(room.you) })}>
+								{k === "mindmeld" && (
+									<>
+										<i className="stars" />
+										<Duo h="9em" className="hub-duo" a={{ mood: mood("a"), style: { rotate: "8deg" } }} b={{ mood: mood("b"), style: { rotate: "-8deg" } }} />
+									</>
+								)}
+								{k === "doodle" && <Head who={them} mood={live ? "bob" : "away"} h="9em" className="hub-peek" />}
+								{Ico && (
+									<span className="hub-ico">
+										<Ico aria-hidden />
+									</span>
+								)}
+								{k === "ttt" && live && <span className="chip sage hub-here">{partner} is here</span>}
+								<span className="hub-name">{GAMES[k].name}</span>
+								<span className="hub-blurb">{GAMES[k].blurb}</span>
+							</button>
+						</li>
+					);
+				})}
 			</ul>
 		</main>
 	);
@@ -149,94 +174,71 @@ function GameScreen({ room, game }: { room: RoomState; game: Game }) {
 	const status =
 		game.kind === "doodle"
 			? turn === you
-				? "You're drawing ✏️"
-				: `${name(them)} is drawing ✏️`
+				? "You are drawing"
+				: `${name(them)} is drawing`
 			: turn
 				? turn === you
-					? "Your turn!"
-					: `${name(turn)}'s turn 💗`
+					? "Your turn"
+					: `${name(turn)}'s turn`
 				: GAMES[game.kind].turnBased
-					? "Game over"
-					: "You both play at once 🤫";
+					? "All done"
+					: "You both play at once";
 
 	const View = { ttt: TicTacToe, c4: ConnectFour, memory: MemoryGame, rps: Rps, mindmeld: MindMeld, doodle: DoodleGame }[game.kind];
 	return (
-		<main className="page games">
+		<main className="page gm-screen">
+			<button className="btn paper sm gm-back" onClick={() => send({ t: "game:end" })}>
+				<ArrowLeft aria-hidden />
+				All games
+			</button>
 			<header className="gm-head">
-				<button className="btn soft gm-back" onClick={() => send({ t: "game:end" })}>
-					← All games
-				</button>
 				<h1 className="gm-title">{GAMES[game.kind].name}</h1>
-				<p className={cls("gm-turn", turn === you && "mine")} style={turn ? vars({ "--who": c.color(turn) }) : undefined} aria-live="polite">
-					{turn && <Token who={turn} color={c.color(turn)} />}
+				<p className={cls("chip fog gm-turn", turn === you && "mine")} aria-live="polite">
+					{turn && <Face who={turn} ring={c.color(turn)} />}
 					{status}
 				</p>
 			</header>
-			{!c.live && <Away name={name(them)} />}
+			<div className="gm-players">
+				{[you, them].map((w) => (
+					<span key={w} className="chip gm-player">
+						<Face who={w} ring={c.color(w)} mood={w === them && !c.live ? "away" : "idle"} />
+						{w === you ? "You" : name(w)}
+					</span>
+				))}
+			</div>
+			{!c.live && <Away who={them} name={name(them)} />}
 			<section className="gm-body">
 				<View key={game.id} c={c} />
+				<p className="gm-hint">{GAMES[game.kind].hint}</p>
 			</section>
 		</main>
 	);
 }
 
 // ---------- shared pieces ----------
-/** Player piece: a teddy face for "a", a bunny face for "b", in that person's color. Nests inside other SVGs via x/y/s. */
-function Token({ who, color, x, y, s }: { who: Who; color: string; x?: number; y?: number; s?: number }) {
-	const fill = { fill: color };
-	return (
-		<svg className="tok" viewBox="0 0 40 40" x={x} y={y} width={s} height={s} aria-hidden="true">
-			{who === "a" ? (
-				<>
-					<circle cx="10" cy="11" r="6.5" style={fill} />
-					<circle cx="30" cy="11" r="6.5" style={fill} />
-					<circle cx="10" cy="11" r="3" className="tok-light" />
-					<circle cx="30" cy="11" r="3" className="tok-light" />
-					<circle cx="20" cy="22.5" r="14" style={fill} />
-					<ellipse cx="20" cy="27.5" rx="6.5" ry="5" className="tok-light" />
-					<ellipse cx="20" cy="25.5" rx="2.3" ry="1.7" className="tok-ink" />
-				</>
-			) : (
-				<>
-					<ellipse cx="14" cy="11" rx="4.5" ry="10.5" transform="rotate(-10 14 11)" style={fill} />
-					<ellipse cx="26" cy="11" rx="4.5" ry="10.5" transform="rotate(10 26 11)" style={fill} />
-					<ellipse cx="14" cy="11" rx="2" ry="6.5" transform="rotate(-10 14 11)" className="tok-light" />
-					<ellipse cx="26" cy="11" rx="2" ry="6.5" transform="rotate(10 26 11)" className="tok-light" />
-					<circle cx="20" cy="25" r="13.5" style={fill} />
-					<path d="M18.2 27.2h3.6L20 29.2z" className="tok-ink" />
-					<path d="M17.5 30.6q2.5 2 5 0" className="tok-line" />
-				</>
-			)}
-			<circle cx="14.5" cy={who === "a" ? 20 : 23} r="1.9" className="tok-ink" />
-			<circle cx="25.5" cy={who === "a" ? 20 : 23} r="1.9" className="tok-ink" />
-			<circle cx="11.5" cy={who === "a" ? 26 : 28} r="2.2" className="tok-cheek" />
-			<circle cx="28.5" cy={who === "a" ? 26 : 28} r="2.2" className="tok-cheek" />
-		</svg>
-	);
+/** "You" for you, their name for them. */
+const who = (c: Ctx, w: Who) => (w === c.you ? "You" : c.name(w));
+
+/** A player's piece: their little face in their ring color. The heads differ, so it reads even when both picked the same color. */
+function Token({ c, who }: { c: Ctx; who: Who }) {
+	return <Face who={who} ring={c.color(who)} mood="still" className="gm-tok" />;
 }
 
-/** One-shot CSS confetti burst (hearts, dots, ribbons). Nothing happens under reduced motion. */
-function Confetti() {
-	const bits = useMemo(
-		() =>
-			Array.from({ length: 30 }, (_, i) => ({
-				dx: `${(Math.random() - 0.5) * 90}vw`,
-				up: `${-15 - Math.random() * 30}vh`,
-				r: `${(Math.random() - 0.5) * 900}deg`,
-				d: `${Math.random() * 0.25}s`,
-				k: `c${i % 5} s${i % 3}`,
-			})),
-		[],
-	);
-	// Portaled so a transformed/animated ancestor can't trap the fixed overlay.
-	return createPortal(
-		<div className="confetti" aria-hidden="true">
-			{bits.map((b, i) => (
-				<i key={i} className={b.k} style={vars({ "--dx": b.dx, "--up": b.up, "--r": b.r, "--d": b.d })} />
-			))}
-		</div>,
-		document.body,
-	);
+/** Flowers fall across the screen for a few seconds. Portaled so an animated ancestor can't trap the fixed flowers. */
+function Rain() {
+	const [on, setOn] = useState(true);
+	useEffect(() => {
+		const t = setTimeout(() => setOn(false), 5000);
+		return () => clearTimeout(t);
+	}, []);
+	return on
+		? createPortal(
+				<div className="gm-rain" aria-hidden="true">
+					<FlowerRain count={14} />
+				</div>,
+				document.body,
+			)
+		: null;
 }
 
 /** True for a moment after `key` changes (never on first render). */
@@ -253,13 +255,16 @@ function useBurst(key: unknown, ms = 2800) {
 	return on;
 }
 
-/** Celebration banner above a finished board: teddy cheers, confetti, play again. */
+/** Finished board: the winner hops, the other goes aww (a tie or a team win: both hop, leaning in), flowers fall. */
 function Finish({ c, winner, text }: { c: Ctx; winner: Who | null; text: string }) {
+	const mood = (w: Who): Mood => (!winner || w === winner ? "hop" : "aww");
 	return (
 		<div className="gm-done" role="status">
-			<Confetti />
-			<Teddy mood={winner ? "cheer" : "love"} size={72} accent={winner ? c.color(winner) : undefined} />
-			<div>
+			<Rain />
+			<span className="gm-done-heads">
+				<Duo h="7em" together={!winner} className="gm-duo" a={{ mood: mood("a") }} b={{ mood: mood("b") }} />
+			</span>
+			<div className="gm-done-copy">
 				<h2>{text}</h2>
 				<button className="btn" onClick={c.again}>
 					Play again
@@ -270,12 +275,12 @@ function Finish({ c, winner, text }: { c: Ctx; winner: Who | null; text: string 
 }
 
 function outcomeText(c: Ctx, out: L.Outcome) {
-	if (out === "draw") return "A tie! Perfectly matched 💕";
+	if (out === "draw") return "A tie. Perfectly matched.";
 	if (!out) return "";
-	return out.who === c.you ? "You win! 🎉" : `${c.name(out.who)} wins! 🎉`;
+	return out.who === c.you ? "You win!" : `${c.name(out.who)} wins!`;
 }
 
-const cellName = (c: Ctx, cell: L.Cell) => (cell ? `${c.name(cell)}'s ${cell === "a" ? "teddy" : "bunny"}` : "empty");
+const cellName = (c: Ctx, cell: L.Cell) => (cell ? (cell === c.you ? "your piece" : `${c.name(cell)}'s piece`) : "empty");
 
 // ---------- tic-tac-toe ----------
 function TicTacToe({ c }: { c: Ctx }) {
@@ -295,7 +300,7 @@ function TicTacToe({ c }: { c: Ctx }) {
 						onClick={() => c.move(L.tttMove(s, i, c.you))}
 						aria-label={`Row ${Math.floor(i / 3) + 1}, column ${(i % 3) + 1}: ${cellName(c, cell)}`}
 					>
-						{cell && <Token who={cell} color={c.color(cell)} />}
+						{cell && <Token c={c} who={cell} />}
 					</button>
 				))}
 			</div>
@@ -309,6 +314,15 @@ function ConnectFour({ c }: { c: Ctx }) {
 	const out = L.c4Winner(s.board);
 	const win = out && out !== "draw" ? out.line : [];
 	const canMove = c.live && !c.busy && !out && s.turn === c.you;
+	// Same ring color for both: her discs get a cream inner ring so the two sets still differ.
+	const twin = (w: Who) => w === "b" && c.color("a") === c.color("b");
+	// The state doesn't record the newest disc, so compare with the board we saw before (none after a refresh).
+	const [prev, setPrev] = useState(s.board);
+	const [last, setLast] = useState(-1);
+	if (prev !== s.board) {
+		setPrev(s.board);
+		setLast(s.board.findIndex((v, i) => v && !prev[i]));
+	}
 	return (
 		<>
 			{out && <Finish c={c} winner={out === "draw" ? null : out.who} text={outcomeText(c, out)} />}
@@ -322,16 +336,13 @@ function ConnectFour({ c }: { c: Ctx }) {
 						aria-label={`Drop in column ${col + 1}`}
 						style={canMove ? vars({ "--who": c.color(c.you) }) : undefined}
 					>
+						<span className={cls("c4-ghost", twin(c.you) && "twin")} aria-hidden="true" />
 						{Array.from({ length: L.C4_ROWS }, (_, row) => {
 							const i = row * L.C4_COLS + col;
 							const cell = s.board[i];
 							return (
 								<span key={row} className={cls("c4-hole", win.includes(i) && "win")}>
-									{cell && (
-										<span className="c4-piece" style={vars({ "--row": row })}>
-											<Token who={cell} color={c.color(cell)} />
-										</span>
-									)}
+									{cell && <span className={cls("c4-piece", twin(cell) && "twin", i === last && !out && "last")} style={vars({ "--row": row, "--p": c.color(cell) })} />}
 								</span>
 							);
 						})}
@@ -359,29 +370,27 @@ function MemoryGame({ c }: { c: Ctx }) {
 
 	return (
 		<>
-			{done && <Finish c={c} winner={null} text="Every pair found, what a team 💞" />}
-			<div className="mem" role="group" aria-label="Memory cards">
+			{done && <Finish c={c} winner={null} text="Every pair found. What a team." />}
+			<div className="mg" role="group" aria-label="Memory cards">
 				{s.deck.map((face, i) => {
 					const owner = s.found[i];
 					const up = !!owner || s.up.includes(i);
 					return (
 						<button
 							key={i}
-							className={cls("mem-card", up && "up", owner && "found")}
+							className={cls("mg-card", up && "up", owner && "found")}
 							style={owner ? vars({ "--who": c.color(owner) }) : undefined}
 							disabled={!canMove || up}
 							onClick={() => c.move(L.memoryFlip(s, i, c.you))}
-							aria-label={up ? `${face}${owner ? `, found by ${c.name(owner)}` : ""}` : "Face-down card"}
+							aria-label={up ? `${face}${owner ? `, found by ${owner === c.you ? "you" : c.name(owner)}` : ""}` : "Face-down card"}
 						>
-							<span className="mem-inner">
-								<span className="mem-back">
-									<svg viewBox="-12 -12 24 24" aria-hidden="true">
-										<path d={HEART} />
-									</svg>
+							<span className="mg-inner">
+								<span className="mg-back">
+									<Flower />
 								</span>
-								<span className="mem-front">
-									<span className="mem-face">{face}</span>
-									{owner && <Token who={owner} color={c.color(owner)} />}
+								<span className="mg-front">
+									<span className="mg-face">{face}</span>
+									{owner && <Token c={c} who={owner} />}
 								</span>
 							</span>
 						</button>
@@ -393,7 +402,7 @@ function MemoryGame({ c }: { c: Ctx }) {
 }
 
 // ---------- rock paper scissors ----------
-const HAND_ICON: Record<string, string> = { rock: "✊", paper: "✋", scissors: "✌️" };
+const HAND_ICON: Record<string, Icon> = { rock: HandFist, paper: HandPalm, scissors: HandPeace };
 
 function Rps({ c }: { c: Ctx }) {
 	const { reveals } = c.game;
@@ -418,79 +427,90 @@ function Rps({ c }: { c: Ctx }) {
 
 	const iLocked = c.locked.includes(c.you);
 	const theyLocked = c.locked.includes(c.them);
-	const theirLock = theyLocked && <p className="gm-lock">{c.name(c.them)} locked in ✓</p>;
+	const theirLock = theyLocked && <p className="chip sage gm-lock">{c.name(c.them)} is locked in</p>;
 
-	if (count)
+	// Same order as before: countdown, then my sealed pick, then the reveal, then choosing.
+	const phase = count ? "count" : iLocked ? "locked" : last && !again ? "reveal" : "choose";
+	const r = phase === "reveal" && last ? L.rpsResult(last.a, last.b) : null;
+	// Both ponder; whoever has sealed nods (their pick stays secret). The reveal: the winner hops, the other goes aww.
+	const mood = (w: Who): Mood => {
+		if (w === c.them && !c.live) return "away";
+		if (phase === "count") return "bob";
+		if (r) return r === "tie" || r === w ? "hop" : "aww";
+		return c.locked.includes(w) ? "nod" : "ponder";
+	};
+	const hand = (w: Who): Icon | null => {
+		if (phase === "count") return HandFist;
+		if (r && last) return HAND_ICON[last[w]] ?? Question;
+		return w === c.you && iLocked && mine ? HAND_ICON[mine] : null; // the partner's pick stays hidden
+	};
+	const seat = (w: Who) => {
+		const H = hand(w);
 		return (
-			<div className="rps-stage">
-				<div className="rps-hands">
-					<span className="rps-hand shake" style={vars({ "--who": c.color(c.you) })}>
-						✊
-					</span>
+			<figure key={w} className="rps-seat" style={vars({ "--who": c.color(w) })}>
+				<Head who={w} mood={mood(w)} h="6.5em" />
+				<span className={cls("rps-hand", !H && "empty", w === "a" && "flip", phase === "count" && "shake", r === w && "won")}>{H && <H aria-hidden weight="duotone" />}</span>
+				<figcaption>{who(c, w)}</figcaption>
+			</figure>
+		);
+	};
+
+	return (
+		<div className="rps">
+			<div className="rps-table">
+				{seat(SEATS[0])}
+				{count ? (
 					<span key={count} className="rps-count" aria-live="assertive">
 						{count}
 					</span>
-					<span className="rps-hand shake flip" style={vars({ "--who": c.color(c.them) })}>
-						✊
+				) : (
+					<span className="rps-vs" aria-hidden="true">
+						vs
 					</span>
-				</div>
+				)}
+				{seat(SEATS[1])}
+				{r && <FlowerBurst />}
 			</div>
-		);
 
-	if (iLocked)
-		return (
-			<div className="rps-stage">
-				<Teddy mood="peek" size={96} accent={c.color(c.you)} />
-				<h2>{mine ? `${HAND_ICON[mine]} locked in!` : "You're locked in ✓"}</h2>
-				<p className="muted">Waiting for {c.name(c.them)}…</p>
-				{theirLock}
-			</div>
-		);
+			{phase === "locked" && (
+				<p className="gm-say">
+					{mine ? `You picked ${mine}.` : "You are locked in."} Waiting for {c.name(c.them)}.
+				</p>
+			)}
 
-	if (last && !again) {
-		const r = L.rpsResult(last.a, last.b);
-		return (
-			<div className="rps-stage" key={reveals.length}>
-				<Confetti />
-				<div className="rps-hands">
-					{[c.you, c.them].map((w) => (
-						<figure key={w} className={cls("rps-reveal", r === w && "won")} style={vars({ "--who": c.color(w) })}>
-							<span className={cls("rps-hand", w === c.them && "flip")}>{HAND_ICON[last[w]] ?? "❔"}</span>
-							<figcaption>{w === c.you ? "You" : c.name(w)}</figcaption>
-						</figure>
-					))}
-				</div>
-				<h2>{r === "tie" ? "Same pick, great minds 💕" : r === c.you ? "You win this one! 🎉" : `${c.name(r)} wins this one! 🎉`}</h2>
-				<button className="btn" onClick={() => setAgain(true)}>
-					Again
-				</button>
-				{theirLock}
-			</div>
-		);
-	}
-
-	return (
-		<div className="rps-stage">
-			<p className="gm-rule">Choose in secret. Nothing shows until you've both picked.</p>
-			<div className="rps-choices">
-				{L.HANDS.map((h) => (
-					<button
-						key={h}
-						className="rps-choice"
-						disabled={!c.live}
-						onClick={() => {
-							setMine(h);
-							c.seal(h);
-						}}
-					>
-						<span className="rps-icon" aria-hidden="true">
-							{HAND_ICON[h]}
-						</span>
-						{h}
+			{phase === "reveal" && r && (
+				<>
+					<h2 className="gm-say big">{r === "tie" ? "Same pick. Great minds." : r === c.you ? "You win this one!" : `${c.name(r)} wins this one!`}</h2>
+					<button className="btn" onClick={() => setAgain(true)}>
+						Again
 					</button>
-				))}
-			</div>
-			{theirLock}
+				</>
+			)}
+
+			{phase === "choose" && (
+				<div className="rps-choices">
+					{L.HANDS.map((h) => {
+						const H = HAND_ICON[h];
+						return (
+							<button
+								key={h}
+								className="rps-choice"
+								disabled={!c.live}
+								onClick={() => {
+									setMine(h);
+									c.seal(h);
+								}}
+							>
+								<span className="rps-icon" aria-hidden="true">
+									<H />
+								</span>
+								{h}
+							</button>
+						);
+					})}
+				</div>
+			)}
+			{phase !== "count" && theirLock}
 		</div>
 	);
 }
@@ -503,6 +523,7 @@ function MindMeld({ c }: { c: Ctx }) {
 	const [text, setText] = useState("");
 	const [mine, setMine] = useState("");
 	const iLocked = c.locked.includes(c.you);
+	const theyLocked = c.locked.includes(c.them);
 	useEffect(() => setMine(""), [rv.length]);
 
 	const submit = (e: FormEvent) => {
@@ -514,58 +535,73 @@ function MindMeld({ c }: { c: Ctx }) {
 		setText("");
 	};
 
+	// Thinking: both ponder, whoever has sealed nods. Same brain: they bump heads and flowers burst.
+	const head = (w: Who): Partial<HeadProps> => ({
+		mood: w === c.them && !c.live ? "away" : synced ? "idle" : c.locked.includes(w) ? "nod" : "ponder",
+		moment: synced ? (w === "b" ? "bump-l" : "bump-r") : null,
+	});
+
 	return (
 		<div className="mm">
-			<p className="gm-rule">Round 1: say any word. Then both try to say a word that connects your last two words, until you say the SAME word.</p>
+			<div className="mm-sky">
+				<i className="stars" />
+				{synced ? (
+					<div className="mm-win" role="status">
+						<h2>Same brain</h2>
+						<p>
+							You matched in {rv.length} {rv.length === 1 ? "round" : "rounds"}.
+						</p>
+						<button className="btn paper" onClick={c.again}>
+							Play again
+						</button>
+					</div>
+				) : (
+					<p className="mm-say" aria-live="polite">
+						{iLocked ? (
+							<>
+								{mine ? (
+									<>
+										You said <b>{mine}</b>.
+									</>
+								) : (
+									"You are locked in."
+								)}{" "}
+								Waiting for {c.name(c.them)}.
+							</>
+						) : theyLocked ? (
+							`${c.name(c.them)} is locked in. Your turn.`
+						) : (
+							"You are both thinking"
+						)}
+					</p>
+				)}
+				<Duo h="9em" className="gm-duo mm-duo" a={head("a")} b={head("b")}>
+					{synced && <FlowerBurst />}
+				</Duo>
+			</div>
+
 			{rv.length > 0 && (
 				<ol className="mm-chain" aria-label="Your words so far">
 					{rv.map((r, i) => (
 						<li key={i} className={cls("mm-pair", synced && i === rv.length - 1 && "same")}>
-							<span className="mm-word" style={vars({ "--who": c.color(c.you) })}>
-								{r[c.you]}
+							<span className="mm-word" style={vars({ "--who": c.color("b") })}>
+								{r.b}
 							</span>
-							<svg className="mm-link" viewBox="-12 -12 24 24" aria-hidden="true">
-								<path d={HEART} />
-							</svg>
-							<span className="mm-word" style={vars({ "--who": c.color(c.them) })}>
-								{r[c.them]}
+							<Flower className="mm-link" />
+							<span className="mm-word" style={vars({ "--who": c.color("a") })}>
+								{r.a}
 							</span>
 						</li>
 					))}
 				</ol>
 			)}
-			{synced ? (
-				<div className="mm-win" role="status">
-					<Confetti />
-					<Teddy mood="cheer" size={110} accent={c.color(c.you)} />
-					<h2>SAME BRAIN 💞</h2>
-					<p>
-						You synced in {rv.length} {rv.length === 1 ? "round" : "rounds"}.
-					</p>
-					<button className="btn" onClick={c.again}>
-						Play again
-					</button>
-				</div>
-			) : iLocked ? (
-				<div className="mm-wait">
-					<Teddy mood="think" size={80} accent={c.color(c.you)} />
-					<p>
-						{mine ? (
-							<>
-								Locked in: <b>{mine}</b>.
-							</>
-						) : (
-							"You're locked in ✓"
-						)}{" "}
-						Waiting for {c.name(c.them)}…
-					</p>
-				</div>
-			) : (
+
+			{!synced && !iLocked && (
 				<form className="mm-form" onSubmit={submit}>
 					<label htmlFor="mm-word">
 						{last ? (
 							<>
-								A word that connects <b>{last[c.you]}</b> and <b>{last[c.them]}</b>
+								A word that links <b>{last[c.you]}</b> and <b>{last[c.them]}</b>
 							</>
 						) : (
 							"Say any word to start"
@@ -578,7 +614,7 @@ function MindMeld({ c }: { c: Ctx }) {
 							value={text}
 							maxLength={LIMITS.answer}
 							autoComplete="off"
-							placeholder="one word or a tiny phrase"
+							placeholder="One word or a tiny phrase"
 							disabled={!c.live}
 							onChange={(e) => setText(e.target.value)}
 						/>
@@ -588,14 +624,20 @@ function MindMeld({ c }: { c: Ctx }) {
 					</div>
 				</form>
 			)}
-			{!synced && c.locked.includes(c.them) && <p className="gm-lock">{c.name(c.them)} locked in ✓</p>}
 		</div>
 	);
 }
 
 // ---------- doodle & guess ----------
 // Stroke colors are drawing data sent to the partner (not UI styling), so a sun can be yellow and grass green.
-const INKS = ["#3d1a2e", "#fb6f92", "#c68b59", "#ffc94d", "#7cc6a0", "#6cb4ee"];
+const INKS = [
+	["Night", "#2d3a47"],
+	["Dusk", "#52657a"],
+	["Rosewood", "#b46a72"],
+	["Sage", "#7d8c55"],
+	["Honey", "#e0a526"],
+	["Sky", "#5e93cc"],
+] as const;
 const SIZES = [0.008, 0.018, 0.04]; // fraction of canvas width, so a drawing looks the same on every screen
 
 // Strokes live at module level (keyed by game+round) and the relay listener stays subscribed while the app runs,
@@ -754,7 +796,7 @@ function DoodleGame({ c }: { c: Ctx }) {
 	const s = c.game.state as L.Doodle;
 	const key = inkKeyOf(c.game);
 	const drawing = s.drawer === c.you;
-	const [color, setColor] = useState(INKS[0]);
+	const [color, setColor] = useState<string>(INKS[0][1]);
 	const [size, setSize] = useState(SIZES[1]);
 	const [guess, setGuess] = useState("");
 	const [bubbles, setBubbles] = useState<{ id: number; text: string; x: number }[]>([]);
@@ -820,21 +862,22 @@ function DoodleGame({ c }: { c: Ctx }) {
 		<div className="dd">
 			{drawing ? (
 				<div className="dd-word">
-					<span className="muted">Draw this:</span>
+					<span>Draw this</span>
 					<strong>{word}</strong>
-					<button className="btn ghost dd-skip" onClick={newWord} disabled={!c.live}>
+					<button className="btn ghost sm dd-skip" onClick={newWord} disabled={!c.live}>
+						<ArrowsClockwise aria-hidden />
 						Another word
 					</button>
 				</div>
 			) : (
 				<p className="dd-word">
-					<span>
-						{c.name(c.them)} is drawing. Type what you think it is!
-					</span>
+					<span>{c.name(c.them)} is drawing. What is it?</span>
 				</p>
 			)}
 
 			<DoodleCanvas inkKey={key} canDraw={drawing && c.live} color={color} size={size}>
+				{/* The partner peeks over the paper: pondering while you draw, bobbing while they draw. */}
+				<Head who={c.them} mood={!c.live ? "away" : drawing ? "ponder" : "bob"} h="5.5em" className="dd-peek" />
 				<div className="dd-bubbles" aria-live="polite">
 					{bubbles.map((b) => (
 						<span key={b.id} className="dd-bubble" style={vars({ "--x": `${b.x}%` })}>
@@ -844,12 +887,14 @@ function DoodleGame({ c }: { c: Ctx }) {
 				</div>
 				{celebrate && s.last && solvedBy && (
 					<div className="dd-yay" role="status">
-						<Confetti />
-						<Teddy mood="cheer" size={64} accent={c.color(solvedBy)} />
+						<span className="dd-yay-head">
+							<Head who={solvedBy} moment="happy" h="5.5em" />
+							<FlowerBurst />
+						</span>
 						<p>
-							{solvedBy === c.you ? "You" : c.name(solvedBy)} guessed it: <b>{s.last.word}</b>! 🎉
+							{who(c, solvedBy)} guessed it: <b>{s.last.word}</b>
 						</p>
-						<span className="muted">{drawing ? "Your turn to draw" : `Now ${c.name(s.drawer)} draws`}</span>
+						<span className="dd-next">{drawing ? "Your turn to draw" : `Now ${c.name(s.drawer)} draws`}</span>
 					</div>
 				)}
 			</DoodleCanvas>
@@ -857,8 +902,8 @@ function DoodleGame({ c }: { c: Ctx }) {
 			{drawing ? (
 				<div className="dd-tools" role="toolbar" aria-label="Brush">
 					<div className="dd-swatches">
-						{INKS.map((k) => (
-							<button key={k} className={cls("dd-swatch", k === color && "on")} style={vars({ "--ink": k })} onClick={() => setColor(k)} aria-label={`Color ${k}`} aria-pressed={k === color} />
+						{INKS.map(([n, k]) => (
+							<button key={k} className={cls("dd-swatch", k === color && "on")} style={vars({ "--ink": k })} onClick={() => setColor(k)} aria-label={n} aria-pressed={k === color} />
 						))}
 					</div>
 					<div className="dd-sizes">
@@ -868,7 +913,8 @@ function DoodleGame({ c }: { c: Ctx }) {
 							</button>
 						))}
 					</div>
-					<button className="btn soft" onClick={clear} disabled={!c.live}>
+					<button className="btn paper sm" onClick={clear} disabled={!c.live}>
+						<Eraser aria-hidden />
 						Clear
 					</button>
 				</div>
@@ -883,7 +929,7 @@ function DoodleGame({ c }: { c: Ctx }) {
 						value={guess}
 						maxLength={LIMITS.answer}
 						autoComplete="off"
-						placeholder="Is it a…"
+						placeholder="Is it a..."
 						disabled={!c.live}
 						onChange={(e) => setGuess(e.target.value)}
 					/>
@@ -894,84 +940,4 @@ function DoodleGame({ c }: { c: Ctx }) {
 			)}
 		</div>
 	);
-}
-
-// ---------- hub illustrations ----------
-const HEART = "M0 -3.5C-4.5 -10 -12 -4 -8 2.5C-6 5.5 -2.5 7.5 0 10C2.5 7.5 6 5.5 8 2.5C12 -4 4.5 -10 0 -3.5Z";
-
-function Art({ kind }: { kind: GameKind }) {
-	const teddy = "var(--hot)";
-	const bunny = "var(--lilac)";
-	const art: Record<GameKind, ReactNode> = {
-		ttt: (
-			<>
-				<path d="M48 10v70M72 10v70M26 33h68M26 57h68" className="st st-rose" />
-				<Token who="a" color={teddy} x={27} y={13} s={18} />
-				<Token who="b" color={bunny} x={75} y={13} s={18} />
-				<Token who="a" color={teddy} x={51} y={36} s={18} />
-				<Token who="b" color={bunny} x={27} y={60} s={18} />
-				<Token who="a" color={teddy} x={75} y={60} s={18} />
-				<path d="M30 16l62 58" className="st st-hot dash" />
-			</>
-		),
-		c4: (
-			<>
-				<rect x="22" y="26" width="76" height="58" rx="10" className="k-hot" />
-				{[0, 1, 2, 3].flatMap((col) =>
-					[0, 1, 2].map((row) => {
-						const fill = ["", "", "k-cream", "k-lilac", "", "k-lilac", "k-cream", "k-cream", "", "", "k-lilac", "k-cream"][col * 3 + row];
-						return <circle key={`${col}${row}`} cx={35 + col * 17} cy={39 + row * 16} r="6.5" className={fill || "k-blush"} />;
-					}),
-				)}
-				<circle cx="86" cy="11" r="6.5" className="k-lilac" />
-				<path d="M79 2v3M93 2v3" className="st st-rose thin" />
-			</>
-		),
-		memory: (
-			<>
-				<g transform="rotate(-10 42 46)">
-					<rect x="22" y="18" width="40" height="54" rx="8" className="k-hot" />
-					<path d={HEART} transform="translate(42 44) scale(.9)" className="k-rose" />
-				</g>
-				<g transform="rotate(9 78 46)">
-					<rect x="58" y="18" width="40" height="54" rx="8" className="k-cream" />
-					<rect x="58" y="18" width="40" height="54" rx="8" className="st st-petal thin" />
-					<path d={HEART} transform="translate(78 44) scale(1.1)" className="k-hot" />
-				</g>
-			</>
-		),
-		rps: (
-			<>
-				<path d="M15 55c-3-9 3-17 11-17 3-4 11-4 14 1 6 1 8 8 5 13 1 7-6 11-13 10-7 2-15-1-17-7z" className="k-fur" />
-				<path d="M22 48q4-3 8 0M30 44q4-3 8 1" className="st st-plum thin" />
-				<g transform="rotate(-6 60 46)">
-					<rect x="47" y="28" width="26" height="34" rx="4" className="k-cream" />
-					<path d="M52 37h16M52 44h16M52 51h10" className="st st-petal thin" />
-				</g>
-				<path d="M90 54l12-24M100 54l-12-24" className="st st-plum" />
-				<circle cx="89" cy="59" r="5.5" className="st st-hot" />
-				<circle cx="101" cy="59" r="5.5" className="st st-hot" />
-			</>
-		),
-		mindmeld: (
-			<>
-				<path d="M34 44Q38 18 54 20M86 44Q82 18 66 20" className="st st-rose dash" />
-				<path d={HEART} transform="translate(60 20) scale(1.3)" className="k-hot" />
-				<Token who="a" color={teddy} x={12} y={40} s={40} />
-				<Token who="b" color={bunny} x={68} y={40} s={40} />
-			</>
-		),
-		doodle: (
-			<>
-				<rect x="16" y="12" width="72" height="64" rx="8" transform="rotate(-4 52 44)" className="k-white" />
-				<path d="M52 36c-5-9-18-6-15 4 2 7 10 12 15 17 5-5 13-10 15-17 3-10-10-13-15-4z" className="st st-hot" />
-				<g transform="rotate(32 96 44)">
-					<rect x="90" y="12" width="12" height="44" rx="3" className="k-rose" />
-					<path d="M90 56h12l-6 12z" className="k-fur-light" />
-					<path d="M94.2 64.5 96 68l1.8-3.5z" className="k-plum" />
-				</g>
-			</>
-		),
-	};
-	return <svg viewBox="0 0 120 90">{art[kind]}</svg>;
 }

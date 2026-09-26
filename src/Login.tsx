@@ -1,10 +1,13 @@
-import { useId, useState, type FormEvent } from "react";
+import { useId, useState, type CSSProperties, type FormEvent } from "react";
+import { Check, DoorOpen, Eye, EyeSlash, HourglassMedium, WarningCircle } from "@phosphor-icons/react";
 import { LIMITS, other, type Who } from "../shared/types";
-import { profileOf, send, useRoom } from "./room";
-import Teddy, { type Mood } from "./Teddy";
+import { profileOf, RINGS, ringOf, send, useRoom } from "./room";
+import { Flower, Head } from "./Character";
 import "./home.css";
 
-// ---------- Login: passcode on a love-ticket, with a teddy that hides its eyes while you type ----------
+// ---------- Login: a cream card the two of you peek over, and duck behind while the passcode is typed ----------
+
+const TOO_MANY = "Too many tries. Take a little break and try again in a few minutes.";
 
 export function Login({ onIn }: { onIn: (who: Who) => void }) {
 	const [passcode, setPasscode] = useState("");
@@ -28,9 +31,9 @@ export function Login({ onIn }: { onIn: (who: Who) => void }) {
 			if (r.ok) return onIn(((await r.json()) as { who: Who }).who);
 			setError(
 				r.status === 401
-					? "Hmm, that's not it 🥺"
+					? "That is not our passcode. Try again?"
 					: r.status === 429
-						? "Too many tries. Take a little break and try again in a few minutes 🧸"
+						? TOO_MANY
 						: "The theater didn't answer. Try again in a moment.",
 			);
 			setShake(true);
@@ -41,26 +44,33 @@ export function Login({ onIn }: { onIn: (who: Who) => void }) {
 		}
 	}
 
-	const mood: Mood = error ? "sad" : focused || passcode ? "cover" : "peek";
+	// they duck while you type, and pop back up to see what went wrong
+	const duck = (focused || !!passcode) && !error;
+	const mood = error === TOO_MANY ? "drowsy" : "idle";
+	const ErrIcon = error === TOO_MANY ? HourglassMedium : WarningCircle;
 
 	return (
-		<main className="center-screen login">
-			<div className="login-wrap">
-				<h1 className="login-marquee">
-					<span>Our Little</span> <span>Theater</span>
+		<main className="center-screen hm-login">
+			<i className="moon hm-login-moon" />
+			<i className="clouds" />
+			<div className="hm-login-col">
+				<h1 className="hm-wordmark">
+					<Flower />
+					Our Little Theater
 				</h1>
-				<div className="login-bear">
-					<Teddy mood={mood} size={190} className={show && mood === "cover" ? "login-teddy teddy-peeking" : "login-teddy"} />
+				<div className={`hm-peek${duck ? " duck" : ""}${duck && show ? " show" : ""}`}>
+					<Head who="b" mood={mood} />
+					<Head who="a" mood={mood} />
 				</div>
 				<form
-					className={shake ? "love-ticket login-ticket shake" : "love-ticket login-ticket"}
+					className={shake ? "card hm-login-card shake" : "card hm-login-card"}
 					onSubmit={submit}
 					onAnimationEnd={(e) => e.target === e.currentTarget && setShake(false)}
 				>
-					<label htmlFor="passcode" className="login-label">
+					<label htmlFor="passcode" className="label">
 						Your passcode
 					</label>
-					<div className="pass-field">
+					<div className="hm-pass">
 						<input
 							id="passcode"
 							name="password"
@@ -80,33 +90,29 @@ export function Login({ onIn }: { onIn: (who: Who) => void }) {
 							aria-invalid={error ? true : undefined}
 							aria-describedby={error ? "login-error" : undefined}
 						/>
-						<button type="button" className="pass-toggle" onClick={() => setShow(!show)} aria-label={show ? "Hide passcode" : "Show passcode"}>
-							{show ? "Hide" : "Show"}
+						<button type="button" className="hm-eye" onClick={() => setShow(!show)} aria-label={show ? "Hide passcode" : "Show passcode"}>
+							{show ? <EyeSlash aria-hidden /> : <Eye aria-hidden />}
 						</button>
 					</div>
-					<button className="btn login-go" disabled={busy || !passcode}>
+					<p id="login-error" className="err hm-login-err" role="alert">
+						{error && (
+							<>
+								<ErrIcon aria-hidden weight="bold" />
+								{error}
+							</>
+						)}
+					</p>
+					<button className="btn hm-go" disabled={busy || !passcode}>
 						{busy ? "Checking…" : "Let me in"}
 					</button>
-					<p id="login-error" className="login-error" role="alert">
-						{error}
-					</p>
+					<p className="hint hm-login-hint">Just for the two of us</p>
 				</form>
-				<p className="muted login-foot">Just for the two of us 💗</p>
 			</div>
 		</main>
 	);
 }
 
-// ---------- Name your love: you pick your partner's name and their teddy's bow ----------
-
-const SWATCHES = [
-	{ name: "Bubblegum", hex: "#fb6f92" },
-	{ name: "Peach", hex: "#ff9a6b" },
-	{ name: "Butter", hex: "#ffc94d" },
-	{ name: "Mint", hex: "#5ccfa4" },
-	{ name: "Sky", hex: "#72b6ff" },
-	{ name: "Lilac", hex: "#b48cff" },
-];
+// ---------- Name your love: you pick your partner's name and the color that rings their face ----------
 
 /** The form behind first login and "rename". Saves as the partner's profile (the Room stores it under other(you)). */
 export function NameYourLove({ onDone }: { onDone?: () => void }) {
@@ -114,8 +120,9 @@ export function NameYourLove({ onDone }: { onDone?: () => void }) {
 	const partner = room ? other(room.you) : "b";
 	const current = room?.profiles[partner];
 	const [name, setName] = useState(current?.name ?? "");
-	const [color, setColor] = useState(current?.color ?? (partner === "a" ? SWATCHES[0].hex : SWATCHES[5].hex));
+	const [color, setColor] = useState(ringOf(partner, current?.color));
 	const [saving, setSaving] = useState(false);
+	const [picked, setPicked] = useState(0); // replays a little hop in the portrait on every color pick
 	const id = useId();
 	const trimmed = name.trim();
 
@@ -128,44 +135,61 @@ export function NameYourLove({ onDone }: { onDone?: () => void }) {
 	}
 
 	return (
-		<form className="love-ticket love-card" onSubmit={submit}>
-			<div className="love-preview">
-				<Teddy mood={trimmed ? "love" : "think"} size={150} accent={color} />
-				<span className={trimmed ? "nametag" : "nametag empty"}>{trimmed || "…"}</span>
+		<form className="card hm-love" onSubmit={submit}>
+			<div className="arch hm-portrait" style={{ "--ring": color } as CSSProperties}>
+				<Head who={partner} twinkle moment={picked ? "happy" : null} nonce={picked} />
 			</div>
-			<h1 id={`${id}-title`}>What do you call your love? 💗</h1>
-			<p className="muted love-help">They'll see this name under their teddy.</p>
-			<input
-				className="input love-input"
-				aria-labelledby={`${id}-title`}
-				placeholder="A name or a nickname"
-				autoComplete="off"
-				maxLength={LIMITS.name}
-				value={name}
-				onChange={(e) => setName(e.target.value)}
-			/>
-			<fieldset className="swatches">
-				<legend>Their teddy's bow</legend>
-				<div className="swatch-row">
-					{SWATCHES.map((s) => (
-						<label key={s.hex} className="swatch" title={s.name}>
-							<input type="radio" className="sr-only" name={`${id}-bow`} value={s.hex} checked={color === s.hex} onChange={() => setColor(s.hex)} />
-							<span className="swatch-dot" style={{ background: s.hex }} />
-							<span className="sr-only">{s.name}</span>
-						</label>
-					))}
-				</div>
-			</fieldset>
-			<button className="btn love-save" disabled={!trimmed || saving}>
-				{saving ? "Saving…" : "Save 💗"}
-			</button>
+			<div className="hm-love-form">
+				<h1 className="hm-love-title">What do you call your love?</h1>
+				<label className="label" htmlFor={`${id}-name`}>
+					Their name
+				</label>
+				<input
+					id={`${id}-name`}
+					className="input love-input"
+					placeholder="A name or a nickname"
+					autoComplete="off"
+					maxLength={LIMITS.name}
+					value={name}
+					onChange={(e) => setName(e.target.value)}
+				/>
+				<fieldset className="hm-swatches">
+					<legend className="label">Their color</legend>
+					<div className="hm-swatch-row">
+						{RINGS.map((r) => (
+							<label key={r.hex} className="hm-swatch" title={r.name}>
+								<input
+									type="radio"
+									className="sr-only"
+									name={`${id}-ring`}
+									value={r.hex}
+									checked={color === r.hex}
+									onChange={() => {
+										setColor(r.hex);
+										setPicked((n) => n + 1);
+									}}
+								/>
+								<span className="hm-swatch-dot" style={{ background: r.hex }}>
+									{color === r.hex && <Check aria-hidden weight="bold" />}
+								</span>
+								<span className="sr-only">{r.name}</span>
+							</label>
+						))}
+					</div>
+				</fieldset>
+				<p className="hint">It rings their face cam and their name tag.</p>
+				<button className="btn love-save" disabled={!trimmed || saving}>
+					{saving ? "Saving…" : "Save"}
+				</button>
+			</div>
 		</form>
 	);
 }
 
 export function ProfilePicker() {
 	return (
-		<main className="center-screen love-page">
+		<main className="center-screen hm-love-page">
+			<i className="clouds hm-haze-clouds" />
 			<NameYourLove />
 		</main>
 	);
@@ -182,30 +206,25 @@ export function Door({ onEnter }: { onEnter: () => void }) {
 	const inside = room.online.some((p) => p.who === partnerWho);
 
 	return (
-		<main className="center-screen door">
-			<div className="door-wrap">
-				<h1 className="door-title">{room.profiles[room.you] ? `Hi ${me.name}!` : "Hi there!"}</h1>
-				<div className="velvet velvet--closed">
-					<i className="velvet-curtain velvet-curtain-l" aria-hidden="true" />
-					<i className="velvet-curtain velvet-curtain-r" aria-hidden="true" />
-					<div className="velvet-duo">
-						<div className="velvet-bear">
-							<Teddy mood="idle" size={160} accent={me.color} label="Your teddy" />
-						</div>
-						{inside && (
-							<div className="velvet-bear">
-								<Teddy mood="wave" size={160} accent={partner.color} label={`${partner.name}'s teddy, waving at you`} />
-							</div>
-						)}
-					</div>
-					<div className="velvet-floor" />
+		<main className="center-screen hm-door-page">
+			<i className="moon hm-door-moon" />
+			<div className="hm-door-scene">
+				<div className="hm-door-copy">
+					<h1>{room.profiles[room.you] ? `Hi ${me.name}` : "Hi there"}</h1>
+					<p className="hm-door-status">{inside ? `${partner.name} is waiting inside` : `${partner.name} is not here yet`}</p>
+					<button className="btn" onClick={onEnter}>
+						<DoorOpen aria-hidden />
+						Come in
+					</button>
+					<p className="hm-door-note">Next, your browser asks to use your camera and mic so you can see each other. It is fine to say no.</p>
 				</div>
-				<p className="door-status">{inside ? `${partner.name} is waiting inside 💗` : `${partner.name} isn't here yet. You get first pick of the snacks 🍿`}</p>
-				<button className="btn door-go" onClick={onEnter}>
-					Come in 🚪
-				</button>
-				<p className="muted door-note">Next, your browser asks to use your camera and mic so you can see each other. It's fine to say no.</p>
+				<div className={inside ? "arch hm-door open" : "arch hm-door"}>
+					{inside && <Head who={partnerWho} mood="bob" twinkle className="hm-door-head" />}
+					<i className="hm-leaf" />
+					<i className="hm-knob" />
+				</div>
 			</div>
+			<i className="clouds" />
 		</main>
 	);
 }
