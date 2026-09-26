@@ -118,7 +118,7 @@ export function Face({ who, ring, s, rw, className, style, children, ...head }: 
 	);
 }
 
-/** His flower on its own: the brand mark, reactions, hugs, the loader. Color comes from --petal. */
+/** His flower on its own: the brand mark, reactions, flowers you send, the loader. Color comes from --petal. */
 export function Flower({ className, style, label }: { className?: string; style?: CSSProperties; label?: string }) {
 	return (
 		<svg className={`flw${className ? " " + className : ""}`} style={style} viewBox="0 0 16.3 15.8" role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true}>

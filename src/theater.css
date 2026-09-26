@@ -1099,7 +1099,8 @@ body:has(.theater) .fc-cam {
 	object-fit: cover;
 	transition: opacity 0.3s;
 }
-.fc-cam.me video {
+.fc-cam.me video, /* your own view is a mirror, like Meet */
+.fc-bubble video.flip /* View menu: some cameras send a mirrored picture */ {
 	transform: scaleX(-1);
 }
 .fc-bubble video.off {
@@ -1149,6 +1150,7 @@ body:has(.theater) .fc-cam {
 }
 /* My mic/camera buttons: always visible on the bubble's bottom edge, on every page. */
 .fc-controls {
+	font-size: clamp(12px, calc(var(--size) * 0.14), 16px); /* three buttons: smaller on small bubbles */
 	position: absolute;
 	top: calc(var(--size) - 1.3em);
 	left: 50%;
@@ -1327,8 +1329,8 @@ body:has(.theater) .fc-cam {
 	margin-top: -0.6em;
 }
 
-/* A hug: the page blurs, they lean in inside a big face, and his flower flies to her hair */
-.fc-hug {
+/* A flower arriving (not during a movie): the page dims, and inside a big face the flower travels from the sender to you */
+.fc-flower {
 	--focus: var(--haze);
 	position: fixed;
 	inset: 0;
@@ -1341,25 +1343,23 @@ body:has(.theater) .fc-cam {
 	text-align: center;
 	background: rgb(45 58 71 / 0.74);
 	backdrop-filter: blur(6px);
-	animation: th-hug 4.5s ease forwards;
+	animation: th-flower 6s ease forwards;
 }
-.fc-hug-face {
+.fc-flower-face {
 	--s: 14em;
 	--ring: var(--blush);
 	--rw: 0.35em;
 	align-content: end;
 }
-.fc-hug-face .ch-duo {
+.fc-flower-face .ch-duo {
 	margin-bottom: 0.4em;
 }
-.fc-hug .ch-rise {
-	display: none; /* the flying flower is the one that moves here */
-}
-/* The lab's "gift", in units of the heads' height: starts on his hair, arcs up, lands on hers. */
-.fc-hug-fly {
+/* The lab's "gift", in units of the heads' height: starts on his hair, arcs up, lands on hers.
+   .to-him runs it backwards: it appears by her hair and settles into his. */
+.fc-flower-gift {
 	position: absolute;
-	left: calc(var(--h) * 0.68);
-	bottom: calc(var(--h) * 0.6);
+	left: calc(var(--h) * 0.763); /* on his hair flower (heads side by side, not leaning) */
+	bottom: calc(var(--h) * 0.636);
 	height: calc(var(--h) * 0.2);
 	translate: -50% 50%;
 	animation: fc-fly 3.2s var(--spring) 0.3s both;
@@ -1376,7 +1376,32 @@ body:has(.theater) .fc-cam {
 		transform: translate(calc(var(--h) * -0.33), calc(var(--h) * -0.24)) rotate(-340deg) scale(1);
 	}
 }
-.fc-hug h2 {
+.fc-flower-gift.to-him {
+	animation-name: fc-fly-him;
+}
+@keyframes fc-fly-him {
+	0% {
+		opacity: 0;
+		transform: translate(calc(var(--h) * -0.33), calc(var(--h) * -0.24)) scale(0.4);
+	}
+	12% {
+		opacity: 1;
+		transform: translate(calc(var(--h) * -0.33), calc(var(--h) * -0.24)) scale(1);
+	}
+	45% {
+		transform: translate(calc(var(--h) * -0.16), calc(var(--h) * -0.46)) rotate(200deg) scale(1.35);
+	}
+	70% {
+		opacity: 1;
+		transform: translate(0, 0) rotate(360deg) scale(1);
+	}
+	76%,
+	100% {
+		opacity: 0; /* his own flower takes over (flowerGone flips off when it lands) */
+		transform: translate(0, 0) rotate(360deg) scale(1);
+	}
+}
+.fc-flower h2 {
 	margin: 0.3em 0 0;
 	font-size: clamp(1.7rem, 6vw, 2.3rem);
 	color: var(--cream);
@@ -1399,13 +1424,118 @@ body:has(.theater) .fc-cam {
 		transform: translateY(-140%);
 	}
 }
-@keyframes th-hug {
+@keyframes th-flower {
 	0% {
 		opacity: 0;
 	}
 	8%,
 	88% {
 		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}
+
+/* ---------- Flowers between the bubbles ---------- */
+.fc-ctl:disabled {
+	opacity: 0.5;
+	cursor: default;
+	transform: none;
+}
+.fc-ctl .flw {
+	height: 1.25em;
+}
+/* One you send flies from your bubble to theirs; one that arrives in a movie flies the other way. */
+.fc-layer > .fc-flower-fly {
+	position: fixed;
+	z-index: 1;
+	width: 1.8em;
+	translate: -50% -50%;
+	pointer-events: none;
+	animation: fc-flower-fly 1.7s var(--spring) forwards;
+}
+.fc-flower-fly .flw {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+@keyframes fc-flower-fly {
+	0% {
+		opacity: 0;
+		transform: scale(0.4);
+	}
+	12% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		transform: translate(calc(var(--dx) / 2), calc(var(--dy) / 2 - 3em)) rotate(180deg) scale(1.4);
+	}
+	85% {
+		opacity: 1;
+		transform: translate(var(--dx), var(--dy)) rotate(340deg) scale(1);
+	}
+	100% {
+		opacity: 0;
+		transform: translate(var(--dx), var(--dy)) rotate(360deg) scale(0.6);
+	}
+}
+/* Their bubble glows when their flower lands */
+.fc-cam.glow::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: var(--size);
+	height: var(--size);
+	border-radius: 50%;
+	box-shadow: 0 0 0 0.45em var(--blush), 0 0 1.6em 0.9em rgb(247 200 211 / 0.7);
+	pointer-events: none;
+	opacity: 0;
+	animation: fc-glow 1.3s ease-in-out 1.2s 3;
+}
+@keyframes fc-glow {
+	50% {
+		opacity: 1;
+		transform: scale(1.04);
+	}
+}
+.fc-layer > .fc-flower-note {
+	position: fixed;
+	z-index: 2;
+	--petal-line: var(--night);
+	display: flex;
+	align-items: center;
+	gap: 0.6em;
+	max-width: calc(100vw - 24px);
+	padding: 0.5em 0.5em 0.5em 0.9em;
+	border-radius: 999px;
+	background: var(--cream);
+	color: var(--night);
+	box-shadow: var(--lift);
+	white-space: nowrap;
+	translate: -50% -100%;
+	animation: fc-note 6s ease both;
+}
+.fc-flower-note.below {
+	translate: -50% 0;
+}
+.fc-flower-note > .flw {
+	height: 1.5em;
+}
+.fc-flower-note b {
+	font-weight: 600;
+}
+@keyframes fc-note {
+	0% {
+		opacity: 0;
+		transform: scale(0.85);
+	}
+	6%,
+	90% {
+		opacity: 1;
+		transform: none;
 	}
 	100% {
 		opacity: 0;

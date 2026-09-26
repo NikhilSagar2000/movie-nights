@@ -124,10 +124,10 @@ export type Spot = { fx?: number; fy?: number; size?: number };
 type Layout = { me: Spot; them: Spot };
 /** On the theater page: "movie" while anyone is sharing, "idle" otherwise. Every other page: "page". Each keeps its own tweaks. */
 export type LayoutMode = "movie" | "idle" | "page";
-type View = { hideSelf: boolean; hidePartner: boolean; hideMovie: boolean; min: boolean; stage: number } & Record<LayoutMode, Layout>;
+type View = { hideSelf: boolean; hidePartner: boolean; hideMovie: boolean; flipPartner: boolean; min: boolean; stage: number } & Record<LayoutMode, Layout>;
 
 const FRESH_LAYOUT = { min: false, stage: 1, movie: { me: {}, them: {} }, idle: { me: {}, them: {} }, page: { me: {}, them: {} } };
-const DEFAULT_VIEW: View = { hideSelf: false, hidePartner: false, hideMovie: false, ...FRESH_LAYOUT };
+const DEFAULT_VIEW: View = { hideSelf: false, hidePartner: false, hideMovie: false, flipPartner: false, ...FRESH_LAYOUT };
 
 let view: View = (() => {
 	try {
@@ -212,32 +212,79 @@ function flashTitle(text: string, ms = 6000) {
 	}, 700);
 }
 
+// ---------- flowers: his flower, sent from the theater toolbar or your own cam bubble ----------
+
+const FLOWER_COOLDOWN = 2500;
+let flowerAt = 0;
+const flowersOut = new Set<() => void>();
+const flowersIn = new Set<() => void>();
+/** Sends a flower. Ignored inside the cooldown, so the toolbar and bubble buttons can't double-send. */
+export function sendFlower() {
+	if (Date.now() - flowerAt < FLOWER_COOLDOWN) return;
+	flowerAt = Date.now();
+	relay({ k: "nudge", kind: "flower" });
+	flowersOut.forEach((f) => f());
+}
+const listen = (set: Set<() => void>) => (f: () => void) => {
+	set.add(f);
+	return () => void set.delete(f);
+};
+/** A flower you just sent (the bubbles fly it across) / one that arrived during a movie (shown small, by the cams). */
+export const onFlowerOut = listen(flowersOut);
+export const onFlowerIn = listen(flowersIn);
+/** True for a moment after a flower goes out, so every send button reads "Flower sent". */
+export function useFlowerSent() {
+	const [sent, setSent] = useState(false);
+	useEffect(() => {
+		let t: number | undefined;
+		const off = onFlowerOut(() => {
+			setSent(true);
+			clearTimeout(t);
+			t = window.setTimeout(() => setSent(false), FLOWER_COOLDOWN);
+		});
+		return () => {
+			off();
+			clearTimeout(t);
+		};
+	}, []);
+	return sent;
+}
+
 export function NudgeListener() {
 	const room = useRoom();
-	const [nudge, setNudge] = useState<{ kind: "pause" | "hug"; key: number } | null>(null);
+	const call = useCall();
+	const sharing = useRef(false);
+	sharing.current = !!call.localScreen || call.peerSharing;
+	const [nudge, setNudge] = useState<{ kind: "pause" | "flower"; key: number } | null>(null);
 
 	useEffect(
 		() =>
 			onRelay((_, d) => {
-				if (d.k !== "nudge" || (d.kind !== "pause" && d.kind !== "hug")) return; // "boop" belongs to Home
-				setNudge({ kind: d.kind, key: Date.now() });
+				if (d.k !== "nudge") return;
 				if (d.kind === "pause") {
+					setNudge({ kind: "pause", key: Date.now() });
 					chime([784, 587]);
 					flashTitle("Please pause");
-				} else chime([523, 659, 784]);
+				} else if (d.kind === "flower" || (d.kind as string) === "hug") {
+					// ("hug" is what tabs opened before the rename still send)
+					chime([523, 659, 784]);
+					const inMovie = sharing.current && location.hash.replace(/^#\/?/, "") === "theater";
+					if (inMovie) flowersIn.forEach((f) => f()); // never cover the movie: the bubbles show it
+					else setNudge({ kind: "flower", key: Date.now() });
+				} // "boop" belongs to Home
 			}),
 		[],
 	);
 	useEffect(() => {
 		if (!nudge) return;
-		const t = setTimeout(() => setNudge(null), nudge.kind === "hug" ? 4500 : 7000); // the hug waits for the flower to land
+		const t = setTimeout(() => setNudge(null), nudge.kind === "flower" ? 6000 : 7000); // waits for the flower to land
 		return () => clearTimeout(t);
 	}, [nudge]);
 
 	if (!room || !nudge) return null;
 	const partner = other(room.you);
 	const them = profileOf(room, partner);
-	if (nudge.kind === "hug") return <HugOverlay key={nudge.key} name={them.name} onClose={() => setNudge(null)} />;
+	if (nudge.kind === "flower") return <FlowerOverlay key={nudge.key} from={partner} name={them.name} onClose={() => setNudge(null)} />;
 	return (
 		<div className="fc-pause" role="alert" key={nudge.key}>
 			<span className="fc-pause-head">
@@ -254,11 +301,12 @@ export function NudgeListener() {
 	);
 }
 
-/** A hug arriving: they lean in and his flower flies from his hair to hers; she hops and blushes when it lands. */
-function HugOverlay({ name, onClose }: { name: string; onClose: () => void }) {
+/** A flower arriving: it travels from the sender to you. From him, it leaves his hair and lands in hers;
+ *  from her, it goes into his hair. Whoever receives it smiles and blushes when it lands. */
+function FlowerOverlay({ from, name, onClose }: { from: Who; name: string; onClose: () => void }) {
 	const [landed, setLanded] = useState(false);
 	useEffect(() => {
-		const t = setTimeout(() => setLanded(true), 2500); // .fc-hug-fly lands at 0.3s + 70% of 3.2s
+		const t = setTimeout(() => setLanded(true), 2500); // .fc-flower-gift lands at 0.3s + 70% of 3.2s
 		return () => clearTimeout(t);
 	}, []);
 	useEffect(() => {
@@ -266,21 +314,23 @@ function HugOverlay({ name, onClose }: { name: string; onClose: () => void }) {
 		addEventListener("keydown", esc);
 		return () => removeEventListener("keydown", esc);
 	}, [onClose]);
-	const hugBack = () => {
-		relay({ k: "nudge", kind: "hug" });
+	const flowerBack = () => {
+		sendFlower();
 		onClose();
 	};
+	const toHer = from === "a";
+	const receiver = { moment: landed ? ("happy" as const) : null, blush: landed };
 	return (
-		<div className="fc-hug" role="status" onClick={(e) => e.target === e.currentTarget && onClose()}>
-			<span className="face fc-hug-face">
-				<Duo h="10.5em" together a={{ flowerGone: true }} b={{ moment: landed ? "happy" : null, blush: landed }}>
-					<Flower className="fc-hug-fly" />
+		<div className="fc-flower" role="status" onClick={(e) => e.target === e.currentTarget && onClose()}>
+			<span className="face fc-flower-face">
+				<Duo h="10.5em" a={toHer ? { flowerGone: true } : { flowerGone: !landed, ...receiver }} b={toHer ? receiver : undefined}>
+					<Flower className={`fc-flower-gift${toHer ? "" : " to-him"}`} />
 				</Duo>
 			</span>
-			<h2>{name} sent you a hug</h2>
-			<button className="btn blush" onClick={hugBack}>
+			<h2>{name} sent you a flower</h2>
+			<button className="btn blush" onClick={flowerBack}>
 				<Flower />
-				Hug back
+				Send one back
 			</button>
 		</div>
 	);
@@ -454,16 +504,17 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 	};
 
 	// ---- nudges out ----
-	const [sent, setSent] = useState<"pause" | "hug" | null>(null);
+	const [asked, setAsked] = useState(false);
 	useEffect(() => {
-		if (!sent) return;
-		const t = setTimeout(() => setSent(null), 2500);
+		if (!asked) return;
+		const t = setTimeout(() => setAsked(false), 2500);
 		return () => clearTimeout(t);
-	}, [sent]);
-	const nudge = (kind: "pause" | "hug") => {
-		relay({ k: "nudge", kind });
-		setSent(kind);
+	}, [asked]);
+	const askPause = () => {
+		relay({ k: "nudge", kind: "pause" });
+		setAsked(true);
 	};
+	const flowerSent = useFlowerSent();
 
 	const [volume, setVolume] = useState(1);
 	const [hiddenError, setHiddenError] = useState<string | null>(null);
@@ -514,13 +565,13 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 							</span>
 						</div>
 						<div className="th-group">
-							<button className="btn glass th-tool" disabled={!partnerHere || sent === "pause"} onClick={() => nudge("pause")}>
+							<button className="btn glass th-tool" disabled={!partnerHere || asked} onClick={askPause}>
 								<HandPalm aria-hidden />
-								<span className="th-lbl">{sent === "pause" ? "Asked" : "Please pause"}</span>
+								<span className="th-lbl">{asked ? "Asked" : "Please pause"}</span>
 							</button>
-							<button className="btn glass th-tool" disabled={!partnerHere || sent === "hug"} onClick={() => nudge("hug")}>
+							<button className="btn glass th-tool" disabled={!partnerHere || flowerSent} onClick={sendFlower}>
 								<Flower />
-								<span className="th-lbl">{sent === "hug" ? "Hug sent" : "Send a hug"}</span>
+								<span className="th-lbl">{flowerSent ? "Flower sent" : "Send a flower"}</span>
 							</button>
 							<ViewMenu view={v} partnerName={them.name} />
 							<label className="th-quality" title={`The picture quality you receive when ${them.name} shares`}>
@@ -648,7 +699,7 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 									<button
 										key={e}
 										className="th-react"
-										aria-label={`Send ${e === FLOWER ? "a flower" : e} (key ${i + 1})`}
+										aria-label={e === FLOWER ? `Float a flower over the movie (key ${i + 1})` : `React ${e} (key ${i + 1})`}
 										title={`Key ${i + 1}`}
 										onClick={() => react(e)}
 									>
@@ -743,6 +794,13 @@ function ViewMenu({ view: v, partnerName }: { view: View; partnerName: string })
 					<span>
 						Hide {partnerName}'s cam
 						<small>You'll still hear them</small>
+					</span>
+				</label>
+				<label className="th-view-opt">
+					<input type="checkbox" checked={v.flipPartner} onChange={(e) => setView({ flipPartner: e.target.checked })} />
+					<span>
+						Flip {partnerName}'s camera
+						<small>If their picture looks mirrored</small>
 					</span>
 				</label>
 				<label className="th-view-opt">

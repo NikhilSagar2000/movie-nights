@@ -2,6 +2,7 @@
 // The partner's <video> carries their voice, so it stays mounted (only visually hidden) when hidden or minimized.
 import {
 	useEffect,
+	useLayoutEffect,
 	useRef,
 	useState,
 	useSyncExternalStore,
@@ -13,11 +14,27 @@ import {
 } from "react";
 import { EyeSlash, Heart, Microphone, MicrophoneSlash, Minus, SpeakerHigh, VideoCamera, VideoCameraSlash } from "@phosphor-icons/react";
 import { other } from "../shared/types";
-import { Face } from "./Character";
+import { Face, Flower } from "./Character";
 import { JarReveal } from "./Memories";
 import { profileOf, useRoom, type RoomState } from "./room";
 import { setCam, setMic, useCall, type CallState } from "./rtc";
-import { clamp, NudgeListener, saveView, setSpot, setView, useLive, useVideo, useView, type LayoutMode, type Spot, type Vars } from "./Theater";
+import {
+	clamp,
+	NudgeListener,
+	onFlowerIn,
+	onFlowerOut,
+	saveView,
+	sendFlower,
+	setSpot,
+	setView,
+	useFlowerSent,
+	useLive,
+	useVideo,
+	useView,
+	type LayoutMode,
+	type Spot,
+	type Vars,
+} from "./Theater";
 import "./theater.css";
 
 const M = 12; // gap from the viewport edge
@@ -102,6 +119,44 @@ export default function FaceCams() {
 	);
 }
 
+type Flight = { id: number; x: number; y: number; dx: number; dy: number };
+let flightSeq = 0;
+const bubbleRect = (ref: RefObject<HTMLElement | null>) => ref.current?.querySelector(".fc-bubble")?.getBoundingClientRect();
+
+/** "{name} sent you a flower", next to their bubble (above it, or below when it sits at the top of the screen). */
+function FlowerNote({ name, anchor, vw, onClose }: { name: string; anchor: RefObject<HTMLElement | null>; vw: number; onClose: () => void }) {
+	const [spot] = useState(() => {
+		const r = bubbleRect(anchor);
+		if (!r) return { left: vw / 2, top: 96, below: true };
+		const below = r.top < 150;
+		return { left: r.left + r.width / 2, top: below ? r.bottom + 12 + CAP : r.top - 12, below };
+	});
+	// keep the whole note on screen: centered on their bubble unless that would push it past an edge
+	const ref = useRef<HTMLDivElement>(null);
+	const [left, setLeft] = useState(spot.left);
+	useLayoutEffect(() => {
+		const half = (ref.current?.offsetWidth ?? 0) / 2;
+		setLeft(clamp(spot.left, half + M, Math.max(half + M, vw - half - M)));
+	}, [spot.left, vw]);
+	return (
+		<div ref={ref} className={`fc-flower-note${spot.below ? " below" : ""}`} role="status" style={{ left, top: spot.top }}>
+			<Flower />
+			<span>
+				<b>{name}</b> sent you a flower
+			</span>
+			<button
+				className="btn blush sm"
+				onClick={() => {
+					sendFlower();
+					onClose();
+				}}
+			>
+				Send one back
+			</button>
+		</div>
+	);
+}
+
 function Bubbles({ room, call }: { room: RoomState; call: CallState }) {
 	const v = useView();
 	const [vw, vh] = useViewport();
@@ -119,6 +174,34 @@ function Bubbles({ room, call }: { room: RoomState; call: CallState }) {
 	const meRef = useRef<HTMLElement>(null);
 	useVoiceLevel(themRef, call.remoteCam);
 	useVoiceLevel(meRef, call.localCam);
+
+	// Flowers: one you send flies from your bubble to theirs; one that arrives during a movie flies the other way,
+	// their bubble glows and a small note offers to send one back (the movie is never covered).
+	const flowerSent = useFlowerSent();
+	const [flights, setFlights] = useState<Flight[]>([]);
+	const [note, setNote] = useState(0);
+	useEffect(() => {
+		const fly = (from: RefObject<HTMLElement | null>, to: RefObject<HTMLElement | null>) => {
+			const a = bubbleRect(from), b = bubbleRect(to);
+			if (!a || !b) return;
+			const x = a.left + a.width / 2, y = a.top + a.height * 0.35;
+			setFlights((f) => [...f, { id: ++flightSeq, x, y, dx: b.left + b.width / 2 - x, dy: b.top + b.height * 0.35 - y }]);
+		};
+		const offOut = onFlowerOut(() => fly(meRef, themRef));
+		const offIn = onFlowerIn(() => {
+			fly(themRef, meRef);
+			setNote(Date.now());
+		});
+		return () => {
+			offOut();
+			offIn();
+		};
+	}, []);
+	useEffect(() => {
+		if (!note) return;
+		const t = setTimeout(() => setNote(0), 6000);
+		return () => clearTimeout(t);
+	}, [note]);
 
 	const mode: LayoutMode = !onTheater ? "page" : call.localScreen || call.peerSharing ? "movie" : "idle";
 	const layout = v[mode];
@@ -164,6 +247,15 @@ function Bubbles({ room, call }: { room: RoomState; call: CallState }) {
 						>
 							{call.camOn ? <VideoCamera aria-hidden /> : <VideoCameraSlash aria-hidden />}
 						</button>
+						<button
+							className="fc-ctl flower"
+							disabled={!partnerHere || flowerSent}
+							aria-label={flowerSent ? "Flower sent" : `Send ${them.name} a flower`}
+							title={flowerSent ? "Flower sent" : `Send ${them.name} a flower`}
+							onClick={sendFlower}
+						>
+							<Flower />
+						</button>
 					</>
 				}
 			>
@@ -188,13 +280,14 @@ function Bubbles({ room, call }: { room: RoomState; call: CallState }) {
 				onHide={() => setView({ hidePartner: true })}
 				caption={them.name}
 				connecting={partnerHere && call.connection !== "connected"}
+				glow={note > 0}
 			>
 				{partnerHere && !call.peerMicOn && (
 					<span className="fc-mic-off" title={`${them.name}'s mic is off`}>
 						<MicrophoneSlash aria-hidden />
 					</span>
 				)}
-				<video ref={theirs.ref} playsInline className={seeThem ? "" : "off"} aria-label={`${them.name}'s camera`} />
+				<video ref={theirs.ref} playsInline className={`${seeThem ? "" : "off"}${v.flipPartner ? " flip" : ""}`} aria-label={`${them.name}'s camera`} />
 				{!seeThem && (
 					<span className="fc-head">
 						<Face
@@ -207,6 +300,18 @@ function Bubbles({ room, call }: { room: RoomState; call: CallState }) {
 					</span>
 				)}
 			</Bubble>
+			{flights.map((f) => (
+				<span
+					key={f.id}
+					className="fc-flower-fly"
+					style={{ left: f.x, top: f.y, "--dx": `${f.dx}px`, "--dy": `${f.dy}px` } as Vars}
+					onAnimationEnd={() => setFlights((all) => all.filter((x) => x.id !== f.id))}
+					aria-hidden="true"
+				>
+					<Flower />
+				</span>
+			))}
+			{note > 0 && <FlowerNote key={note} name={them.name} anchor={themRef} vw={vw} onClose={() => setNote(0)} />}
 			{theirs.blocked && (
 				<button className="btn sm paper fc-sound" onClick={theirs.unblock}>
 					<SpeakerHigh aria-hidden />
@@ -245,6 +350,8 @@ function Bubble(props: {
 	caption: string;
 	/** Partner is here but the call is not connected yet: a steel ring. */
 	connecting?: boolean;
+	/** A flower just arrived from them: a soft blush glow. */
+	glow?: boolean;
 	/** Always-visible buttons on the bubble's bottom edge (my mic/camera). */
 	controls?: ReactNode;
 	children: ReactNode;
@@ -301,7 +408,7 @@ function Bubble(props: {
 	return (
 		<figure
 			ref={props.ref}
-			className={`fc-cam ${who}${hidden ? " hidden" : ""}${dragging ? " dragging" : ""}${props.connecting ? " connecting" : ""}`}
+			className={`fc-cam ${who}${hidden ? " hidden" : ""}${dragging ? " dragging" : ""}${props.connecting ? " connecting" : ""}${props.glow ? " glow" : ""}`}
 			style={{ "--size": `${size}px`, "--who": props.color, left, top } as Vars}
 			role="group"
 			tabIndex={0}
