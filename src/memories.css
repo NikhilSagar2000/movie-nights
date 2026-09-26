@@ -1,0 +1,545 @@
+/* ===== Memories: watchlist jar + ticket stubs wall =====
+   All CSS loads globally, so every class here is mem-* prefixed (mem-reveal is the global jar-pick dialog). */
+
+.memories {
+	display: grid;
+	gap: clamp(36px, 7vw, 64px);
+	padding-bottom: 240px; /* scroll clear of the cam bubbles */
+}
+.mem-head h1 {
+	margin: 0;
+	font-size: clamp(1.8rem, 5vw, 2.6rem);
+}
+.mem-head p {
+	margin: 0.2em 0 0;
+}
+.memories h2 {
+	font-size: clamp(1.35rem, 3.5vw, 1.8rem);
+}
+.memories .btn.sm {
+	font-size: 0.9rem;
+	padding: 0.5em 0.95em;
+}
+.mem-empty {
+	display: grid;
+	justify-items: center;
+	gap: 8px;
+	padding: 28px 16px;
+	border: 3px dashed var(--petal);
+	border-radius: var(--r-lg);
+	color: var(--plum-soft);
+	font-weight: 700;
+	text-align: center;
+}
+.mem-empty p {
+	margin: 0;
+	max-width: 34ch;
+}
+
+/* ---------- Watchlist jar ---------- */
+.mem-jar-section {
+	display: grid;
+	align-items: center;
+	gap: 28px 48px;
+}
+@media (min-width: 760px) {
+	.mem-jar-section {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+	}
+}
+.mem-jar-copy {
+	display: grid;
+	justify-items: start;
+	gap: 14px;
+}
+.mem-jar-copy h2,
+.mem-jar-copy p {
+	margin: 0;
+}
+.mem-jar-form {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	width: 100%;
+}
+.mem-jar-form .input {
+	flex: 1 1 200px;
+	min-width: 0;
+}
+
+.mem-jar {
+	position: relative;
+	justify-self: center;
+	width: min(100%, 440px);
+	padding-top: 30px;
+	transform-origin: 50% 95%;
+}
+.mem-jar.shaking {
+	animation: mem-wobble 0.3s ease-in-out 3;
+}
+.mem-jar-lid {
+	position: absolute;
+	top: 0;
+	left: 8%;
+	right: 8%;
+	z-index: 2;
+	height: 34px;
+	border-radius: 12px 12px 6px 6px;
+	background: repeating-linear-gradient(90deg, var(--hot) 0 10px, var(--hot-deep) 10px 13px);
+	box-shadow: 0 4px 0 var(--hot-deep);
+}
+.mem-jar-lid::after {
+	/* a little heart knob on the lid */
+	content: "♥";
+	position: absolute;
+	left: 50%;
+	top: -20px;
+	translate: -50% 0;
+	color: var(--hot);
+	font-size: 1.6rem;
+	line-height: 1;
+}
+.mem-jar-body {
+	position: relative;
+	display: flex;
+	align-items: flex-end;
+	min-height: 280px;
+	padding: 30px 18px 30px;
+	border: 5px solid var(--petal);
+	border-radius: 30px 30px 60px 60px / 24px 24px 70px 70px;
+	background: color-mix(in srgb, var(--white) 55%, var(--blush));
+}
+/* glass shine, drawn above the slips */
+.mem-jar-body::before,
+.mem-jar-body::after {
+	content: "";
+	position: absolute;
+	z-index: 1;
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--white) 70%, transparent);
+	pointer-events: none;
+}
+.mem-jar-body::before {
+	top: 18px;
+	bottom: 34px;
+	left: 12px;
+	width: 12px;
+}
+.mem-jar-body::after {
+	top: 22px;
+	left: 30px;
+	width: 6px;
+	height: 36%;
+}
+.mem-slips {
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap-reverse; /* first slips settle at the bottom, like a real jar */
+	justify-content: center;
+	gap: 8px 6px;
+}
+.mem-slip {
+	--who: var(--rose);
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	max-width: 100%;
+	padding: 5px 3px 5px 12px;
+	border-radius: 4px 0 4px 4px;
+	background: linear-gradient(225deg, var(--petal) 0 9px, var(--cream) 9px); /* folded corner */
+	box-shadow:
+		inset 4px 0 0 var(--who),
+		0 2px 0 color-mix(in srgb, var(--plum) 12%, transparent);
+	font-family: var(--font-display);
+	font-weight: 500;
+	font-size: 0.92rem;
+	transform: rotate(var(--tilt));
+}
+.mem-slip-title {
+	min-width: 0;
+	max-width: 24ch;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+.mem-slip-x {
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--plum-soft);
+	cursor: pointer;
+}
+.mem-slip-x:hover {
+	background: var(--petal);
+	color: var(--plum);
+}
+.mem-slip-x .th-icon {
+	width: 14px;
+	height: 14px;
+}
+.mem-jar.shaking .mem-slip {
+	animation: mem-jiggle 0.15s ease-in-out 6 alternate;
+}
+.mem-jar-empty {
+	width: 100%;
+	display: grid;
+	justify-items: center;
+	gap: 6px;
+	color: var(--plum-soft);
+	font-weight: 700;
+	text-align: center;
+}
+.mem-jar-empty p {
+	margin: 0;
+	max-width: 26ch;
+}
+.mem-jar-tag {
+	position: absolute;
+	top: 44px;
+	right: -4px;
+	z-index: 3;
+	padding: 0.2em 0.7em;
+	border: 2px solid var(--petal);
+	border-radius: 6px;
+	background: var(--cream);
+	color: var(--hot-deep);
+	font-family: var(--font-display);
+	font-weight: 600;
+	font-size: 0.85rem;
+	transform: rotate(9deg);
+}
+
+/* ---------- Jar reveal (global dialog) ---------- */
+.mem-reveal {
+	width: min(440px, calc(100vw - 32px));
+	padding: 24px 22px 24px;
+	border: 0;
+	border-radius: var(--r-lg);
+	background: var(--white);
+	color: var(--plum);
+	text-align: center;
+	box-shadow: var(--shadow-soft);
+}
+.mem-reveal[open] {
+	display: grid;
+	justify-items: center;
+	gap: 10px;
+	animation: mem-pop 0.45s var(--ease-bounce);
+}
+.mem-reveal::backdrop {
+	background: color-mix(in srgb, var(--plum) 60%, transparent);
+}
+.mem-reveal p {
+	margin: 0;
+}
+.mem-reveal-x {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+}
+.mem-reveal-kicker {
+	font-family: var(--font-display);
+	font-weight: 600;
+	color: var(--hot-deep);
+}
+.mem-reveal-slip {
+	width: 100%;
+	perspective: 700px;
+}
+.mem-reveal-slip h2 {
+	margin: 0;
+	padding: 22px 18px;
+	border-radius: 6px;
+	/* a paper slip with a crease across the middle */
+	background: linear-gradient(var(--cream) 0 49.4%, color-mix(in srgb, var(--petal) 70%, var(--cream)) 50%, var(--cream) 50.6%);
+	box-shadow: 0 4px 0 var(--petal);
+	font-size: clamp(1.5rem, 6vw, 2.1rem);
+	overflow-wrap: anywhere;
+	transform-origin: 50% 0;
+	animation: mem-unfold 0.9s 0.15s var(--ease-bounce) both;
+}
+.mem-who {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3em;
+}
+.mem-who::before {
+	content: "";
+	width: 0.7em;
+	height: 0.7em;
+	border-radius: 50%;
+	background: var(--who);
+}
+.mem-reveal-actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 10px;
+	margin-top: 4px;
+}
+.mem-reveal-actions a.btn {
+	text-decoration: none;
+}
+
+/* ---------- Ticket stubs ---------- */
+.mem-stubs {
+	display: grid;
+	gap: 20px;
+}
+.mem-stubs-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+.mem-stubs-head h2 {
+	margin: 0;
+}
+.mem-stub-new {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.mem-stub-new .input {
+	flex: 1 1 220px;
+	min-width: 0;
+}
+.mem-stubs-grid {
+	margin: 0;
+	padding: 8px 4px;
+	list-style: none;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr));
+	align-items: start;
+	gap: 34px 28px;
+}
+
+/* The wrapper tilts and casts the shadow; the masked ticket inside can't have a box-shadow of its own. */
+.mem-stub-wrap {
+	transform: rotate(var(--tilt));
+	transition: transform 0.3s var(--ease-bounce);
+	filter: drop-shadow(0 3px 0 var(--petal)) drop-shadow(0 12px 14px color-mix(in srgb, var(--plum) 14%, transparent));
+}
+.mem-stub-wrap:is(:hover, :focus-within) {
+	transform: rotate(0deg) translateY(-3px);
+}
+/* Scalloped top and bottom edges. */
+.mem-stub {
+	--s: 6px;
+	mask:
+		radial-gradient(circle at 50% 0, #0000 var(--s), #000 calc(var(--s) + 0.5px)) top / calc(var(--s) * 3) 51% repeat-x,
+		radial-gradient(circle at 50% 100%, #0000 var(--s), #000 calc(var(--s) + 0.5px)) bottom / calc(var(--s) * 3) 51% repeat-x;
+}
+.mem-stub-top,
+.mem-stub-bottom {
+	--n: 12px;
+	background: var(--cream);
+	padding: 22px 24px 18px;
+}
+/* Half-moon notches either side of the perforation. */
+.mem-stub-top {
+	position: relative;
+	border-bottom: 3px dashed var(--petal);
+	mask:
+		radial-gradient(circle var(--n) at 0 100%, #0000 98%, #000),
+		radial-gradient(circle var(--n) at 100% 100%, #0000 98%, #000);
+	mask-composite: intersect;
+}
+.mem-stub-bottom {
+	display: grid;
+	gap: 16px;
+	padding-bottom: 24px;
+	mask:
+		radial-gradient(circle var(--n) at 0 0, #0000 98%, #000),
+		radial-gradient(circle var(--n) at 100% 0, #0000 98%, #000);
+	mask-composite: intersect;
+}
+.mem-admit {
+	display: flex;
+	align-items: center;
+	gap: 0.6em;
+	margin: 0;
+	color: var(--hot-deep);
+	font-family: var(--font-display);
+	font-weight: 600;
+	font-size: 0.78rem;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+}
+.mem-admit::before,
+.mem-admit::after {
+	content: "";
+	flex: 1;
+	height: 2px;
+	background: var(--petal);
+}
+.mem-stub-title {
+	margin: 0.35em 0 0.15em;
+	font-size: 1.45rem;
+	text-align: center;
+	overflow-wrap: anywhere;
+}
+.mem-stub-date {
+	margin: 0;
+	color: var(--plum-soft);
+	font-size: 0.9rem;
+	font-weight: 700;
+	text-align: center;
+}
+.mem-stub-del {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	display: grid;
+	place-items: center;
+	width: 28px;
+	height: 28px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--plum-soft);
+	opacity: 0.45;
+	cursor: pointer;
+	transition: opacity 0.15s;
+}
+.mem-stub-del:is(:hover, :focus-visible) {
+	opacity: 1;
+	background: var(--petal);
+}
+.mem-stub-del .th-icon {
+	width: 14px;
+	height: 14px;
+}
+.mem-stub-confirm {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	margin-top: 10px;
+	font-weight: 700;
+}
+
+.mem-half {
+	--who: var(--rose);
+	display: grid;
+	gap: 6px;
+	padding-left: 12px;
+	border-left: 4px solid var(--who);
+}
+.mem-half-name {
+	margin: 0;
+	padding: 0;
+	color: var(--plum-soft);
+	font-size: 0.85rem;
+	font-weight: 800;
+}
+.mem-half-wait {
+	margin: 0;
+	color: var(--plum-soft);
+	font-size: 0.9rem;
+}
+.mem-half.pending {
+	border-left-style: dashed;
+}
+.mem-half-note {
+	margin: 0;
+	font-style: italic;
+	overflow-wrap: anywhere;
+}
+.mem-hearts {
+	display: inline-flex;
+	gap: 2px;
+	color: var(--petal);
+}
+.mem-hearts .th-icon {
+	width: 20px;
+	height: 20px;
+}
+.mem-hearts .th-icon.on {
+	color: var(--hot);
+}
+.mem-rate {
+	gap: 10px;
+}
+.mem-heart-pick {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.mem-heart-pick legend {
+	margin-bottom: 4px;
+}
+.mem-heart-pick label {
+	position: relative;
+	display: grid;
+	padding: 3px;
+	border-radius: 8px;
+	color: var(--petal);
+	cursor: pointer;
+	transition:
+		transform 0.15s var(--ease-bounce),
+		color 0.1s;
+}
+.mem-heart-pick label.on {
+	color: var(--hot);
+}
+.mem-heart-pick label:hover {
+	transform: scale(1.18);
+}
+.mem-heart-pick label:has(:focus-visible) {
+	outline: 3px solid var(--hot);
+	outline-offset: 1px;
+}
+.mem-heart-pick .th-icon {
+	width: 30px;
+	height: 30px;
+}
+.mem-rate textarea {
+	min-height: 64px;
+	resize: vertical;
+	font-size: 0.95rem;
+}
+.mem-rate .btn {
+	justify-self: start;
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes mem-wobble {
+	25% {
+		transform: rotate(-6deg);
+	}
+	75% {
+		transform: rotate(6deg);
+	}
+}
+@keyframes mem-jiggle {
+	to {
+		translate: 0 -6px;
+	}
+}
+@keyframes mem-pop {
+	from {
+		transform: scale(0.85);
+		opacity: 0;
+	}
+}
+@keyframes mem-unfold {
+	from {
+		transform: rotateX(-88deg);
+		opacity: 0.3;
+	}
+}

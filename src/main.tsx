@@ -1,7 +1,7 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
-import type { Who } from "../shared/types";
+import { other, type Who } from "../shared/types";
 import { connect, useRoom } from "./room";
 import { startCall, useCall } from "./rtc";
 import Teddy from "./Teddy";
@@ -68,13 +68,13 @@ function App() {
 				<div>
 					<Teddy mood="peek" size={140} />
 					<h2>You opened the theater in another tab 💕</h2>
-					<button className="btn" onClick={() => connect(() => setAuth("out"))}>
+					<button className="btn" onClick={() => location.reload()}>
 						Use this tab instead
 					</button>
 				</div>
 			</main>
 		);
-	if (!room.profiles[room.you]) return <ProfilePicker />;
+	if (!room.profiles[other(room.you)]) return <ProfilePicker />; // you name your love before coming in
 	if (!call.started) return <Door onEnter={() => void startCall(room.you)} />;
 
 	return (

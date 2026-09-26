@@ -32,8 +32,15 @@ export type Stroke = { x: number[]; y: number[]; color: string; size: number }; 
 type SdpInit = { type: "offer" | "answer" | "pranswer" | "rollback"; sdp?: string };
 type IceInit = { candidate?: string; sdpMid?: string | null; sdpMLineIndex?: number | null; usernameFragment?: string | null };
 export type RelayData =
-	| { k: "signal"; sid: string; description?: SdpInit; candidate?: IceInit | null }
+	/** `pcid` names one connection attempt, so answers and candidates from an older attempt are ignored. */
+	| { k: "signal"; sid: string; pcid: string; description?: SdpInit; candidate?: IceInit | null }
+	/** Sent when someone walks through the door: their call is listening now, so the other side should (re)offer. */
+	| { k: "ready"; sid: string }
 	| { k: "share"; on: boolean }
+	/** My cam/mic switches, so the partner can show a teddy instead of black frames, and a muted badge. */
+	| { k: "av"; cam: boolean; mic: boolean }
+	/** The resolution this person wants to RECEIVE (null = auto); the sharer encodes to match. */
+	| { k: "quality"; height: 480 | 720 | 1080 | 1440 | null }
 	| { k: "react"; emoji: string; x: number }
 	| { k: "nudge"; kind: "pause" | "hug" }
 	| { k: "doodle"; strokes: Stroke[] }

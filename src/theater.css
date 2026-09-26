@@ -1,0 +1,1209 @@
+/* ===== Theater, face cams, nudges =====
+   All CSS loads globally, so every class here is prefixed: th-* (theater page), fc-* (face cams + nudges, every page).
+   Bare modifiers (.open, .l, .on…) only ever appear compounded with a prefixed class. */
+
+/* ---------- Lights off: only while the theater page has a movie on ---------- */
+body:has(.theater) {
+	transition: background-color 0.8s ease;
+}
+body:has(.theater.lights-off) {
+	background: var(--plum);
+}
+body:has(.theater.lights-off) #root > :is(nav, header) {
+	opacity: 0.35;
+	transition: opacity 0.3s;
+}
+body:has(.theater.lights-off) #root > :is(nav, header):is(:hover, :focus-within) {
+	opacity: 1;
+}
+body:has(.th-stage-wrap.is-full) {
+	overflow: hidden;
+}
+
+.theater {
+	--hole: var(--blush);
+	padding-bottom: 240px; /* room to scroll everything above the cam bubbles */
+}
+.theater.lights-off {
+	--hole: color-mix(in srgb, var(--plum-soft) 60%, var(--plum));
+	max-width: none; /* the movie takes over the screen */
+	padding-top: 12px;
+	color: var(--blush);
+}
+.theater.lights-off .muted {
+	color: var(--petal);
+}
+
+.th-col,
+.th-above {
+	display: grid;
+	gap: 14px;
+}
+
+.th-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 8px 12px;
+	transition: opacity 0.4s;
+}
+.th-head h1 {
+	margin: 0;
+	font-size: clamp(1.6rem, 4vw, 2.2rem);
+	transition: font-size 0.4s;
+}
+.theater.lights-off .th-head h1 {
+	font-size: 1.2rem;
+}
+.theater.lights-off .th-head,
+.theater.lights-off .th-toolbar {
+	opacity: 0.6;
+	transition: opacity 0.4s;
+}
+.theater.lights-off .th-head:is(:hover, :focus-within),
+.theater.lights-off .th-toolbar:is(:hover, :focus-within) {
+	opacity: 1;
+}
+
+.th-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45em;
+	padding: 0.3em 0.85em;
+	border-radius: var(--r-sm);
+	background: var(--white);
+	font-family: var(--font-display);
+	font-weight: 500;
+	box-shadow: 0 3px 0 var(--petal);
+}
+.th-status::before {
+	content: "";
+	width: 0.6em;
+	height: 0.6em;
+	border-radius: 50%;
+	background: var(--petal);
+}
+.th-status.together::before {
+	background: var(--hot);
+	animation: th-pulse 1.6s ease-in-out infinite;
+}
+.th-status.away::before {
+	background: var(--plum-soft);
+}
+.theater.lights-off .th-status {
+	background: var(--plum-soft);
+	color: var(--blush);
+	box-shadow: none;
+}
+
+.th-banner {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 8px 8px 12px;
+	border-radius: var(--r-md);
+	background: var(--cream);
+	color: var(--plum);
+	border: 3px solid var(--petal);
+}
+.th-banner p {
+	margin: 0;
+	flex: 1;
+	font-weight: 700;
+}
+
+.theater .btn.sm {
+	font-size: 0.9rem;
+	padding: 0.5em 0.95em;
+}
+.theater .btn.is-off {
+	background: var(--rose);
+	color: var(--white);
+}
+
+/* ---------- Toolbar (above the stage, clear of the cam bubbles) ---------- */
+.th-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 14px;
+}
+.th-group {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.th-ptt {
+	font-size: 0.85rem;
+	color: var(--plum-soft);
+}
+.theater.lights-off .th-ptt {
+	color: var(--petal);
+}
+.th-ptt.on {
+	padding: 0.3em 0.8em;
+	border-radius: var(--r-sm);
+	background: var(--hot);
+	color: var(--white);
+	font-weight: 800;
+	animation: th-pulse-soft 0.9s ease-in-out infinite alternate;
+}
+.theater kbd {
+	font-family: inherit;
+	font-weight: 800;
+	padding: 0 0.4em;
+	border: 2px solid var(--petal);
+	border-bottom-width: 3px;
+	border-radius: 6px;
+}
+@media (hover: none) {
+	.th-ptt:not(.on) {
+		display: none;
+	}
+}
+.th-quality {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.85rem;
+	font-weight: 700;
+	color: var(--plum-soft);
+}
+.th-quality select {
+	border: 2px solid var(--petal);
+	border-radius: var(--r-sm);
+	background: var(--white);
+	color: var(--plum);
+	padding: 0.35em 0.5em;
+	font-weight: 700;
+	cursor: pointer;
+}
+.theater.lights-off .th-quality {
+	color: var(--petal);
+}
+.th-view-btn {
+	anchor-name: --view-btn;
+}
+.th-view-menu {
+	width: min(300px, calc(100vw - 32px));
+	padding: 12px;
+	border: 3px solid var(--petal);
+	border-radius: var(--r-md);
+	background: var(--white);
+	color: var(--plum);
+	box-shadow: var(--shadow-soft);
+}
+.th-view-menu:popover-open {
+	display: grid;
+	gap: 4px;
+}
+@supports (anchor-name: --a) {
+	.th-view-menu {
+		position-anchor: --view-btn;
+		inset: auto;
+		top: anchor(bottom);
+		left: anchor(left);
+		margin: 8px 0 0;
+		position-try-fallbacks: flip-inline, flip-block;
+	}
+}
+.th-view-title {
+	margin: 0 0 4px;
+	font-size: 0.8rem;
+	font-weight: 800;
+	color: var(--plum-soft);
+}
+.th-view-opt {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 8px;
+	border-radius: var(--r-sm);
+	font-weight: 700;
+	cursor: pointer;
+}
+.th-view-opt:hover {
+	background: var(--blush);
+}
+.th-view-opt input {
+	width: 18px;
+	height: 18px;
+	margin: 2px 0 0;
+	accent-color: var(--hot);
+}
+.th-view-opt small {
+	display: block;
+	font-weight: 600;
+	color: var(--plum-soft);
+}
+.th-view-menu .btn {
+	justify-self: start;
+	margin-top: 4px;
+}
+.theater.lights-off .th-toolbar .btn.soft {
+	background: var(--plum-soft);
+	color: var(--blush);
+	box-shadow: 0 4px 0 color-mix(in srgb, var(--plum-soft) 40%, var(--plum));
+}
+
+/* ---------- Stage: a film strip frame around a 16:9 screen ---------- */
+/* The largest 16:9 that fits between the toolbar (--above, measured) and the bottom of the viewport,
+   times the user's own --scale (0.4–1, the corner handle). 110px = both strips + the reaction bar. */
+.th-stage-wrap {
+	--strip: 18px;
+	--fit: min(100%, max(300px, calc((100dvh - var(--above, 220px) - 110px) * 16 / 9 + 20px)));
+	position: relative;
+	width: calc(var(--fit) * var(--scale, 1));
+	margin-inline: auto;
+	padding: var(--strip) 10px var(--strip);
+	border-radius: var(--r-md);
+	background: var(--plum);
+	box-shadow: var(--shadow-soft);
+	transition: box-shadow 0.8s;
+}
+.th-stage-wrap::before,
+.th-stage-wrap::after {
+	content: "";
+	position: absolute;
+	left: 10px;
+	right: 10px;
+	height: var(--strip);
+	background: radial-gradient(ellipse 5px 4px at 50% 50%, var(--hole) 92%, transparent) 0 0 / 22px 100% round no-repeat;
+}
+.th-stage-wrap::before {
+	top: 0;
+}
+.th-stage-wrap::after {
+	bottom: 0;
+}
+.theater.lights-off .th-stage-wrap {
+	box-shadow:
+		0 0 0 2px color-mix(in srgb, var(--hot) 35%, transparent),
+		0 0 60px 6px color-mix(in srgb, var(--hot) 38%, transparent),
+		0 0 140px 24px color-mix(in srgb, var(--rose) 16%, transparent);
+}
+.th-stage-wrap.is-full {
+	position: fixed;
+	inset: 0;
+	z-index: 900;
+	width: auto;
+	display: flex;
+	flex-direction: column;
+	border-radius: 0;
+}
+.th-stage-wrap.is-full .th-stage {
+	flex: 1;
+	min-height: 0;
+	aspect-ratio: auto;
+}
+
+.th-stage {
+	position: relative;
+	aspect-ratio: 16 / 9;
+	overflow: hidden;
+	border-radius: var(--r-sm);
+	background: radial-gradient(ellipse at 50% 120%, var(--plum-soft), var(--plum) 70%);
+	container-type: inline-size;
+	user-select: none;
+	-webkit-user-select: none;
+}
+.th-stage.collapsed {
+	height: 0;
+	aspect-ratio: auto; /* still mounted, so the movie's sound keeps playing */
+}
+.th-stage-top {
+	position: absolute;
+	top: calc(var(--strip) + 10px);
+	left: 20px;
+	z-index: 7;
+}
+.th-stage-top.bar {
+	position: static;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 12px;
+	padding: 6px 6px 6px 14px;
+	border-radius: var(--r-sm);
+	background: var(--plum-soft);
+	color: var(--blush);
+	font-weight: 700;
+}
+.th-stage-top.bar .th-stage-tools {
+	margin-left: auto;
+	opacity: 1;
+}
+.th-size {
+	position: absolute;
+	right: 2px;
+	bottom: 0;
+	display: grid;
+	place-items: center;
+	width: 30px;
+	height: 30px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--petal);
+	cursor: nwse-resize;
+	touch-action: none;
+	opacity: 0.55;
+	transition: opacity 0.2s;
+}
+.th-size:is(:hover, :focus-visible) {
+	opacity: 1;
+}
+.th-size .th-icon {
+	width: 18px;
+	height: 18px;
+}
+.th-video {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	background: var(--plum);
+}
+
+/* Curtains: closed until a picture arrives, then they part. */
+.th-curtains {
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	pointer-events: none;
+}
+.th-curtain {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 51%;
+	background: repeating-linear-gradient(90deg, var(--hot-deep) 0, var(--hot) 14px, var(--rose) 22px, var(--hot) 30px, var(--hot-deep) 44px);
+	transition: transform 1.6s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.th-curtain.l {
+	left: 0;
+	box-shadow: inset -18px 0 24px -12px var(--plum);
+}
+.th-curtain.r {
+	right: 0;
+	box-shadow: inset 18px 0 24px -12px var(--plum);
+}
+.th-valance {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	height: 13%;
+	background:
+		radial-gradient(50% 100% at 50% 0, var(--hot-deep) 96%, transparent) 0 100% / 9% 55% round no-repeat,
+		linear-gradient(var(--hot-deep), var(--hot-deep)) 0 0 / 100% 50% no-repeat;
+	filter: drop-shadow(0 4px 4px color-mix(in srgb, var(--plum) 45%, transparent));
+	transition: transform 1s ease;
+}
+.th-curtains.open .th-curtain.l {
+	transform: translateX(-101%);
+}
+.th-curtains.open .th-curtain.r {
+	transform: translateX(101%);
+}
+.th-curtains.open .th-valance {
+	transform: translateY(-115%);
+	transition-delay: 0.7s;
+}
+
+.th-empty {
+	position: absolute;
+	inset: 0;
+	z-index: 5;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: clamp(8px, 2cqw, 16px);
+	padding: 10% 16px 16px;
+	text-align: center;
+}
+.th-marquee {
+	margin: 0;
+	padding: 0.3em 1.1em;
+	background: var(--cream);
+	color: var(--plum);
+	font-family: var(--font-display);
+	font-weight: 600;
+	font-size: clamp(0.85rem, 2.2cqw, 1.2rem);
+	border: 5px dotted var(--petal); /* marquee bulbs */
+	border-radius: var(--r-sm);
+	outline: 4px solid var(--plum);
+	box-shadow: 0 0 26px color-mix(in srgb, var(--cream) 55%, transparent);
+}
+.th-cta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+}
+.theater .btn.big {
+	font-size: clamp(0.95rem, 2.4cqw, 1.3rem);
+	padding: 0.85em 1.5em;
+}
+.theater .btn.on-curtain {
+	color: var(--white);
+}
+@container (max-width: 520px) {
+	.th-teddy,
+	.th-marquee {
+		display: none;
+	}
+}
+
+.th-tap-sound {
+	position: absolute;
+	inset: 0;
+	z-index: 7;
+	margin: auto;
+	width: fit-content;
+	height: fit-content;
+}
+.th-res {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	z-index: 7;
+	padding: 0.15em 0.6em;
+	border-radius: var(--r-sm);
+	background: color-mix(in srgb, var(--plum) 70%, transparent);
+	color: var(--blush);
+	font-family: var(--font-display);
+	font-size: 0.8rem;
+	font-weight: 600;
+	opacity: 0.7;
+}
+
+.th-stage-tools {
+	display: flex;
+	gap: 6px;
+	opacity: 0.6;
+	transition: opacity 0.2s;
+}
+.th-stage-wrap:hover .th-stage-tools,
+.th-stage-tools:focus-within {
+	opacity: 1;
+}
+@media (hover: none) {
+	.th-stage-tools {
+		opacity: 1;
+	}
+}
+.th-stage-wrap .btn.icon.soft {
+	background: color-mix(in srgb, var(--plum) 75%, transparent);
+	color: var(--blush);
+	box-shadow: none;
+}
+.th-chat-toggle {
+	position: relative;
+}
+.th-badge {
+	position: absolute;
+	top: -6px;
+	right: -6px;
+	min-width: 20px;
+	height: 20px;
+	padding: 0 5px;
+	border-radius: 10px;
+	background: var(--hot);
+	color: var(--white);
+	font: 800 0.72rem/20px var(--font-body);
+	box-shadow: 0 0 0 2px var(--plum);
+}
+
+/* Reactions float up over the stage (transform/opacity only). */
+.th-floaters {
+	position: absolute;
+	inset: 0;
+	z-index: 6;
+	overflow: hidden;
+	pointer-events: none;
+	container-type: size;
+}
+.th-floater {
+	position: absolute;
+	bottom: 4%;
+	font-size: calc(clamp(22px, 4.5cqw, 46px) * var(--scale, 1));
+	line-height: 1;
+	animation: th-float var(--dur, 3s) cubic-bezier(0.2, 0.6, 0.3, 1) forwards;
+	will-change: transform, opacity;
+}
+@keyframes th-float {
+	0% {
+		transform: translate(-50%, 0) scale(0.4);
+		opacity: 0;
+	}
+	12% {
+		transform: translate(-50%, -6cqh) scale(1.15) rotate(-6deg);
+		opacity: 1;
+	}
+	70% {
+		opacity: 1;
+	}
+	100% {
+		transform: translate(calc(-50% + var(--drift, 0px)), -80cqh) scale(1) rotate(8deg);
+		opacity: 0;
+	}
+}
+
+.th-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 16px;
+	padding: 12px 2px 6px;
+	color: var(--petal);
+	font-size: 0.85rem;
+}
+.th-reactions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+.th-react {
+	width: 44px;
+	height: 44px;
+	border: 0;
+	border-radius: var(--r-sm);
+	background: color-mix(in srgb, var(--plum-soft) 60%, var(--plum));
+	font-size: 1.35rem;
+	cursor: pointer;
+	transition:
+		transform 0.15s var(--ease-bounce),
+		background 0.15s;
+}
+.th-react:hover {
+	transform: translateY(-3px) scale(1.12);
+	background: var(--plum-soft);
+}
+.th-react:active {
+	transform: scale(0.9);
+}
+.th-share-note {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px 12px;
+	max-width: 520px;
+}
+.th-volume {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.th-volume input {
+	width: min(160px, 40vw);
+	accent-color: var(--hot);
+}
+
+/* ---------- Tips ---------- */
+.th-tips {
+	padding: 14px 18px;
+	border: 3px dashed var(--petal);
+	border-radius: var(--r-md);
+	background: var(--white);
+	font-size: 0.95rem;
+}
+.th-tips p {
+	margin: 0 0 0.4em;
+}
+.th-tips summary {
+	cursor: pointer;
+	font-weight: 800;
+	color: var(--hot-deep);
+}
+.th-tips .th-cmd {
+	display: block;
+	overflow-x: auto;
+	padding: 0.6em 0.8em;
+	border-radius: var(--r-sm);
+	background: var(--blush);
+	white-space: nowrap;
+	user-select: all;
+}
+
+/* ---------- Chat drawer ---------- */
+/* Overlays the left side (cams default to the bottom-right), so the stage never shrinks. */
+.th-chat {
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	z-index: 960;
+	width: min(380px, 100vw);
+	display: flex;
+	flex-direction: column;
+	background: var(--white);
+	color: var(--plum);
+	border-right: 4px solid var(--petal);
+	box-shadow: 12px 0 40px color-mix(in srgb, var(--plum) 18%, transparent);
+	transform: translateX(-105%);
+	visibility: hidden;
+	transition:
+		transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+		visibility 0s 0.35s;
+}
+.th-chat.open {
+	transform: none;
+	visibility: visible;
+	transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.th-chat-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 10px 10px 18px;
+	border-bottom: 3px dotted var(--petal);
+}
+.th-chat-head h2 {
+	margin: 0;
+	font-size: 1.3rem;
+}
+.th-chat-list {
+	flex: 1;
+	margin: 0;
+	padding: 12px 14px;
+	list-style: none;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.th-chat-empty {
+	margin: auto;
+	display: grid;
+	justify-items: center;
+	color: var(--plum-soft);
+	font-weight: 700;
+}
+.th-msg {
+	--who: var(--rose);
+	align-self: flex-start;
+	max-width: 85%;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+}
+.th-msg.mine {
+	align-self: flex-end;
+	align-items: flex-end;
+}
+.th-msg-name {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35em;
+	margin-top: 8px;
+	font-size: 0.78rem;
+	font-weight: 800;
+	color: var(--plum-soft);
+}
+.th-msg-name::before {
+	content: "";
+	width: 0.65em;
+	height: 0.65em;
+	border-radius: 50%;
+	background: var(--who);
+}
+.th-msg-text {
+	margin: 0;
+	padding: 0.45em 0.85em;
+	border-radius: 16px 16px 16px 4px;
+	background: color-mix(in srgb, var(--who) 20%, var(--white));
+	border: 2px solid color-mix(in srgb, var(--who) 45%, var(--white));
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+.th-msg.mine .th-msg-text {
+	border-radius: 16px 16px 4px 16px;
+}
+.th-msg time {
+	max-height: 0;
+	overflow: hidden;
+	opacity: 0;
+	font-size: 0.7rem;
+	color: var(--plum-soft);
+	transition:
+		opacity 0.15s,
+		max-height 0.15s;
+}
+.th-msg:hover time {
+	max-height: 1.4em;
+	opacity: 1;
+}
+.th-stickers {
+	display: grid;
+	grid-template-columns: repeat(6, 1fr);
+	gap: 4px;
+	padding: 8px 12px 0;
+}
+.th-sticker {
+	display: grid;
+	place-items: center;
+	aspect-ratio: 1;
+	padding: 2px;
+	border: 0;
+	border-radius: var(--r-sm);
+	background: var(--blush);
+	cursor: pointer;
+	transition: transform 0.15s var(--ease-bounce);
+}
+.th-sticker:hover {
+	transform: scale(1.1) rotate(-4deg);
+}
+.th-chat-form {
+	display: flex;
+	gap: 8px;
+	padding: 12px;
+}
+.th-chat-form .input {
+	flex: 1;
+	min-width: 0;
+	padding: 0.55em 0.9em;
+}
+.th-chat-form .btn:not(.icon) {
+	padding: 0.55em 1em;
+}
+.th-chat-form .btn.is-on {
+	background: var(--petal);
+}
+.theater.lights-off .th-chat {
+	background: color-mix(in srgb, var(--plum) 85%, var(--plum-soft));
+	color: var(--blush);
+	border-color: var(--plum-soft);
+}
+.theater.lights-off .th-msg-name,
+.theater.lights-off .th-msg time,
+.theater.lights-off .th-chat-empty {
+	color: var(--petal);
+}
+.theater.lights-off .th-msg-text {
+	background: color-mix(in srgb, var(--who) 25%, var(--plum));
+	border-color: color-mix(in srgb, var(--who) 45%, var(--plum));
+}
+.theater.lights-off .th-sticker {
+	background: var(--plum-soft);
+}
+.theater.lights-off .th-chat .btn.ghost {
+	color: var(--blush);
+}
+@media (max-width: 600px) {
+	.th-chat {
+		top: auto;
+		width: 100%;
+		height: min(72dvh, 560px);
+		border-right: 0;
+		border-top: 4px solid var(--petal);
+		border-radius: var(--r-lg) var(--r-lg) 0 0;
+		transform: translateY(105%);
+	}
+}
+
+/* ---------- End-of-night dialog (a ticket with bitten edges) ---------- */
+.th-end {
+	width: min(420px, calc(100vw - 32px));
+	padding: 26px 30px 22px;
+	border: 0;
+	border-radius: var(--r-md);
+	background: var(--cream);
+	color: var(--plum);
+	text-align: center;
+	mask:
+		radial-gradient(circle at 0 50%, #0000 8px, #000 8.5px) left / 51% 24px repeat-y,
+		radial-gradient(circle at 100% 50%, #0000 8px, #000 8.5px) right / 51% 24px repeat-y;
+}
+.th-end[open] {
+	animation: th-pop 0.35s var(--ease-bounce);
+}
+.th-end::backdrop {
+	background: color-mix(in srgb, var(--plum) 55%, transparent);
+}
+.th-end form {
+	display: grid;
+	justify-items: center;
+	gap: 12px;
+}
+.th-end h2,
+.th-end p {
+	margin: 0;
+}
+.th-end-actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 10px;
+}
+
+/* ---------- Face cams (every page): floating, draggable, resizable ---------- */
+.fc-layer {
+	position: fixed;
+	inset: 0;
+	z-index: 950;
+	pointer-events: none;
+}
+.fc-layer > * {
+	pointer-events: auto;
+}
+.fc-cam {
+	--size: 168px;
+	--who: var(--rose);
+	position: absolute;
+	width: var(--size);
+	margin: 0;
+	display: grid;
+	justify-items: center;
+	gap: 4px;
+	touch-action: none; /* dragging must not scroll the page on phones */
+	cursor: grab;
+	user-select: none;
+	-webkit-user-select: none;
+	transition:
+		left 0.45s var(--ease-bounce),
+		top 0.45s var(--ease-bounce),
+		width 0.45s var(--ease-bounce);
+}
+.fc-cam:focus-visible {
+	outline: none;
+}
+.fc-cam:focus-visible .fc-bubble {
+	outline: 3px solid var(--hot);
+	outline-offset: 4px;
+}
+.fc-cam.dragging {
+	cursor: grabbing;
+	transition: none;
+}
+.fc-bubble {
+	position: relative;
+	width: var(--size);
+	height: var(--size);
+	display: grid;
+	place-items: center;
+	overflow: hidden;
+	border-radius: 50%;
+	border: 4px solid var(--white);
+	background: color-mix(in srgb, var(--who) 30%, var(--white));
+	box-shadow:
+		0 0 0 3px var(--who),
+		var(--shadow-soft);
+	transition:
+		width 0.45s var(--ease-bounce),
+		height 0.45s var(--ease-bounce);
+}
+.fc-cam.dragging .fc-bubble {
+	transition: none;
+}
+.fc-bubble video {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	transition: opacity 0.3s;
+}
+.fc-cam.me video {
+	transform: scaleX(-1);
+}
+.fc-bubble video.off {
+	opacity: 0;
+}
+.fc-teddy {
+	position: relative;
+	display: grid;
+	place-items: center;
+}
+.fc-mic-off {
+	position: absolute;
+	bottom: 6px;
+	left: 50%;
+	translate: -50% 0;
+	display: grid;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	background: var(--rose);
+	color: var(--white);
+}
+.fc-mic-off .th-icon {
+	width: 15px;
+	height: 15px;
+}
+.fc-cam figcaption {
+	max-width: calc(var(--size) + 24px);
+	padding: 0.05em 0.7em;
+	overflow: hidden;
+	border-radius: var(--r-sm);
+	background: var(--white);
+	color: var(--plum);
+	box-shadow: 0 2px 0 var(--petal);
+	font-family: var(--font-display);
+	font-size: 0.85rem;
+	font-weight: 600;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+/* My mic/camera buttons: always visible on the bubble's bottom edge, on every page. */
+.fc-controls {
+	position: absolute;
+	top: calc(var(--size) - 20px);
+	left: 50%;
+	translate: -50% 0;
+	display: flex;
+	gap: 6px;
+}
+.fc-ctl {
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	border: 3px solid var(--white);
+	border-radius: 50%;
+	background: var(--plum);
+	color: var(--white);
+	box-shadow: 0 2px 6px rgba(61, 26, 46, 0.3);
+	cursor: pointer;
+	transition: transform 0.15s var(--ease-bounce), background 0.15s;
+}
+.fc-ctl:hover {
+	transform: scale(1.1);
+}
+.fc-ctl.off {
+	background: var(--hot);
+}
+.fc-ctl .th-icon {
+	width: 16px;
+	height: 16px;
+}
+/* the caption drops below the buttons on my bubble */
+.fc-cam.me figcaption {
+	margin-top: 16px;
+}
+/* Hover/focus tools: hide this bubble, minimize both. */
+.fc-tools {
+	position: absolute;
+	top: 6px;
+	left: 50%;
+	translate: -50% 0;
+	display: flex;
+	gap: 4px;
+	opacity: 0;
+	transition: opacity 0.2s;
+}
+.fc-tool {
+	display: grid;
+	place-items: center;
+	width: 30px;
+	height: 30px;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: color-mix(in srgb, var(--plum) 70%, transparent);
+	color: var(--white);
+	cursor: pointer;
+}
+.fc-tool:hover {
+	background: var(--hot);
+}
+.fc-tool .th-icon {
+	width: 16px;
+	height: 16px;
+}
+.fc-handle {
+	position: absolute;
+	width: 22px;
+	height: 22px;
+	border: 3px solid var(--who);
+	border-radius: 50%;
+	background: var(--white);
+	opacity: 0;
+	transition: opacity 0.2s;
+}
+.fc-handle.l {
+	left: calc(var(--size) * 0.06);
+}
+.fc-handle.r {
+	right: calc(var(--size) * 0.06);
+}
+.fc-handle.t {
+	top: calc(var(--size) * 0.06);
+}
+.fc-handle.b {
+	top: calc(var(--size) * 0.94 - 22px);
+}
+.fc-handle.l.t,
+.fc-handle.r.b {
+	cursor: nwse-resize;
+}
+.fc-handle.l.b,
+.fc-handle.r.t {
+	cursor: nesw-resize;
+}
+.fc-cam:is(:hover, :focus-within) :is(.fc-tools, .fc-handle) {
+	opacity: 1;
+}
+@media (hover: none) {
+	.fc-handle {
+		width: 28px;
+		height: 28px;
+		opacity: 0.85;
+	}
+}
+/* Hidden or minimized: visually gone, never unmounted, so the partner's voice keeps playing. */
+.fc-cam.hidden {
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	opacity: 0;
+	pointer-events: none;
+}
+.fc-restore {
+	position: absolute;
+	right: 12px;
+	bottom: 12px;
+	color: var(--hot);
+}
+.fc-sound {
+	position: absolute;
+	right: 12px;
+	bottom: 68px;
+}
+body:has(.theater.lights-off) .fc-layer .fc-bubble {
+	border-color: var(--plum);
+	box-shadow:
+		0 0 0 3px var(--who),
+		0 0 28px color-mix(in srgb, var(--hot) 55%, transparent);
+}
+body:has(.theater.lights-off) .fc-layer figcaption {
+	background: var(--plum-soft);
+	color: var(--blush);
+	box-shadow: none;
+}
+
+/* ---------- Nudges (every page) ---------- */
+.fc-pause {
+	position: fixed;
+	top: 16px;
+	left: 50%;
+	z-index: 990;
+	width: min(540px, calc(100vw - 32px));
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 10px 10px 14px;
+	border: 4px solid var(--hot);
+	border-radius: var(--r-lg);
+	background: var(--cream);
+	color: var(--plum);
+	box-shadow: var(--shadow-soft);
+	translate: -50% 0;
+	animation: th-drop 0.5s var(--ease-bounce);
+}
+.fc-pause-copy {
+	flex: 1;
+	display: grid;
+}
+.fc-pause-copy strong {
+	font-family: var(--font-display);
+	font-size: clamp(1.15rem, 3.5vw, 1.5rem);
+	font-weight: 600;
+	line-height: 1.2;
+}
+.fc-pause-copy span {
+	color: var(--plum-soft);
+	font-size: 0.9rem;
+}
+
+.fc-hug {
+	position: fixed;
+	inset: 0;
+	z-index: 990;
+	display: grid;
+	place-items: center;
+	align-content: center;
+	gap: 6px;
+	overflow: hidden;
+	pointer-events: none;
+	background: radial-gradient(circle, color-mix(in srgb, var(--blush) 94%, transparent) 30%, color-mix(in srgb, var(--petal) 85%, transparent));
+	animation: th-hug 2.6s ease forwards;
+}
+.fc-hug-teddy {
+	animation: th-squeeze 0.7s var(--ease-bounce) 0.15s 2 alternate;
+}
+.fc-hug-text {
+	margin: 0;
+	padding: 0 16px;
+	text-align: center;
+	font-family: var(--font-display);
+	font-size: clamp(1.4rem, 5vw, 2.4rem);
+	font-weight: 600;
+	color: var(--plum);
+}
+.fc-hug-heart {
+	position: absolute;
+	bottom: -48px;
+	left: var(--x);
+	color: var(--hot);
+	animation: th-rise 2.3s ease-in var(--d) forwards;
+}
+.fc-hug-heart .th-icon {
+	width: var(--s);
+	height: var(--s);
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes th-pulse {
+	50% {
+		transform: scale(1.5);
+		opacity: 0.6;
+	}
+}
+@keyframes th-pulse-soft {
+	to {
+		box-shadow: 0 0 16px color-mix(in srgb, var(--hot) 70%, transparent);
+	}
+}
+@keyframes th-pop {
+	from {
+		transform: scale(0.85);
+		opacity: 0;
+	}
+}
+@keyframes th-drop {
+	from {
+		transform: translateY(-140%);
+	}
+}
+@keyframes th-hug {
+	0% {
+		opacity: 0;
+	}
+	12%,
+	80% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}
+@keyframes th-squeeze {
+	to {
+		transform: scale(1.12, 1.06);
+	}
+}
+@keyframes th-rise {
+	to {
+		transform: translateY(-115vh) rotate(24deg);
+	}
+}

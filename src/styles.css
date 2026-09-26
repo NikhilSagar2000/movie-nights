@@ -135,8 +135,13 @@ select {
 	background: var(--white);
 	border-radius: var(--r-md);
 	padding: 0.7em 1em;
+	color: var(--plum); /* it owns its white background, so it owns its text color too (dark theater inherits light text) */
 	outline: none;
 	transition: border-color 0.15s;
+}
+.input::placeholder {
+	color: var(--plum-soft);
+	opacity: 0.7;
 }
 .input:focus {
 	border-color: var(--hot);
@@ -157,7 +162,7 @@ select {
 .page {
 	max-width: 1180px;
 	margin: 0 auto;
-	padding: 24px var(--gutter) 120px;
+	padding: 24px var(--gutter) 220px; /* room for the floating cam bubbles */
 }
 
 .muted {
@@ -190,3 +195,141 @@ select {
 		transition-duration: 0.001ms !important;
 	}
 }
+
+/* teddy — the SVG bear in Teddy.tsx.
+   Each mood sets pose variables on the <svg> (they transition, so mood changes animate) and loops keyframes
+   on inner groups. All motion is transform/opacity. Pivots are SVG user units (viewBox 0 0 200 240). */
+.teddy {
+	--t-line: #8a5634;
+	--t-y: 0px; /* whole-body offset (peek/cover hide below the frame) */
+	--t-hy: 0px;
+	--t-ht: 0deg; /* head tilt */
+	--t-l: 12deg; /* arm angles, 0 = hanging down */
+	--t-r: -12deg;
+	--t-lx: 0px;
+	--t-ly: 0px;
+	--t-rx: 0px;
+	--t-ry: 0px;
+	vertical-align: bottom;
+	overflow: hidden;
+}
+.teddy-fur { fill: var(--fur); stroke: var(--t-line); stroke-width: 3; }
+.teddy-light { fill: var(--fur-light); }
+.teddy-ink { fill: var(--plum); }
+.teddy-stroke { fill: none; stroke: var(--plum); stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; }
+.teddy-open { stroke: var(--plum); stroke-width: 2; stroke-linejoin: round; }
+.teddy-shine { fill: #fff; }
+.teddy-cheek { fill: var(--rose); opacity: 0.55; transition: opacity 0.3s; }
+.teddy-bow { fill: var(--teddy-accent, var(--hot)); stroke: rgba(61, 26, 46, 0.3); stroke-width: 2; }
+.teddy-hearteye,
+.teddy-heart { fill: var(--hot); }
+.teddy-tear { fill: #9fd8ff; }
+.teddy-puff { fill: var(--cream); stroke: #efc58c; stroke-width: 2; }
+.teddy-stripe { fill: var(--hot); }
+.teddy-stripe-w { fill: var(--white); }
+.teddy-rim { fill: var(--hot-deep); }
+.teddy-bucket-line { fill: none; stroke: var(--hot-deep); stroke-width: 2.5; stroke-linejoin: round; }
+.teddy-spark { fill: #ffc94d; }
+.teddy-spark-hot { fill: var(--hot); }
+.teddy-cloud { fill: var(--white); stroke: var(--plum-soft); stroke-width: 2.5; }
+.teddy-type { font-family: var(--font-display); font-weight: 700; }
+.teddy-z { fill: var(--plum-soft); }
+.teddy-q { fill: var(--hot); }
+
+.teddy-pose { transform: translateY(var(--t-y)); transition: transform 0.6s var(--ease-bounce); }
+.teddy-bob { transform-origin: 100px 224px; }
+.teddy-head,
+.teddy-head-in { transform-origin: 100px 140px; }
+.teddy-head { transform: translateY(var(--t-hy)) rotate(var(--t-ht)); transition: transform 0.45s var(--ease-bounce); }
+.teddy-arm { transition: transform 0.45s var(--ease-bounce); }
+.teddy-arm-l,
+.teddy-arm-l .teddy-arm-in { transform-origin: 62px 148px; }
+.teddy-arm-r,
+.teddy-arm-r .teddy-arm-in { transform-origin: 138px 148px; }
+.teddy-arm-l { transform: translate(var(--t-lx), var(--t-ly)) rotate(var(--t-l)); }
+.teddy-arm-r { transform: translate(var(--t-rx), var(--t-ry)) rotate(var(--t-r)); }
+.teddy-eye,
+.teddy-munch,
+.teddy-tear,
+.teddy-hearteye,
+.teddy-heart,
+.teddy-spark,
+.teddy-z { transform-box: fill-box; transform-origin: center; }
+.teddy-eye { animation: teddy-blink 4.6s infinite; }
+
+/* idle: breathing + blinking */
+.teddy--idle .teddy-bob { animation: teddy-breathe 3.6s ease-in-out infinite; }
+
+/* wave: right arm up, waving */
+.teddy--wave { --t-r: -150deg; --t-ht: -4deg; }
+.teddy--wave .teddy-bob { animation: teddy-breathe 3.6s ease-in-out infinite; }
+.teddy--wave .teddy-arm-r .teddy-arm-in { animation: teddy-wave 0.9s ease-in-out infinite alternate; }
+
+/* sleep: closed eyes, head tilted, paws on belly, z z z */
+.teddy--sleep { --t-l: -28deg; --t-r: 28deg; --t-ht: 9deg; }
+.teddy--sleep .teddy-bob { animation: teddy-snooze 5s ease-in-out infinite; }
+.teddy-z { animation: teddy-z 3s ease-in-out infinite; }
+
+/* love: heart eyes, self-hug, hearts floating up */
+.teddy--love { --t-l: -40deg; --t-r: 40deg; }
+.teddy--love .teddy-bob { animation: teddy-sway 2.6s ease-in-out infinite; }
+.teddy--love .teddy-cheek,
+.teddy--cover .teddy-cheek { opacity: 0.9; }
+.teddy-hearteye { animation: teddy-pulse 1.3s ease-in-out infinite; }
+.teddy-heart { animation: teddy-heart 3s ease-out infinite; }
+
+/* cheer: both arms up, bouncing, sparkles */
+.teddy--cheer { --t-l: 150deg; --t-r: -150deg; }
+.teddy--cheer .teddy-bob { animation: teddy-bounce 0.7s ease-in-out infinite; }
+.teddy--cheer .teddy-arm-in { animation: teddy-cheer-arm 0.35s ease-in-out infinite alternate; }
+.teddy--cheer .teddy-arm-r .teddy-arm-in { animation-direction: alternate-reverse; }
+.teddy-spark { animation: teddy-spark 1.4s ease-in-out infinite; }
+
+/* peek: only the eyes and paws above the bottom edge, bobbing, eyes darting */
+.teddy--peek { --t-y: 128px; --t-l: -190deg; --t-r: 190deg; --t-ly: -22px; --t-ry: -22px; }
+.teddy--peek .teddy-bob { animation: teddy-peekaboo 3.4s ease-in-out infinite; }
+.teddy--peek .teddy-eyes,
+.teddy-peeking .teddy-eyes { animation: teddy-dart 3.4s ease-in-out infinite; }
+
+/* cover: paws over the eyes (add .teddy-peeking to peek between them) */
+.teddy--cover { --t-y: 58px; --t-l: -160deg; --t-r: 160deg; --t-lx: 8px; --t-ly: -24px; --t-rx: -8px; --t-ry: -24px; }
+.teddy--cover .teddy-head-in { animation: teddy-giggle 1.6s ease-in-out infinite; }
+.teddy--cover.teddy-peeking { --t-l: -188deg; --t-r: 188deg; }
+
+/* popcorn: holding a striped bucket, feeding and munching */
+.teddy--popcorn { --t-l: -21deg; --t-r: 21deg; }
+.teddy--popcorn .teddy-bob { animation: teddy-breathe 2.6s ease-in-out infinite; }
+.teddy--popcorn .teddy-arm-r .teddy-arm-in { animation: teddy-feed 2.6s ease-in-out infinite; }
+.teddy-munch { animation: teddy-munch 0.4s ease-in-out infinite alternate; }
+
+/* sad: droopy eyes and brows, head down, a tear */
+.teddy--sad { --t-l: 4deg; --t-r: -4deg; --t-ht: 7deg; --t-hy: 4px; }
+.teddy--sad .teddy-bob { animation: teddy-sigh 4s ease-in-out infinite; }
+.teddy-tear { animation: teddy-tear 2.8s ease-in infinite; }
+
+/* think: paw on chin, eyes up, "?" bubble */
+.teddy--think { --t-l: -42deg; --t-r: 110deg; --t-ht: -6deg; }
+.teddy--think .teddy-eyes { transform: translate(2px, -3px); }
+.teddy--think .teddy-head-in { animation: teddy-ponder 3.2s ease-in-out infinite; }
+.teddy-bubble { animation: teddy-float 2.4s ease-in-out infinite; }
+
+@keyframes teddy-breathe { 50% { transform: scale(1.02, 1.035); } }
+@keyframes teddy-snooze { 50% { transform: scale(1.035, 1.05); } }
+@keyframes teddy-blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+@keyframes teddy-wave { from { transform: rotate(18deg); } to { transform: rotate(-16deg); } }
+@keyframes teddy-sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes teddy-bounce { 0%, 100% { transform: translateY(0) scale(1.04, 0.96); } 45% { transform: translateY(-14px) scale(0.98, 1.03); } }
+@keyframes teddy-cheer-arm { from { transform: rotate(-10deg); } to { transform: rotate(10deg); } }
+@keyframes teddy-peekaboo { 0%, 15%, 100% { transform: translateY(0); } 35%, 75% { transform: translateY(-14px); } }
+@keyframes teddy-dart { 0%, 25%, 100% { transform: translateX(0); } 35%, 55% { transform: translateX(-3px); } 65%, 90% { transform: translateX(3px); } }
+@keyframes teddy-giggle { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@keyframes teddy-feed { 0%, 40%, 100% { transform: rotate(0deg); } 58%, 80% { transform: rotate(110deg); } }
+@keyframes teddy-munch { to { transform: scaleY(0.35); } }
+@keyframes teddy-sigh { 50% { transform: translateY(2px) scale(1.01, 0.98); } }
+@keyframes teddy-tear { 0% { opacity: 0; transform: translateY(-2px); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(18px); } }
+@keyframes teddy-ponder { 50% { transform: rotate(-3deg); } }
+@keyframes teddy-float { 50% { transform: translateY(-4px); } }
+@keyframes teddy-pulse { 50% { transform: scale(1.18); } }
+@keyframes teddy-z { 0% { opacity: 0; transform: translate(-6px, 8px) scale(0.6); } 35%, 65% { opacity: 1; } 100% { opacity: 0; transform: translate(6px, -8px) scale(1.1); } }
+@keyframes teddy-heart { 0% { opacity: 0; transform: translateY(14px) scale(0.4); } 25% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-46px) scale(0.9); } }
+@keyframes teddy-spark { 0%, 100% { opacity: 0; transform: scale(0.2) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }

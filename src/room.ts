@@ -16,6 +16,7 @@ let ws: WebSocket | null = null;
 let queue: string[] = [];
 let retry = 0;
 let lastSeen = 0;
+let pingAt = 0;
 let onUnauthorized = () => {};
 const listeners = new Set<() => void>();
 const relayListeners = new Set<(from: Who, data: RelayData) => void>();
@@ -69,32 +70,34 @@ export function connect(unauthorized: () => void) {
 		lastSeen = Date.now();
 		if (e.data !== "pong") handle(JSON.parse(e.data));
 	};
-	socket.onclose = async (e) => {
-		if (ws !== socket) return;
-		ws = null;
-		set({ connected: false });
-		if (e.code === 4000) return set({ replaced: true });
-		// A refused upgrade looks like any other drop; ask the API whether the session is still valid.
-		const me = await fetch("/api/me").catch(() => null);
-		if (me?.status === 401) return onUnauthorized();
-		setTimeout(() => connect(onUnauthorized), Math.min(10_000, 500 * 2 ** retry++));
-	};
+	socket.onclose = (e) => void lost(socket, e.code);
 }
 
-// Heartbeat: the Room answers "ping" without waking up. Silence means a half-open socket, so force a reconnect.
-setInterval(() => {
-	if (ws?.readyState !== WebSocket.OPEN) return;
-	if (Date.now() - lastSeen > 45_000) return ws.close();
-	ws.send("ping");
-}, 15_000);
-
-export function disconnect() {
-	const s = ws;
+async function lost(socket: WebSocket, code: number) {
+	if (ws !== socket) return;
 	ws = null;
-	s?.close();
-	state = null;
-	listeners.forEach((l) => l());
+	set({ connected: false });
+	if (code === 4000) return set({ replaced: true });
+	// A refused upgrade looks like any other drop; ask the API whether the session is still valid.
+	const me = await fetch("/api/me").catch(() => null);
+	if (me?.status === 401) return onUnauthorized();
+	setTimeout(() => connect(onUnauthorized), Math.min(10_000, 500 * 2 ** retry++));
 }
+
+// Heartbeat: the Room answers "ping" without waking up. An unanswered ping means a half-open socket: reconnect now,
+// without waiting for close() (it can hang for a minute on a dead connection). Throttled background timers only
+// make pings rarer; they can't cause a false alarm, because any message counts as an answer.
+setInterval(() => {
+	const socket = ws;
+	if (socket?.readyState !== WebSocket.OPEN) return;
+	if (pingAt > lastSeen && Date.now() - pingAt > 10_000) {
+		socket.onclose = null;
+		socket.close();
+		return void lost(socket, 1006);
+	}
+	pingAt = Date.now();
+	socket.send("ping");
+}, 15_000);
 
 export function send(m: ClientMsg) {
 	const data = JSON.stringify(m);

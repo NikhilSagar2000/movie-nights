@@ -7,13 +7,18 @@ const STUN = [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:
 export default {
 	async fetch(req, env): Promise<Response> {
 		const url = new URL(req.url);
+		// Half-configured means closed: without SESSION_SECRET, a cookie signed with an empty key would verify.
+		if (!env.USERS || !env.SESSION_SECRET) return Response.json({ error: "not set up yet" }, { status: 503 });
 
 		if (url.pathname === "/api/login" && req.method === "POST") {
+			const room = env.ROOM.get(env.ROOM.idFromName("us"));
+			const ip = req.headers.get("CF-Connecting-IP") ?? "local";
+			if (!(await room.allowLogin(ip))) return Response.json({ error: "too many tries" }, { status: 429 });
 			const body = (await req.json().catch(() => null)) as { passcode?: unknown } | null;
 			const passcode = typeof body?.passcode === "string" ? body.passcode.slice(0, 200) : "";
 			const who = passcode ? await matchPasscode(passcode, env.USERS) : null;
 			if (!who) {
-				// ponytail: fixed delay only slows guessing; add a Rate Limiting binding if this is ever public-facing.
+				await room.failedLogin(ip);
 				await new Promise((r) => setTimeout(r, 1000));
 				return Response.json({ error: "wrong passcode" }, { status: 401 });
 			}
@@ -34,8 +39,13 @@ export default {
 			// TURN_URL: a Metered/Open Relay credentials URL (it returns an iceServers array). Optional.
 			let turn: unknown[] = [];
 			if (env.TURN_URL) {
-				const res = await fetch(env.TURN_URL).catch(() => null);
-				if (res?.ok) turn = (await res.json()) as unknown[];
+				try {
+					const res = await fetch(env.TURN_URL);
+					const j = (await res.json()) as unknown;
+					turn = Array.isArray(j) ? j : ((j as { iceServers?: unknown[] })?.iceServers ?? []);
+				} catch {
+					console.warn("TURN_URL did not return ice servers"); // the call still works on direct/STUN paths
+				}
 			}
 			return Response.json({ iceServers: [...STUN, ...turn] }, { headers: { "Cache-Control": "no-store" } });
 		}

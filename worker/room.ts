@@ -2,6 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import {
 	LIMITS,
 	PEOPLE,
+	other,
 	type ChatMsg,
 	type ClientMsg,
 	type Game,
@@ -28,6 +29,22 @@ const id = () => crypto.randomUUID().slice(0, 8);
  * ponytail: whole arrays are rewritten on each change; move to SQL tables if the lists ever get big.
  */
 export class Room extends DurableObject<Env> {
+	// ponytail: memory only, so it resets if the Room sleeps (>10s idle); pair with long passphrases.
+	private loginFails = new Map<string, number[]>();
+
+	/** Login throttle, called by the Worker over RPC: at most 5 wrong passcodes per IP per 10 minutes. */
+	allowLogin(ip: string) {
+		const now = Date.now();
+		const recent = (this.loginFails.get(ip) ?? []).filter((t) => now - t < 600_000);
+		this.loginFails.set(ip, recent);
+		return recent.length < 5;
+	}
+
+	failedLogin(ip: string) {
+		this.loginFails.set(ip, [...(this.loginFails.get(ip) ?? []), Date.now()]);
+		if (this.loginFails.size > 1000) this.loginFails.clear(); // don't let a flood of IPs grow memory
+	}
+
 	constructor(ctx: DurableObjectState, env: Env) {
 		super(ctx, env);
 		// Answered by the runtime without waking the object.
@@ -71,10 +88,11 @@ export class Room extends DurableObject<Env> {
 				return;
 
 			case "profile": {
+				// You name your partner, not yourself: the profile you send belongs to them.
 				const name = str(m.profile?.name, LIMITS.name);
 				const color = /^#[0-9a-f]{6}$/i.test(m.profile?.color ?? "") ? m.profile.color : "#fb6f92";
 				if (!name) return;
-				const profiles = { ...((await s.get<Profiles>("profiles")) ?? {}), [who]: { name, color } };
+				const profiles = { ...((await s.get<Profiles>("profiles")) ?? {}), [other(who)]: { name, color } };
 				await s.put("profiles", profiles);
 				return this.broadcast({ t: "profiles", profiles });
 			}
