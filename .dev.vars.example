@@ -1,0 +1,4 @@
+USERS={"a":"your-long-passphrase","b":"her-long-passphrase"}
+SESSION_SECRET=any-long-random-string
+# Optional: Metered/Open Relay credentials URL (includes apiKey)
+# TURN_URL=https://<app>.metered.live/api/v1/turn/credentials?apiKey=...

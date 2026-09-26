@@ -1,0 +1,192 @@
+/* ===== Our Little Theater — design tokens + base components =====
+   Page-specific styles live in their own files (theater.css, games.css, …) and only use these tokens. */
+
+:root {
+	--blush: #ffe5ec; /* page background */
+	--petal: #ffc2d1; /* soft fills, borders */
+	--rose: #ff8fab; /* secondary accents */
+	--hot: #fb6f92; /* primary actions */
+	--hot-deep: #e0557a; /* pressed / hover */
+	--plum: #3d1a2e; /* text, lights-off theater */
+	--plum-soft: #6b3a55; /* secondary text */
+	--cream: #fff6e9; /* ticket stubs, cards */
+	--lilac: #c9a0ff; /* partner accent default */
+	--fur: #c68b59; /* teddy */
+	--fur-light: #e8b98a;
+	--white: #fffafb;
+
+	--font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+	--font-body: "Nunito", system-ui, sans-serif;
+
+	--r-sm: 12px;
+	--r-md: 20px;
+	--r-lg: 32px;
+	--r-full: 999px;
+	--shadow-soft: 0 6px 0 rgba(61, 26, 46, 0.08), 0 12px 30px rgba(251, 111, 146, 0.18);
+	--shadow-pop: 0 4px 0 var(--hot-deep);
+	--ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+	--gutter: clamp(16px, 4vw, 40px);
+
+	color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	min-height: 100%;
+}
+
+body {
+	background: var(--blush);
+	color: var(--plum);
+	font-family: var(--font-body);
+	font-size: 16px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	overflow-x: hidden;
+}
+
+h1,
+h2,
+h3 {
+	font-family: var(--font-display);
+	font-weight: 600;
+	line-height: 1.15;
+	margin: 0 0 0.4em;
+}
+
+button,
+input,
+textarea,
+select {
+	font: inherit;
+	color: inherit;
+}
+
+:focus-visible {
+	outline: 3px solid var(--hot);
+	outline-offset: 3px;
+}
+
+/* ---- Buttons: chunky, squishy, never flat pills ---- */
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5em;
+	border: 0;
+	border-radius: var(--r-md);
+	padding: 0.75em 1.3em;
+	background: var(--hot);
+	color: var(--white);
+	font-family: var(--font-display);
+	font-weight: 600;
+	font-size: 1.05rem;
+	cursor: pointer;
+	box-shadow: var(--shadow-pop);
+	transition: transform 0.15s var(--ease-bounce), box-shadow 0.15s, background 0.15s;
+}
+.btn:hover {
+	transform: translateY(-2px);
+}
+.btn:active {
+	transform: translateY(3px);
+	box-shadow: 0 1px 0 var(--hot-deep);
+}
+.btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	transform: none;
+}
+.btn.soft {
+	background: var(--white);
+	color: var(--plum);
+	box-shadow: 0 4px 0 var(--petal);
+}
+.btn.ghost {
+	background: transparent;
+	color: var(--plum);
+	box-shadow: none;
+}
+.btn.icon {
+	padding: 0.6em;
+	border-radius: var(--r-sm);
+	min-width: 2.75em;
+	min-height: 2.75em;
+}
+
+/* ---- Surfaces ---- */
+.card {
+	background: var(--white);
+	border-radius: var(--r-lg);
+	box-shadow: var(--shadow-soft);
+	padding: clamp(16px, 3vw, 28px);
+}
+
+.input {
+	width: 100%;
+	border: 3px solid var(--petal);
+	background: var(--white);
+	border-radius: var(--r-md);
+	padding: 0.7em 1em;
+	outline: none;
+	transition: border-color 0.15s;
+}
+.input:focus {
+	border-color: var(--hot);
+}
+
+.chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35em;
+	padding: 0.25em 0.75em;
+	border-radius: var(--r-sm);
+	background: var(--petal);
+	color: var(--plum);
+	font-size: 0.85rem;
+	font-weight: 700;
+}
+
+.page {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: 24px var(--gutter) 120px;
+}
+
+.muted {
+	color: var(--plum-soft);
+}
+
+.center-screen {
+	min-height: 100dvh;
+	display: grid;
+	place-items: center;
+	text-align: center;
+	padding: var(--gutter);
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+	}
+}
