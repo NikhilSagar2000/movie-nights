@@ -308,11 +308,11 @@ function Bubbles({ room, call }: { room: RoomState; call: CallState }) {
 				poked={poked > 0}
 				tools={
 					<button
-						className={`fc-tool${v.flipPartner ? " on" : ""}`}
-						aria-pressed={v.flipPartner}
-						aria-label={`Flip ${them.name}'s picture (only if it looks mirrored)`}
-						title={`Flip ${them.name}'s picture (only if it looks mirrored)`}
-						onClick={() => setView({ flipPartner: !v.flipPartner })}
+						className={`fc-tool${v.mirrorPartner ? " on" : ""}`}
+						aria-pressed={v.mirrorPartner}
+						aria-label={`Mirror ${them.name}'s camera, like your own view`}
+						title={`Mirror ${them.name}'s camera, like your own view`}
+						onClick={() => setView({ mirrorPartner: !v.mirrorPartner })}
 					>
 						<FlipHorizontal aria-hidden />
 					</button>
@@ -334,7 +334,7 @@ function Bubbles({ room, call }: { room: RoomState; call: CallState }) {
 						<MicrophoneSlash aria-hidden />
 					</span>
 				)}
-				<video ref={theirs.ref} playsInline className={`${seeThem ? "" : "off"}${v.flipPartner ? " flip" : ""}`} aria-label={`${them.name}'s camera`} />
+				<video ref={theirs.ref} playsInline className={`${seeThem ? "" : "off"}${v.mirrorPartner ? " flip" : ""}`} aria-label={`${them.name}'s camera`} />
 				{!seeThem && (
 					<span className="fc-head">
 						<Face

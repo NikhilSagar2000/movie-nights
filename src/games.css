@@ -807,8 +807,8 @@
 .dc-cam video.off {
 	visibility: hidden;
 }
-.dc-cam.mine video {
-	transform: scaleX(-1); /* a mirror, like your bubble */
+.dc-cam video.mirror {
+	transform: scaleX(-1); /* the same way round as the cam bubbles */
 }
 .dc-cam-off {
 	position: absolute;

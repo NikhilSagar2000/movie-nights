@@ -1,6 +1,6 @@
 /* ===== Home lane: Nav, Home, Login, Name your love, Door, and the replaced-tab screen (Home.tsx, Login.tsx, main.tsx).
-   Every class is hm-*, except the hooks other code relies on (.nav, .love-input, .love-save) and the tuberose (tr-*,
-   Tuberose.tsx). Tokens from styles.css. ===== */
+   Every class is hm-*, except the hooks other code relies on (.nav, .love-input, .love-save) and the garden on the
+   window sill (tr-*, Garden.tsx). Tokens from styles.css. ===== */
 
 /* ---------- Nav: a floating cream pill ---------- */
 .nav {
@@ -215,17 +215,22 @@ body:has(.theater) .hm-who {
 	background: var(--blue-hour);
 	box-shadow: 0 0 0 0.7em var(--cream), var(--lift);
 }
-/* the window and the tuberose pot on its sill (the arch clips its children, so the pot sits outside it) */
+/* the window and the two pots on its sill (the arch clips its children, so the pots sit outside it) */
 .hm-sill {
 	position: relative;
 }
-/* ---------- Our little tuberose: a rosewood pot on the sill, drawn in the same ink as the heads ---------- */
+/* ---------- Our little garden: the tuberose (rosewood pot, left) and the tulips (slate pot, right), drawn in the
+   same ink as the heads ---------- */
 .tr-wrap {
 	position: absolute;
 	left: -1.4em;
 	bottom: -1.3em;
 	z-index: 2;
 	width: 7.6em;
+}
+.tr-wrap.tulips {
+	left: auto;
+	right: -1.4em;
 }
 .tr-btn {
 	--focus: var(--dusk);
@@ -237,7 +242,6 @@ body:has(.theater) .hm-who {
 	background: none;
 	color: var(--night);
 	cursor: pointer;
-	anchor-name: --tr;
 	transition: transform 0.35s var(--spring);
 }
 .tr-btn:hover {
@@ -285,6 +289,12 @@ body:has(.theater) .hm-who {
 	fill: var(--cream);
 	stroke-width: 0.9;
 }
+.tr .tr-flower.pink ellipse {
+	fill: var(--blush);
+}
+.tr .tr-bud.pink {
+	fill: url(#tr-bud-pink);
+}
 .tr .tr-eye {
 	fill: var(--flower);
 	stroke: none;
@@ -294,6 +304,17 @@ body:has(.theater) .hm-who {
 }
 .tr .tr-pot {
 	fill: var(--rosewood);
+}
+.tr.tulips .tr-pot {
+	fill: var(--dusk);
+}
+.tr .tr-tulip path {
+	stroke-width: 1.2;
+}
+.tr .tr-tulip .tr-crease {
+	fill: none;
+	stroke-width: 0.9;
+	opacity: 0.55;
 }
 .tr .tr-rim {
 	fill: var(--cream);
@@ -338,6 +359,10 @@ body:has(.theater) .hm-who {
 	white-space: nowrap;
 	animation: tr-pop 0.6s var(--spring) both;
 }
+.tr-wrap.tulips .tr-grew {
+	left: auto;
+	right: 55%; /* the right-hand pot: the label grows leftwards, onto the page */
+}
 .tr-info {
 	--focus: var(--dusk);
 	width: min(17em, calc(100vw - 32px));
@@ -377,7 +402,6 @@ body:has(.theater) .hm-who {
 }
 @supports (anchor-name: --a) {
 	.tr-info {
-		position-anchor: --tr;
 		inset: auto;
 		bottom: anchor(top);
 		left: anchor(left);
@@ -619,6 +643,10 @@ body:has(.theater) .hm-who {
 		left: -0.6em;
 		bottom: -1em;
 		width: 5.8em;
+	}
+	.tr-wrap.tulips {
+		left: auto;
+		right: -0.6em;
 	}
 	.hm-window .clouds {
 		font-size: 0.7em;

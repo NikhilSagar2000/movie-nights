@@ -8,7 +8,7 @@ import { Duo, Face, Flower, lateNight, type HeadProps, type Moment } from "./Cha
 import { NameYourLove } from "./Login";
 import { readLetters, unreadOf, writeLetter } from "./Letters";
 import { sendPoke, usePokeSent } from "./Theater";
-import { Tuberose } from "./Tuberose";
+import { Garden } from "./Garden";
 import "./home.css";
 
 const LINKS = [
@@ -127,7 +127,7 @@ export function Home() {
 	const both = isOn(room.you) && partnerOn;
 	const idle = lateNight() ? "drowsy" : "idle";
 
-	// the tuberose grew while you're looking: you both smile
+	// a plant grew while you're looking: you both smile
 	const grew = () => {
 		setThem((p) => ({ m: "happy", n: p.n + 1 }));
 		setMine((p) => ({ m: "happy", n: p.n + 1 }));
@@ -154,7 +154,7 @@ export function Home() {
 					</Duo>
 					<i className="clouds" />
 				</div>
-				<Tuberose pts={room.garden?.pts ?? 0} onGrow={grew} />
+				<Garden pts={room.garden?.pts ?? 0} onGrow={grew} />
 			</div>
 
 			<div className="hm-copy">

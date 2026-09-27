@@ -125,10 +125,11 @@ export type Spot = { fx?: number; fy?: number; size?: number };
 type Layout = { me: Spot; them: Spot };
 /** On the theater page: "movie" while anyone is sharing, "idle" otherwise. Every other page: "page". Each keeps its own tweaks. */
 export type LayoutMode = "movie" | "idle" | "page";
-type View = { hideSelf: boolean; hidePartner: boolean; hideMovie: boolean; flipPartner: boolean; min: boolean; stage: number } & Record<LayoutMode, Layout>;
+/** `mirrorPartner`: show their camera mirrored like your own view (on by default; the older `flipPartner` is ignored). */
+type View = { hideSelf: boolean; hidePartner: boolean; hideMovie: boolean; mirrorPartner: boolean; min: boolean; stage: number } & Record<LayoutMode, Layout>;
 
 const FRESH_LAYOUT = { min: false, stage: 1, movie: { me: {}, them: {} }, idle: { me: {}, them: {} }, page: { me: {}, them: {} } };
-const DEFAULT_VIEW: View = { hideSelf: false, hidePartner: false, hideMovie: false, flipPartner: false, ...FRESH_LAYOUT };
+const DEFAULT_VIEW: View = { hideSelf: false, hidePartner: false, hideMovie: false, mirrorPartner: true, ...FRESH_LAYOUT };
 
 let view: View = (() => {
 	try {
@@ -936,10 +937,10 @@ function ViewMenu({ view: v, partnerName }: { view: View; partnerName: string })
 					</span>
 				</label>
 				<label className="th-view-opt">
-					<input type="checkbox" checked={v.flipPartner} onChange={(e) => setView({ flipPartner: e.target.checked })} />
+					<input type="checkbox" checked={v.mirrorPartner} onChange={(e) => setView({ mirrorPartner: e.target.checked })} />
 					<span>
-						Flip {partnerName}'s camera
-						<small>If their picture looks mirrored</small>
+						Mirror {partnerName}'s camera
+						<small>Like your own view</small>
 					</span>
 				</label>
 				<label className="th-view-opt">

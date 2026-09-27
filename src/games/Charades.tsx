@@ -4,7 +4,7 @@ import { other, type Who } from "../../shared/types";
 import { Face } from "../Character";
 import { serverNow } from "../room";
 import { useCall } from "../rtc";
-import { useLive, useVideo } from "../Theater";
+import { useLive, useVideo, useView } from "../Theater";
 import { MOVIES } from "./decks/movies";
 import { commit, draw, Finish, nextRound, Timer, useCountdown, useSecret, useTimeUp, type Base, type Ctx } from "./lead";
 
@@ -92,17 +92,20 @@ export default function CharadesGame({ c }: { c: Ctx }) {
 	);
 }
 
-/** The actor's camera: big for the guesser (muted, their bubble already plays the voice), a mirror for the actor. */
+/** The actor's camera: big for the guesser (muted, their bubble already plays the voice), a mirror for the actor.
+ *  The guesser sees it mirrored or not the same way as the actor's bubble. */
 function Cam({ c, who }: { c: Ctx; who: Who }) {
 	const call = useCall();
 	const mine = who === c.you;
 	const stream = mine ? call.localCam : call.remoteCam;
 	const video = useVideo(stream, true);
 	const live = useLive(mine ? null : stream);
+	const view = useView();
+	const mirror = mine || view.mirrorPartner; // the same way round as their bubble
 	const showing = mine ? call.camOn && !!call.localCam?.getVideoTracks().length : live && call.peerCamOn && c.live;
 	return (
 		<div className={`dc-cam${mine ? " mine" : ""}`}>
-			<video ref={video.ref} playsInline muted className={showing ? "" : "off"} aria-label={mine ? "Your camera" : `${c.name(who)}'s camera`} />
+			<video ref={video.ref} playsInline muted className={`${showing ? "" : "off"}${mirror ? " mirror" : ""}`} aria-label={mine ? "Your camera" : `${c.name(who)}'s camera`} />
 			{!showing && (
 				<span className="dc-cam-off">
 					<Face who={who} s="7em" mood={c.live || mine ? "idle" : "away"} />
