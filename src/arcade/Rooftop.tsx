@@ -3,6 +3,7 @@ import { Head } from "../Character";
 import { palette, rand, reduced, useCanvas, useKeys, useLoop, type SoloApi } from "./kit";
 import { GROUND, H, HEAD, HEAD_H, jump, metres, newRun, RUN_X, step, W, type Ob, type Run } from "./logic/run";
 import "./run.css";
+import { sfx } from "./sound";
 
 /* Rooftop Run: your head runs across the rooftops at night, under the moon, past a sleepy skyline. Jump the black
    water tanks and the dish antennas; hold the jump to go a little higher. It speeds up as you go. */
@@ -49,9 +50,14 @@ export default function Rooftop({ api }: { api: SoloApi }) {
 	useLoop((dt) => {
 		if (!me.current) return; // unmounting: a last frame can land after React has let go of the ref
 		const before = metres(r.current.dist);
+		const grounded = r.current.y === 0;
 		r.current = step(r.current, dt, hold.current.key || hold.current.finger, HEAD[api.you]);
+		if (grounded && r.current.y > 0) sfx("hop"); // leaving the roof: a jump now or one remembered from just before landing
 		const m = metres(r.current.dist);
-		if (m !== before) api.setScore(m);
+		if (m !== before) {
+			api.setScore(m);
+			if (Math.floor(m / 100) > Math.floor(before / 100)) sfx("tick");
+		}
 		me.current.style.transform = `translateY(${(-r.current.y / H) * 100}cqh)`;
 		redraw();
 		if (r.current.crashed) {

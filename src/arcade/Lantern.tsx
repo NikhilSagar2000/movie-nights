@@ -2,6 +2,7 @@ import { useRef } from "react";
 import "./lantern.css";
 import { palette, reduced, useCanvas, useKeys, useLoop, type SoloApi } from "./kit";
 import { flap, GROUND, H, LX, newSky, step, W, type Pair, type Sky } from "./logic/lantern";
+import { sfx } from "./sound";
 
 /* Sky Lantern: Flappy Bird with a Diwali paper lantern. Each tap lifts it; it drifts past rooftops with lit windows
    and marigold garlands hanging from above. The lantern stays put, the town scrolls past. */
@@ -21,7 +22,10 @@ export default function Lantern({ api }: { api: SoloApi }) {
 	const still = useRef(reduced());
 	const { ref, redraw } = useCanvas(W, H, (g) => paint(g, s.current, still.current ? 0 : t.current));
 
-	const lift = () => (s.current = flap(s.current));
+	const lift = () => {
+		sfx("flap");
+		s.current = flap(s.current);
+	};
 	useKeys((k, e) => {
 		if (k !== " " && k !== "ArrowUp") return false;
 		if (!e.repeat) lift(); // holding the key isn't a flurry of flaps
@@ -32,7 +36,10 @@ export default function Lantern({ api }: { api: SoloApi }) {
 		t.current += dt;
 		const before = s.current.score;
 		s.current = step(s.current, dt);
-		if (s.current.score !== before) api.setScore(s.current.score);
+		if (s.current.score !== before) {
+			api.setScore(s.current.score);
+			sfx("tick");
+		}
 		redraw();
 		if (!s.current.alive) api.end(s.current.score, NOTES[s.current.died!]);
 	}, !api.paused);

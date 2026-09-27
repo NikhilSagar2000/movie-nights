@@ -5,6 +5,7 @@ import { cls, vars } from "../games/lead";
 import { fmt, type SoloApi } from "./kit";
 import { chord, flag, newBoard, open, type Board, type Cell } from "./logic/mines";
 import "./mines.css";
+import { sfx } from "./sound";
 
 /* Minesweeper, the old Windows classic: raised cream tiles on a dusky board. The clock starts on the first open,
    and the first tap is always safe. Right-click, long-press or Flag mode flags; a number with its flags placed
@@ -41,6 +42,16 @@ export default function Mines({ api }: { api: SoloApi }) {
 		return () => clearTimeout(t);
 	}, [b.state]);
 	useEffect(() => () => clearTimeout(press.current.timer), []);
+	// every way the board changes (tap, key, right-click, long-press) lands here: one sound per move
+	const was = useRef(b);
+	useEffect(() => {
+		const a = was.current;
+		was.current = b;
+		if (a === b) return;
+		if (b.state === "lost") sfx("boom");
+		else if (b.cells.some((c, k) => c.open && !a.cells[k].open)) sfx("tick");
+		else sfx("blip");
+	}, [b]);
 
 	const tap = (i: number) => {
 		const next = b.cells[i].open ? chord(b, i) : flagMode ? flag(b, i) : open(b, i);

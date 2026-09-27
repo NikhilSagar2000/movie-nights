@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import { ArrowLeft, ChatCircleSlash, FilmSlate, MusicNotes, type Icon } from "@phosphor-icons/react";
 import { other, type Game, type GameKind, type Who } from "../shared/types";
-import { profileOf, send, useRoom, type RoomState } from "./room";
+import { getRoom, profileOf, send, useRoom, type RoomState } from "./room";
 import { Duo, Face, Head, Loader, type Mood } from "./Character";
 import { Away, cls, resendPlays, type Base, type Ctx } from "./games/lead";
 import MindMeld from "./games/MindMeld";
@@ -11,7 +11,8 @@ import CharadesGame, { charadesInit, charadesStatus, type Charades } from "./gam
 import EmojiMovieGame, { emojiInit, emojiStatus, type EmojiMovie } from "./games/EmojiMovie";
 import AntakshariGame, { antakshariInit, antakshariStatus, type Antakshari } from "./games/Antakshari";
 import SameWaveGame, { waveInit, waveStatus, type SameWave } from "./games/SameWave";
-import { bestKey, fmt, readBest, SOLO_IDS, soloMeta, useSoloRoute } from "./arcade";
+import { bestKey, bestOf, fmt, SOLO_IDS, soloMeta, syncBests, useSoloRoute } from "./arcade";
+import { gameOf } from "../shared/bests";
 import "./games.css";
 import "./arcade/arcade.css";
 
@@ -109,6 +110,11 @@ const KINDS = Object.keys(GAMES) as GameKind[];
 export default function Games() {
 	const room = useRoom();
 	const solo = useSoloRoute();
+	// once per connection: bests on this device that the Room hasn't got yet go up
+	useEffect(() => {
+		const r = getRoom();
+		if (r?.connected) syncBests(r);
+	}, [room?.connected]);
 	if (!room) return null;
 	// A game from an older version of the site (or an old open tab) has no screen any more: show the hub.
 	const game = room.game && GAMES[room.game.kind] ? room.game : null;
@@ -141,7 +147,7 @@ function Hub({ room }: { room: RoomState }) {
 				<p>{live ? "Games for two. Nobody keeps score." : `${partner} is away. Play one on your own till they're back.`}</p>
 			</header>
 			{/* alone: the solo games come first */}
-			{!live && <SoloShelf first />}
+			{!live && <SoloShelf room={room} first />}
 			{!live && <h2 className="ar-h2">Games for two</h2>}
 			{!live && <Away who={them} name={partner} />}
 			<ul className="hub-grid">
@@ -185,28 +191,42 @@ function Hub({ room }: { room: RoomState }) {
 					);
 				})}
 			</ul>
-			{live && <SoloShelf />}
+			{live && <SoloShelf room={room} />}
 		</main>
 	);
 }
 
-/** The solo arcade: a card per game, with your best on this device. */
-function SoloShelf({ first }: { first?: boolean }) {
+/** The solo arcade: a card per game with both of your bests (Minesweeper: the small board's). */
+function SoloShelf({ room, first }: { room: RoomState; first?: boolean }) {
+	const pair: Who[] = [room.you, other(room.you)];
 	return (
 		<section className={cls("ar-shelf", first && "first")} aria-labelledby="ar-shelf-h">
 			<h2 id="ar-shelf-h">On your own</h2>
-			<p>Little arcade games for when you're on your own. Just for fun.</p>
+			<p>Little arcade games for when you're on your own. You can see each other's best.</p>
+			<BeatNotes room={room} />
 			<ul className="ar-grid">
 				{SOLO_IDS.map((id) => {
 					const m = soloMeta(id);
-					const best = m.modes ? null : readBest(bestKey(id));
+					const key = bestKey(id, m.modes?.[0].id);
+					const bests = pair.map((w) => ({ w, n: bestOf(room, w, key) })).filter((b) => b.n !== null);
 					return (
 						<li key={id}>
 							<a className="ar-card" data-tone={m.tone} href={`#/games/${id}`}>
 								<span className="ar-art" aria-hidden="true">
 									{m.art}
 								</span>
-								{best !== null && <span className="chip ar-best">Best {fmt(best, m.unit)}</span>}
+								{bests.length > 0 && (
+									<span className="chip ar-best">
+										{m.modes && <span className="ar-best-mode">{m.modes[0].label}</span>}
+										{bests.map(({ w, n }) => (
+											<span key={w} className="ar-best-one">
+												<Face who={w} s="1.35em" ring={profileOf(room, w).color} />
+												<span className="sr-only">{w === room.you ? "Your best" : `${profileOf(room, w).name}'s best`}</span>
+												{fmt(n!, m.unit)}
+											</span>
+										))}
+									</span>
+								)}
 								<span className="ar-name">{m.name}</span>
 								<span className="ar-blurb">{m.blurb}</span>
 							</a>
@@ -215,6 +235,39 @@ function SoloShelf({ first }: { first?: boolean }) {
 				})}
 			</ul>
 		</section>
+	);
+}
+
+/** "They beat your Snake best": notes from the Room, shown until you've seen them. */
+function BeatNotes({ room }: { room: RoomState }) {
+	const notes = (room.bests?.notes[room.you] ?? []).filter((n) => gameOf(n.key));
+	if (!notes.length) return null;
+	const seen = () => send({ t: "best:seen" });
+	return (
+		<div className="ar-notes" role="status">
+			<ul>
+				{notes.map((n) => {
+					const id = gameOf(n.key)!;
+					const m = soloMeta(id);
+					const size = m.modes?.find((o) => o.id === n.key.split(":")[1])?.label;
+					return (
+						<li key={n.key}>
+							<Face who={n.by} s="2.2em" ring={profileOf(room, n.by).color} />
+							<span className="ar-note-text">
+								<b>{profileOf(room, n.by).name}</b> beat your {m.name}
+								{size ? ` (${size})` : ""} best: <b>{fmt(n.score, m.unit)}</b> (yours was {fmt(n.yours, m.unit)})
+							</span>
+							<a className="btn sm" href={`#/games/${id}${n.key.includes(":") ? "/" + n.key.split(":")[1] : ""}`} onClick={seen}>
+								Try to beat it
+							</a>
+						</li>
+					);
+				})}
+			</ul>
+			<button className="btn sm ghost" onClick={seen}>
+				Got it
+			</button>
+		</div>
 	);
 }
 
@@ -275,7 +328,7 @@ function GameScreen({ room, game }: { room: RoomState; game: Game }) {
 				<View key={game.id} c={c} />
 				<p className="gm-hint">{meta.hint}</p>
 			</section>
-			{!c.live && <SoloShelf />}
+			{!c.live && <SoloShelf room={room} />}
 		</main>
 	);
 }

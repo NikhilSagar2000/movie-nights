@@ -546,7 +546,7 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 	}, []);
 	const toggleFull = () =>
 		document.fullscreenElement ? void document.exitFullscreen() : void document.documentElement.requestFullscreen().catch(() => {});
-	// in fullscreen the toolbar floats over the movie and fades once the pointer rests
+	// in fullscreen the toolbar floats over the movie and fades after a few quiet seconds; any move, click or key brings it back
 	const [idle, setIdle] = useState(false);
 	useEffect(() => {
 		if (!full) {
@@ -557,10 +557,11 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 		const wake = () => {
 			setIdle(false);
 			clearTimeout(t);
-			t = window.setTimeout(() => setIdle(true), 3000);
+			t = window.setTimeout(() => setIdle(true), 6000);
 		};
 		wake();
-		const evs = ["pointermove", "pointerdown", "keydown"] as const;
+		// "blur": a click on the YouTube player moves focus into its iframe, which is the only sign the page gets of it
+		const evs = ["pointermove", "pointerdown", "keydown", "blur"] as const;
 		evs.forEach((e) => addEventListener(e, wake));
 		return () => {
 			clearTimeout(t);
@@ -664,7 +665,7 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 	const bob = (w: Who) => ({ mood: w === partner && !partnerHere ? ("away" as const) : ("bob" as const) });
 
 	return (
-		<main className={`page theater${sharing || tube?.playing ? " lights-off" : ""}${full ? " is-full" : ""}${full && idle && !tube ? " idle" : ""}`}>
+		<main className={`page theater${sharing || tube?.playing ? " lights-off" : ""}${full ? " is-full" : ""}${full && idle ? " idle" : ""}`}>
 			{sharing && <i className="stars th-stars" />}
 			<div className="th-col">
 				<div className="th-above" ref={aboveRef}>
@@ -761,6 +762,9 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 						{!tubeTools && stageTools}
 					</div>
 					<div className={`th-stage${v.hideMovie ? " collapsed" : ""}${showing ? "" : " arch"}`} onDoubleClick={burst}>
+						{/* the YouTube player swallows mouse moves and taps: while the bar is hidden, a clear sheet over the video feels
+						    the first one (it wakes the bar and goes, so the next click reaches YouTube) */}
+						{full && idle && tube && <i className="th-wake" aria-hidden="true" />}
 						{hosting ? (
 							<LocalPreview stream={call.localScreen!} />
 						) : call.peerSharing ? (

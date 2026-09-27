@@ -6,6 +6,7 @@ import { cls, draw, Timer, vars } from "../games/lead";
 import { useKeys, useLoop, type SoloApi } from "./kit";
 import { scramble, WORDS, type Word } from "./logic/jumble";
 import "./jumble.css";
+import { sfx } from "./sound";
 
 /* Jumble: a minute to unscramble as many words from the decks as you can. Tap the letters (or type them)
    into the slots; a full row is checked straight away. Skip shows the answer for a second. */
@@ -54,12 +55,14 @@ export default function Jumble({ api }: { api: SoloApi }) {
 		if (busy || j < 0 || r.slots.includes(i)) return;
 		const slots = r.slots.map((s, k) => (k === j ? i : s));
 		setR({ ...r, slots });
-		if (slots.includes(null)) return;
+		if (slots.includes(null)) return sfx("tick");
 		if (normalize(slots.map((k) => r.tiles[k!]).join("")) === normalize(r.word.w)) {
+			sfx("coin");
 			api.setScore(++score.current);
 			setFlash("right");
 			later(600, next);
 		} else {
+			sfx("hit");
 			setFlash("wrong");
 			later(500, () => {
 				setR((cur) => ({ ...cur, slots: cur.slots.map(() => null) }));

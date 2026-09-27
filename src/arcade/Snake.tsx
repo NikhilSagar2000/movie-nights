@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { DIR_KEYS, palette, useCanvas, useKeys, useLoop, useSwipe, type SoloApi } from "./kit";
 import { newSnake, step, turn, type Pt, type Snake as S } from "./logic/snake";
+import { sfx } from "./sound";
 
 /* Snake, Nokia 3310 style: a sage LCD with night pixels. Popcorn to eat; faster every 5 bites. */
 
@@ -30,7 +31,10 @@ export default function Snake({ api }: { api: SoloApi }) {
 		acc.current -= every;
 		const before = s.current.eaten;
 		s.current = step(s.current, N);
-		if (s.current.eaten !== before) api.setScore(s.current.eaten);
+		if (s.current.eaten !== before) {
+			api.setScore(s.current.eaten);
+			sfx("pop");
+		}
 		redraw();
 		if (!s.current.alive) api.end(s.current.eaten, s.current.died === "wall" ? "Bumped into the wall" : s.current.died ? "Bit your own tail" : "You filled the whole board!");
 	}, !api.paused);

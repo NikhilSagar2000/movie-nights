@@ -58,6 +58,8 @@ function handle(m: ServerMsg) {
 			return set({ tube: m.tube });
 		case "garden":
 			return set({ garden: m.garden });
+		case "bests":
+			return set({ bests: m.bests });
 		case "game":
 			return set({ game: m.game });
 		case "sealed":

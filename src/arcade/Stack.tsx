@@ -2,6 +2,7 @@ import { useRef } from "react";
 import "./stack.css";
 import { palette, rand, reduced, useCanvas, useKeys, useLoop, type SoloApi } from "./kit";
 import { cut, HI, LO, slide, speed, type Span } from "./logic/stack";
+import { sfx } from "./sound";
 
 /* Ladoo Stack: the "Stack" tower game with mithai boxes on a brass thali. A box slides over the stack; drop it and
    whatever hangs over the box below falls off. Land it within a whisker and it snaps on whole, with a sparkle. */
@@ -66,6 +67,8 @@ export default function Stack({ api }: { api: SoloApi }) {
 			return;
 		}
 		g.streak = res.perfect ? g.streak + 1 : 0;
+		sfx("thud");
+		if (res.perfect) sfx("chime", Math.min(1.5, 0.9 + g.streak * 0.1)); // a little higher with each perfect in a row
 		let { x, w } = res;
 		if (res.perfect && g.streak >= 3 && w < START_W) {
 			const grow = Math.min(8, START_W - w); // a run of perfects wins a little width back

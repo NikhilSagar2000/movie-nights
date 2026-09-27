@@ -59,6 +59,17 @@ export type RelayData =
 	/** A guesser's move in a "one knows, one guesses" game, applied by the lead's browser (the only one that knows the answer). */
 	| { k: "play"; id: string; round: number; pid: string; act: string; v?: string | number };
 
+/** The solo arcade games (ids match src/arcade/index.ts). Scores are higher-is-better, except the times in SOLO_LOW. */
+export const SOLO_GAMES = ["popcorn", "lantern", "stack", "run", "swat", "snake", "bloom", "bricks", "mines", "jumble"] as const;
+export type SoloGame = (typeof SOLO_GAMES)[number];
+export const SOLO_LOW: readonly SoloGame[] = ["mines"];
+/** Games with modes keep a best per mode (Minesweeper's board sizes). */
+export const SOLO_MODES: Partial<Record<SoloGame, readonly string[]>> = { mines: ["s", "m", "l"] };
+/** "They beat your Snake best": waits for `to` until they've seen it. `key` is the game, or "game:mode" ("mines:s"). */
+export type BeatNote = { key: string; by: Who; score: number; yours: number; at: number };
+/** Each person's best per game key, and the beat notes waiting for each of them. */
+export type Bests = { scores: Record<Who, Record<string, number>>; notes: Record<Who, BeatNote[]> };
+
 export type ClientMsg =
 	| { t: "relay"; data: RelayData }
 	| { t: "profile"; profile: Profile }
@@ -83,7 +94,9 @@ export type ClientMsg =
 	| { t: "game:new"; kind: GameKind; state: unknown }
 	| { t: "game:state"; id: string; rev: number; state: unknown }
 	| { t: "game:end" }
-	| { t: "seal"; gameId: string; round: number; answer: string };
+	| { t: "seal"; gameId: string; round: number; answer: string }
+	| { t: "best"; key: string; score: number }
+	| { t: "best:seen" };
 
 export type Snapshot = {
 	you: Who;
@@ -99,6 +112,7 @@ export type Snapshot = {
 	garden: Garden;
 	game: Game | null;
 	sealed: Sealed | null;
+	bests: Bests;
 };
 
 export type ServerMsg =
@@ -114,7 +128,8 @@ export type ServerMsg =
 	| { t: "tube"; tube: Tube | null }
 	| { t: "garden"; garden: Garden }
 	| { t: "game"; game: Game | null }
-	| { t: "sealed"; sealed: Sealed | null };
+	| { t: "sealed"; sealed: Sealed | null }
+	| { t: "bests"; bests: Bests };
 
 // Input limits, enforced by the Room (trust boundary) and mirrored in the UI.
 export const LIMITS = { name: 24, chat: 1000, title: 120, note: 400, answer: 40, relayBytes: 64_000, chatKeep: 200, letter: 800, lettersKeep: 200, tubeQueue: 30 };

@@ -3,6 +3,7 @@ import { cls, Rain, vars } from "../games/lead";
 import { DIR_KEYS, reduced, useKeys, useSwipe, type Dir, type SoloApi } from "./kit";
 import { canMove, newBoard, slide, spawn, type Gone } from "./logic/bloom";
 import "./bloom.css";
+import { sfx } from "./sound";
 
 /* Bloom 2048: slide the board, two alike make the next flower, from a sprout up to a tuberose at 2048.
    DOM tiles: each slides by a transform keyed on its id, and new or merged ones pop in. */
@@ -20,7 +21,12 @@ export default function Bloom({ api }: { api: SoloApi }) {
 		const score = g.score + s.gained;
 		setG({ board: spawn(s.board), gone: s.gone, score });
 		if (s.gained) api.setScore(score);
-		if (!won && s.board.some((row) => row.some((t) => t && t.v >= 2048))) setWon(true);
+		const top = Math.max(0, ...s.gone.map((t) => t.v * 2)); // the biggest flower this move made
+		if (!won && top >= 2048) {
+			setWon(true);
+			sfx("chime");
+		} else if (top) sfx("pop", 0.8 + Math.log2(top) / 12);
+		else sfx("tick");
 	};
 	useKeys((k) => {
 		const d = DIR_KEYS[k];

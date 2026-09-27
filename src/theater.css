@@ -341,7 +341,7 @@ body:has(.th-stage-wrap.is-full) {
 	}
 }
 /* Fullscreen: the stage covers the page, so the toolbar floats over the top of the movie (under the cams, chat and toasts)
-   and fades with the chat/exit buttons once the pointer rests. Opacity only: the View popover lives inside the toolbar. */
+   and fades with the chat/exit buttons after 6 quiet seconds. Opacity only: the View popover lives inside the toolbar. */
 .theater.is-full .th-above {
 	position: fixed;
 	top: 12px;
@@ -364,10 +364,17 @@ body:has(.th-stage-wrap.is-full) {
 	left: auto;
 	right: 12px;
 }
-.theater.is-full.idle .th-above:not(:hover, :has(:focus-visible, select:focus, :popover-open)),
-.theater.is-full.idle .th-stage-tools:not(:hover, :has(:focus-visible)) {
+/* hidden unless the View menu is open. Not kept by :hover (moving from the bar onto the YouTube player never un-hovers
+   it, so it stayed forever) nor by focus (a picked picture quality kept it up): moving over the bar keeps it awake anyway */
+.theater.is-full.idle .th-above:not(:has(:popover-open)),
+.theater.is-full.idle .th-stage-tools {
 	opacity: 0;
 	pointer-events: none;
+}
+.th-wake {
+	position: absolute;
+	inset: 0;
+	z-index: 2; /* over the YouTube player only (not the reactions bar) */
 }
 .theater.is-full.idle,
 .theater.is-full.idle * {

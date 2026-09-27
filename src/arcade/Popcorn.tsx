@@ -1,8 +1,9 @@
 import { useRef, useState, type PointerEvent } from "react";
 import { Head, type Moment } from "../Character";
-import { palette, reduced, useCanvas, useHeld, useLoop, type SoloApi } from "./kit";
+import { palette, rand, reduced, useCanvas, useHeld, useLoop, type SoloApi } from "./kit";
 import { catchBox, FLOOR, H, HEAD, HEAD_H, newGame, step, W, type Game, type Item } from "./logic/popcorn";
 import "./popcorn.css";
+import { sfx } from "./sound";
 
 /* Popcorn Catch: your head at the bottom of a blue-hour sky catches falling popcorn (+1) and the odd tuberose (+5).
    Burnt kernels cost a life; three and it's over. The head is the real drawn one, laid over the canvas. */
@@ -44,7 +45,11 @@ export default function Popcorn({ api }: { api: SoloApi }) {
 		if (r.got.length) {
 			api.setScore(r.g.score);
 			const burnt = r.got.some((it) => it.kind === "burnt");
-			if (burnt || r.got.some((it) => it.kind === "rose")) setFace((f) => ({ moment: burnt ? "squish" : "happy", nonce: f.nonce + 1 }));
+			const rose = r.got.some((it) => it.kind === "rose");
+			if (burnt || rose) setFace((f) => ({ moment: burnt ? "squish" : "happy", nonce: f.nonce + 1 }));
+			if (burnt) sfx("hit");
+			else if (rose) sfx("coin");
+			else sfx("pop", rand(0.9, 1.15));
 		}
 		redraw();
 		if (r.g.lives <= 0) {

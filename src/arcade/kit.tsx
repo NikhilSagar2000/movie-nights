@@ -177,5 +177,4 @@ export function useSwipe(el: RefObject<HTMLElement | null>, onDir: (d: Dir) => v
 	}, [el, active]);
 }
 
-// best scores live with the game list (the hub shows them without loading this file)
-export { bestKey, fmt, readBest, saveBest } from "./index";
+export { fmt } from "./index";

@@ -1,7 +1,8 @@
 import { useRef, useState, type PointerEvent } from "react";
 import { palette, reduced, useCanvas, useHeld, useKeys, useLoop, type SoloApi } from "./kit";
-import { DROP, H, launch, newWorld, PAD, R, step, W, type Brick, type World } from "./logic/bricks";
+import { DROP, H, launch, newWorld, PAD, R, step, W, type Brick, type Ev, type World } from "./logic/bricks";
 import "./bricks.css";
+import { sfx } from "./sound";
 
 /* Brick Breaker: a misty blue-hour sky, a wall of pastel bricks, a cream paddle and a yellow ball.
    Break a brick and sometimes a tuberose falls: catch it for an extra ball. */
@@ -37,10 +38,20 @@ export default function Bricks({ api }: { api: SoloApi }) {
 
 		const before = s.score;
 		const f = fx.current;
-		for (const e of step(s, dt)) {
+		const evs = step(s, dt);
+		for (const e of evs) {
 			if (calm) continue;
 			if (e.t === "break") f.pops.push({ k: e.brick, t: 0 });
 			if (e.t === "paddle") f.squash = 1;
+		}
+		if (evs.length) {
+			// one sound of each kind a frame, however many bricks broke: the pop pitched by the highest row
+			const has = (t: Ev["t"]) => evs.some((e) => e.t === t);
+			if (has("paddle")) sfx("blip");
+			if (has("catch")) sfx("coin");
+			if (has("lost")) sfx("hit");
+			const row = Math.min(...evs.map((e) => (e.t === "break" ? e.brick.row : Infinity)));
+			if (row < Infinity) sfx("pop", 1.4 - row * 0.08);
 		}
 		f.pops = f.pops.filter((p) => (p.t += dt) < 0.3);
 		f.squash = Math.max(0, f.squash - dt / 0.18);

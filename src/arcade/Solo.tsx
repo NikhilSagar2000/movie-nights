@@ -1,25 +1,39 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Pause, Play } from "@phosphor-icons/react";
-import type { Who } from "../../shared/types";
-import { FlowerBurst, Head, Loader } from "../Character";
+import { ArrowLeft, Pause, Play, SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
+import { other, type Who } from "../../shared/types";
+import { better } from "../../shared/bests";
+import { Face, FlowerBurst, Head, Loader } from "../Character";
 import { cls, Rain, vars } from "../games/lead";
-import { bestKey, fmt, readBest, saveBest, soloMeta, type SoloId } from "./index";
+import { getRoom, profileOf, useRoom } from "../room";
+import { bestKey, bestOf, fmt, saveBest, soloMeta, type SoloId } from "./index";
 import { useKeys, type SoloApi } from "./kit";
+import { setMuted, sfx, unlockSound, useMuted } from "./sound";
 
-/* The frame around every solo game: back, title, score and best, pause, then the game's stage with its
-   "tap to start", "paused" and "game over" cards on top. "Play again" remounts the game with a new key. */
+/* The frame around every solo game: back, title, the score, both of your bests, sound and pause, then the game's
+   stage with its "tap to start", "paused" and "game over" cards on top. "Play again" remounts the game with a new key.
+   Bests live in the Room, so you each see the other's. */
 
 type Phase = "ready" | "play" | "paused" | "over";
-type Result = { score: number | null; note?: string; newBest: boolean; at: number };
+/** `prev`/`theirs`: your best and theirs just before this run ended. */
+type Result = { score: number | null; note?: string; newBest: boolean; prev: number | null; theirs: number | null; at: number };
 
 export default function Solo({ id, you, waiting }: { id: SoloId; you: Who; waiting?: string }) {
 	const m = soloMeta(id);
+	const room = useRoom()!;
+	const them = other(you);
+	const partner = profileOf(room, them).name;
 	const [run, setRun] = useState(0);
-	const [mode, setMode] = useState(m.modes?.[0].id);
+	const [mode, setMode] = useState(() => {
+		const asked = location.hash.split("/")[3]; // "#/games/mines/l": a beat note's link opens that size
+		return m.modes?.some((o) => o.id === asked) ? asked : m.modes?.[0].id;
+	});
 	const [phase, setPhase] = useState<Phase>(m.realtime ? "ready" : "play");
 	const [score, setScore] = useState(0);
-	const [best, setBest] = useState(() => readBest(bestKey(id, mode)));
 	const [result, setResult] = useState<Result | null>(null);
+	const muted = useMuted();
+	const key = bestKey(id, mode);
+	const mine = bestOf(room, you, key);
+	const theirs = bestOf(room, them, key);
 	const stage = useRef<HTMLDivElement>(null);
 	const live = useRef({ phase, mode });
 	useEffect(() => {
@@ -29,6 +43,12 @@ export default function Solo({ id, you, waiting }: { id: SoloId; you: Who; waiti
 	useEffect(() => {
 		scrollTo(0, 0); // opened from further down the hub (a block: newer browsers return a promise from scrollTo)
 	}, [id]);
+	// browsers only let sound start from a tap or key (on iPhones only when the finger lifts): those switch it on
+	useEffect(() => {
+		const evs = ["pointerdown", "pointerup", "touchend", "keydown"] as const;
+		evs.forEach((e) => addEventListener(e, unlockSound, true));
+		return () => evs.forEach((e) => removeEventListener(e, unlockSound, true));
+	}, []);
 	// a hidden tab pauses a real-time game
 	useEffect(() => {
 		const on = () => document.hidden && live.current.phase === "play" && m.realtime && setPhase("paused");
@@ -47,7 +67,6 @@ export default function Solo({ id, you, waiting }: { id: SoloId; you: Who; waiti
 	};
 	const restart = (next = mode) => {
 		setMode(next);
-		setBest(readBest(bestKey(id, next)));
 		setRun((r) => r + 1);
 		setScore(0);
 		setResult(null);
@@ -62,18 +81,17 @@ export default function Solo({ id, you, waiting }: { id: SoloId; you: Who; waiti
 				if (live.current.phase === "over") return;
 				live.current.phase = "over"; // a second end() in the same frame is ignored
 				const key = bestKey(id, live.current.mode);
-				const b = readBest(key);
-				const newBest = s !== null && (m.low ? b === null || s < b : s > 0 && (b === null || s > b));
-				if (newBest) {
-					saveBest(key, s);
-					setBest(s);
-				}
+				const r = getRoom()!;
+				const prev = bestOf(r, you, key);
+				const newBest = s !== null && (m.low || s > 0) && better(id, s, prev ?? undefined);
+				if (newBest) saveBest(you, key, s);
+				sfx(newBest ? "best" : "over");
 				if (s !== null) setScore(s);
-				setResult({ score: s, note, newBest, at: Date.now() });
+				setResult({ score: s, note, newBest, prev, theirs: bestOf(r, other(you), key), at: Date.now() });
 				setPhase("over");
 			},
 		}),
-		[id, m.low],
+		[id, m.low, you],
 	);
 	const api: SoloApi = useMemo(() => ({ ...fns, paused: phase !== "play", you, mode }), [fns, phase, you, mode]);
 
@@ -95,11 +113,24 @@ export default function Solo({ id, you, waiting }: { id: SoloId; you: Who; waiti
 
 	const View = m.View;
 	const label = m.unit === "time" ? "Time" : "Score";
+	const show = (n: number | null) => (n === null ? "–" : fmt(n, m.unit));
+	// the line about them on the game-over card
+	const vs = (r: Result) => {
+		if (r.score === null || r.theirs === null) return null;
+		if (!r.newBest || !better(id, r.score, r.theirs)) return `${partner}'s best: ${show(r.theirs)}`;
+		return r.prev === null || !better(id, r.prev, r.theirs) ? `You passed ${partner}'s ${show(r.theirs)}!` : `Still ahead of ${partner} (${show(r.theirs)})`;
+	};
+	const bestChip = (w: Who, n: number | null) => (
+		<span className="chip fog ar-bestchip" title={w === you ? "Your best" : `${partner}'s best`}>
+			<Face who={w} s="1.5em" ring={profileOf(room, w).color} />
+			<span className="ar-who">{w === you ? "You" : partner}</span> <b>{show(n)}</b>
+		</span>
+	);
 	return (
 		<main className="page gm-screen ar-screen">
 			<a className="btn paper sm gm-back" href="#/games">
 				<ArrowLeft aria-hidden />
-				All games
+				<span className="ar-back-text">All games</span>
 			</a>
 			<header className="gm-head">
 				<h1 className="gm-title">{m.name}</h1>
@@ -107,7 +138,11 @@ export default function Solo({ id, you, waiting }: { id: SoloId; you: Who; waiti
 					<span className="chip ar-score" aria-live="off">
 						{label} <b>{fmt(score, m.unit)}</b>
 					</span>
-					<span className="chip fog">Best {best === null ? "–" : fmt(best, m.unit)}</span>
+					{bestChip(you, mine)}
+					{bestChip(them, theirs)}
+					<button className="btn paper sm icon" aria-pressed={!muted} aria-label="Sound" onClick={() => setMuted(!muted)}>
+						{muted ? <SpeakerSlash aria-hidden /> : <SpeakerHigh aria-hidden />}
+					</button>
 					{m.realtime && (
 						<button
 							className="btn paper sm icon"
@@ -165,10 +200,11 @@ export default function Solo({ id, you, waiting }: { id: SoloId; you: Who; waiti
 							{result.score !== null && (
 								<p>
 									{label} {fmt(result.score, m.unit)}
-									{!result.newBest && best !== null && ` · Best ${fmt(best, m.unit)}`}
+									{!result.newBest && mine !== null && ` · Your best ${show(mine)}`}
 								</p>
 							)}
 							{result.newBest && result.note && <p>{result.note}</p>}
+							{vs(result) && <p className="ar-vs">{vs(result)}</p>}
 							<div className="ar-over-btns">
 								<button className="btn" onClick={() => restart()}>
 									Play again

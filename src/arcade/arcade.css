@@ -90,7 +90,51 @@
 	position: absolute;
 	top: 0.75em;
 	left: 0.75em;
+	gap: 0.55em;
+	padding: 0.2em 0.6em 0.2em 0.25em;
 	font-size: 0.72em;
+}
+.ar-best-mode {
+	font-weight: 500;
+	opacity: 0.75;
+}
+.ar-best-one {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25em;
+	font-variant-numeric: tabular-nums;
+}
+
+/* "They beat your Snake best" */
+.ar-notes {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.6em 1em;
+	margin: 0 0 1em;
+	padding: 0.7em 0.9em;
+	border-radius: 1.2em;
+	background: var(--cream);
+	color: var(--night);
+	box-shadow: var(--lift);
+	animation: gm-pop 0.45s var(--spring) both;
+}
+.ar-notes ul {
+	flex: 1 1 22em;
+	display: grid;
+	gap: 0.5em;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.ar-notes li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5em 0.7em;
+}
+.ar-note-text {
+	flex: 1 1 14em;
 }
 
 /* ---- The Solo frame ---- */
@@ -102,8 +146,13 @@
 	align-items: center;
 	gap: 0.5em;
 }
-.ar-score b {
+.ar-score b,
+.ar-bestchip b {
 	font-variant-numeric: tabular-nums;
+}
+.ar-bestchip {
+	gap: 0.35em;
+	padding-left: 0.25em;
 }
 .ar-modes {
 	display: inline-flex;
@@ -226,6 +275,9 @@
 	color: var(--ink-soft);
 	font-weight: 600;
 }
+.ar-over-card .ar-vs {
+	color: var(--rose-ink);
+}
 .ar-over-btns {
 	display: flex;
 	flex-wrap: wrap;
@@ -307,6 +359,18 @@
 	}
 	.ar-chips .chip {
 		font-size: 0.8em;
+	}
+	/* one row on a phone: the faces say whose best it is, the back button is just its arrow (both still read aloud) */
+	.ar-screen :is(.ar-who, .ar-back-text) {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+	.ar-screen > .gm-back {
+		padding-inline: 0.7em;
 	}
 	.ar-screen > :is(.ar-modes, .ar-waiting) {
 		margin: 0;

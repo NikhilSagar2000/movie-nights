@@ -18,8 +18,10 @@ import {
 	type Tube,
 	type TubeItem,
 	type Who,
+	type Bests,
 } from "../shared/types";
 import { YT_ID } from "../shared/tube";
+import { bestsOf, recordBest } from "../shared/bests";
 
 type Attachment = { who: Who; sid: string };
 type SealStore = { gameId: string; round: number; answers: Partial<Record<Who, string>> };
@@ -263,6 +265,19 @@ export class Room extends DurableObject<Env> {
 				await s.delete(["game", "sealed"]);
 				return this.broadcast({ t: "game", game: null });
 
+			case "best": {
+				const next = recordBest(bestsOf(await s.get<Bests>("bests")), who, String(m.key ?? ""), m.score);
+				if (!next) return;
+				await s.put("bests", next);
+				return this.broadcast({ t: "bests", bests: next });
+			}
+			case "best:seen": {
+				const bests = bestsOf(await s.get<Bests>("bests"));
+				if (!bests.notes[who].length) return;
+				bests.notes[who] = [];
+				await s.put("bests", bests);
+				return this.broadcast({ t: "bests", bests });
+			}
 			case "seal": {
 				const answer = str(m.answer, LIMITS.answer);
 				const game = await s.get<Game>("game");
@@ -296,7 +311,7 @@ export class Room extends DurableObject<Env> {
 	}
 
 	private async snapshot(you: Who): Promise<Snapshot> {
-		const got = await this.ctx.storage.get(["profiles", "chat", "jar", "stubs", "letters", "tube", "garden", "game", "sealed"]);
+		const got = await this.ctx.storage.get(["profiles", "chat", "jar", "stubs", "letters", "tube", "garden", "game", "sealed", "bests"]);
 		const seal = got.get("sealed") as SealStore | undefined;
 		let game = (got.get("game") as Game | undefined) ?? null;
 		if (game && !KINDS.includes(game.kind)) {
@@ -317,6 +332,7 @@ export class Room extends DurableObject<Env> {
 			garden: { pts: (got.get("garden") as GardenStore | undefined)?.pts ?? 0 },
 			game,
 			sealed: game && seal ? { round: seal.round, submitted: Object.keys(seal.answers) as Who[] } : null,
+			bests: bestsOf(got.get("bests") as Bests | undefined),
 		};
 	}
 

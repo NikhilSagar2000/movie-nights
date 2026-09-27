@@ -4,6 +4,7 @@ import { cls } from "../games/lead";
 import { useKeys, useLoop, type SoloApi } from "./kit";
 import { hit, LIVES, newSwat, step, type Fx, type Swat as S } from "./logic/swat";
 import "./swat.css";
+import { sfx } from "./sound";
 
 /* Mosquito Swat: nine lit windows on a building at dusk. Mosquitoes pop up in them for a moment: swat them before
    they bite. Now and then it's a tuberose in a pot instead: leave that one be. Three bites (or bopped flowers) and
@@ -26,6 +27,8 @@ export default function Swat({ api }: { api: SoloApi }) {
 			fx.current[f.spot] = { kind: f.kind, id: ++ids.current };
 			if (FACE[f.kind]) face.current = { m: FACE[f.kind]!, n: ids.current };
 		}
+		if (fxs.some((f) => f.kind === "zap")) sfx("zap");
+		else if (fxs.some((f) => f.kind === "bite" || f.kind === "oops")) sfx("hit");
 		if (s.score !== was.score) api.setScore(s.score);
 		if (s.pests !== was.pests || fxs.length) redraw();
 		if (s.lives <= 0 && was.lives > 0) api.end(s.score, "The mosquitoes won this round");
