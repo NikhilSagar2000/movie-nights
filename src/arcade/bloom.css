@@ -1,0 +1,207 @@
+/* ===== Bloom 2048: a night garden bed, flower tiles that walk the palette from cream to dusk ===== */
+.ar-bloom-bed {
+	background: var(--night-sky);
+}
+.ar-bloom-board {
+	--gap: 2.6cqw;
+	position: absolute;
+	inset: 3.2%;
+	container-type: size;
+}
+.ar-bloom-cells {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	grid-template: repeat(4, 1fr) / repeat(4, 1fr);
+	gap: var(--gap);
+}
+.ar-bloom-cells span {
+	border-radius: 12%;
+	background: rgb(255 247 230 / 0.08);
+	box-shadow: inset 0 0.12em 0.3em rgb(0 0 0 / 0.15);
+}
+
+/* A tile: the outer box slides (position from --r/--c), the face inside pops. Two elements, so the two never fight. */
+.ar-bloom-tile {
+	--bg: var(--cream);
+	--fg: var(--night);
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 1;
+	width: calc((100% - 3 * var(--gap)) / 4);
+	aspect-ratio: 1;
+	transform: translate(calc(var(--c) * (100% + var(--gap))), calc(var(--r) * (100% + var(--gap))));
+	transition: transform 0.12s ease-in-out;
+}
+.ar-bloom-tile.gone {
+	z-index: 0;
+}
+.ar-bloom-tile.gone .ar-bloom-face {
+	opacity: 0;
+	transition: opacity 0.08s 0.12s;
+}
+.ar-bloom-face {
+	position: relative;
+	display: grid;
+	place-items: center;
+	width: 100%;
+	height: 100%;
+	border-radius: 12%;
+	background: var(--bg);
+	color: var(--fg);
+	box-shadow:
+		inset 0 -0.28em 0 rgb(45 58 71 / 0.1),
+		0 0.15em 0.35em rgb(45 58 71 / 0.2);
+}
+.ar-bloom-face.fresh {
+	animation: ar-bloom-appear 0.2s ease-out 0.1s both;
+}
+.ar-bloom-face.merged {
+	animation: ar-bloom-pop 0.3s var(--spring) 0.08s both;
+}
+.ar-bloom-art {
+	font-size: 11.5cqw;
+	line-height: 1;
+	filter: drop-shadow(0 0.04em 0.03em rgb(45 58 71 / 0.25));
+}
+.ar-bloom-num {
+	position: absolute;
+	right: 8%;
+	bottom: 5%;
+	font: 600 max(10px, 3.3cqw) / 1 var(--display);
+	font-variant-numeric: tabular-nums;
+	opacity: 0.78;
+}
+
+/* cream → blush → flower → sage → mist → dusk, and the night for the tuberose */
+.ar-bloom-tile[data-v="4"] {
+	--bg: color-mix(in srgb, var(--cream) 55%, var(--blush));
+}
+.ar-bloom-tile[data-v="8"] {
+	--bg: var(--blush);
+}
+.ar-bloom-tile[data-v="16"] {
+	--bg: color-mix(in srgb, var(--blush) 50%, var(--flower));
+}
+.ar-bloom-tile[data-v="32"] {
+	--bg: var(--flower);
+}
+.ar-bloom-tile[data-v="64"] {
+	--bg: color-mix(in srgb, var(--flower) 50%, var(--sage));
+}
+.ar-bloom-tile[data-v="128"] {
+	--bg: var(--sage);
+}
+.ar-bloom-tile[data-v="256"] {
+	--bg: color-mix(in srgb, var(--sage) 45%, var(--mist));
+}
+.ar-bloom-tile[data-v="512"] {
+	--bg: color-mix(in srgb, var(--mist) 60%, var(--steel));
+}
+.ar-bloom-tile[data-v="1024"] {
+	--bg: var(--dusk);
+	--fg: var(--cream);
+}
+.ar-bloom-tile[data-v="2048"] {
+	--bg: var(--night-sky);
+	--fg: var(--cream);
+}
+.ar-bloom-tile[data-v="2048"] .ar-bloom-face {
+	box-shadow:
+		inset 0 0 0 0.16em var(--flower),
+		0 0.15em 0.5em rgb(45 58 71 / 0.35);
+}
+
+/* the 2048 tuberose (same strokes as the Garden's) */
+.ar-bloom-tr {
+	width: 72%;
+	height: 82%;
+	overflow: visible;
+}
+.ar-bloom-tr :is(path, ellipse, circle) {
+	stroke: var(--night);
+	stroke-width: 1;
+	stroke-linejoin: round;
+}
+.ar-bloom-tr .leaf {
+	fill: var(--sage);
+	stroke-width: 0.8;
+}
+.ar-bloom-tr .stem,
+.ar-bloom-tr .stem-in {
+	fill: none;
+	stroke-linecap: round;
+}
+.ar-bloom-tr .stem {
+	stroke-width: 3;
+}
+.ar-bloom-tr .stem-in {
+	stroke: var(--sage);
+	stroke-width: 1.5;
+}
+.ar-bloom-tr .floret ellipse {
+	fill: var(--cream);
+	stroke-width: 0.7;
+}
+.ar-bloom-tr .floret circle {
+	fill: var(--flower);
+	stroke: none;
+}
+.ar-bloom-tr .bud {
+	fill: color-mix(in srgb, var(--cream) 55%, var(--blush));
+	stroke-width: 0.8;
+}
+
+/* reaching 2048 the first time */
+.ar-bloom-toast {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	display: grid;
+	place-items: center;
+	margin: 0;
+	pointer-events: none;
+}
+.ar-bloom-toast span {
+	padding: 0.5em 1.1em;
+	border-radius: 999px;
+	background: var(--cream);
+	color: var(--night);
+	box-shadow: var(--lift);
+	font: 500 1.3em var(--display);
+	animation: ar-bloom-toast 2.8s ease-out both;
+}
+
+@keyframes ar-bloom-appear {
+	from {
+		transform: scale(0);
+		opacity: 0;
+	}
+}
+@keyframes ar-bloom-pop {
+	from {
+		transform: scale(0.6);
+	}
+}
+@keyframes ar-bloom-toast {
+	0% {
+		transform: scale(0.7);
+		opacity: 0;
+	}
+	12%,
+	80% {
+		transform: none;
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ar-bloom-face.fresh,
+	.ar-bloom-face.merged {
+		animation: none;
+	}
+}

@@ -1,0 +1,6 @@
+/* Sky Lantern: the field is night sky until the canvas paints; any tap on it lifts the lantern */
+.ar-lantern-field {
+	background: var(--night-sky);
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent; /* no grey flash over the field on every tap */
+}

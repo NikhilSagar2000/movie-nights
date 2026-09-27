@@ -64,7 +64,7 @@ const QUALITIES = [1440, 1080, 720, 480] as const;
 const STAGE_KEYS = { ArrowRight: 0.05, ArrowUp: 0.05, ArrowLeft: -0.05, ArrowDown: -0.05 };
 
 export const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
-const isTyping = (t: EventTarget | null) =>
+export const isTyping = (t: EventTarget | null) =>
 	t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
 const timeOf = (at: number) => new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 

@@ -15,7 +15,7 @@ import Memories from "./Memories";
 export type Route = "" | "theater" | "games" | "memories";
 
 function useRoute(): Route {
-	const read = () => location.hash.replace(/^#\/?/, "") as Route;
+	const read = () => location.hash.replace(/^#\/?/, "").split("/")[0] as Route; // "#/games/snake" is the games page
 	const [route, setRoute] = useState(read);
 	useEffect(() => {
 		const onHash = () => setRoute(read());

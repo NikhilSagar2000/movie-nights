@@ -20,7 +20,7 @@ const LINKS = [
 
 const ROWS = [
 	{ href: "#/theater", title: "Theater", text: "Share a tab and see each other", Icon: FilmSlate, go: true },
-	{ href: "#/games", title: "Games", text: "Games for two, nobody keeps score", Icon: GameController, go: false },
+	{ href: "#/games", title: "Games", text: "Games for two, and some to play alone", Icon: GameController, go: false },
 	{ href: "#/memories", title: "Memories", text: "The movie jar and your ticket stubs", Icon: Ticket, go: false },
 ] as const;
 

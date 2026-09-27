@@ -1,0 +1,14 @@
+/* Popcorn Catch: the drawn head laid over the canvas. The field is a size container so the head (and its em-sized
+   dizzy stars) scale with the stage, and the per-frame translateX in cqw is a share of the field's width. */
+.ar-popcorn-field {
+	container-type: size;
+}
+.ar-popcorn-me {
+	position: absolute;
+	left: 0;
+	display: flex;
+	translate: -50% 0;
+	transform: translateX(50cqw);
+	font-size: 2.9cqh;
+	pointer-events: none;
+}

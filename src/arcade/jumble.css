@@ -1,0 +1,171 @@
+/* ===== Jumble: a cream desk, yellow letter tiles, a row of slots to spell into ===== */
+.ar-jumble-desk {
+	--slot: min(12cqw, (94cqw - (var(--n) - 1) * 1.3cqw) / var(--n));
+	--tile: min(14cqw, (94cqw - (var(--cols) - 1) * 2.2cqw) / var(--cols));
+	container-type: size;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: space-evenly;
+	padding: 3cqw;
+	background:
+		radial-gradient(rgb(45 58 71 / 0.07) 1px, transparent 1.5px) 0 0 / 1.2em 1.2em,
+		var(--cream);
+	color: var(--night);
+}
+
+.ar-jumble-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5em;
+	width: 100%;
+}
+.ar-jumble-hint {
+	display: grid;
+	justify-items: center;
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+	text-align: center;
+}
+.ar-jumble-hint small {
+	color: var(--ink-soft);
+	font-size: 0.72em;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+.ar-jumble-hint b {
+	font: 700 min(1.7em, 8cqw) / 1.05 var(--hand);
+	overflow-wrap: anywhere;
+}
+
+/* the row you spell into: always one row, the slots shrink to fit nine */
+.ar-jumble-slots {
+	display: flex;
+	justify-content: center;
+	gap: 1.3cqw;
+	width: 100%;
+}
+.ar-jumble-slot {
+	position: relative;
+	display: grid;
+	place-items: center;
+	width: var(--slot);
+	height: calc(var(--slot) * 1.22);
+	padding: 0;
+	border: 2px dashed var(--steel);
+	border-radius: 0.35em;
+	background: var(--paper);
+	color: var(--night);
+	font: 600 calc(var(--slot) * 0.62) / 1 var(--display);
+	cursor: pointer;
+	transition: background 0.15s;
+}
+/* nine slots can't each be 40px wide on a phone: the tap area fills the gaps and reaches above and below instead */
+.ar-jumble-slot::before {
+	content: "";
+	position: absolute;
+	inset: -0.5em -0.65cqw;
+}
+.ar-jumble-slot:not(:disabled) {
+	border-style: solid;
+	border-color: var(--night);
+}
+.ar-jumble-slot:disabled {
+	cursor: default;
+}
+.ar-jumble-slots.right .ar-jumble-slot {
+	border-color: var(--night);
+	background: var(--sage);
+	animation: ar-jumble-pop 0.4s var(--spring) calc(var(--i) * 35ms) backwards;
+}
+.ar-jumble-slots.wrong {
+	animation: ar-jumble-shake 0.45s ease-in-out;
+}
+.ar-jumble-slots.wrong .ar-jumble-slot {
+	background: var(--blush);
+	border-color: var(--rose-ink);
+	color: var(--rose-ink);
+}
+.ar-jumble-slots.skip .ar-jumble-slot {
+	border: 2px solid var(--fog);
+	background: var(--haze);
+	color: var(--ink-soft);
+}
+
+/* the scrambled letters: one row up to six, two rows for longer words */
+.ar-jumble-tiles {
+	display: grid;
+	grid-template-columns: repeat(var(--cols), var(--tile));
+	justify-content: center;
+	gap: 2.2cqw;
+}
+.ar-jumble-tile {
+	width: var(--tile);
+	height: var(--tile);
+	padding: 0;
+	border: 0;
+	border-radius: 0.3em;
+	background: var(--flower);
+	color: var(--night);
+	box-shadow:
+		inset 0 -0.14em 0 rgb(45 58 71 / 0.16),
+		0 0.12em 0.3em rgb(45 58 71 / 0.22);
+	font: 600 calc(var(--tile) * 0.55) / 1 var(--display);
+	cursor: pointer;
+	animation: ar-jumble-in 0.35s var(--spring) calc(var(--i) * 30ms) backwards;
+	transition:
+		transform 0.15s,
+		opacity 0.15s;
+}
+.ar-jumble-tile:active {
+	transform: scale(0.94);
+}
+.ar-jumble-tile.used {
+	opacity: 0.22;
+	transform: scale(0.88);
+	cursor: default;
+}
+.ar-jumble-desk :is(.ar-jumble-tile, .ar-jumble-slot):focus-visible {
+	outline: 3px solid var(--dusk);
+	outline-offset: 2px;
+}
+.ar-jumble-skip {
+	flex: none;
+}
+
+@keyframes ar-jumble-in {
+	from {
+		transform: scale(0.4) rotate(-12deg);
+		opacity: 0;
+	}
+}
+@keyframes ar-jumble-pop {
+	50% {
+		transform: translateY(-18%) scale(1.08);
+	}
+}
+@keyframes ar-jumble-shake {
+	20% {
+		transform: translateX(-3cqw);
+	}
+	40% {
+		transform: translateX(3cqw);
+	}
+	60% {
+		transform: translateX(-2cqw);
+	}
+	80% {
+		transform: translateX(2cqw);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ar-jumble-tile,
+	.ar-jumble-slots.right .ar-jumble-slot,
+	.ar-jumble-slots.wrong {
+		animation: none;
+	}
+}

@@ -1,0 +1,4 @@
+/* Brick Breaker: the mouse pointer hides over the field while playing, so it never covers the ball. */
+.ar-bricks-field.playing {
+	cursor: none;
+}

@@ -1,0 +1,418 @@
+/* ===== Mosquito Swat (ar-swat-): nine lit windows on a building at dusk ===== */
+
+.ar-swat-field {
+	display: flex;
+	flex-direction: column;
+	padding: 0.5em 0.7em 0.8em;
+	background:
+		radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--mist) 35%, transparent), transparent 70%),
+		var(--night-sky);
+	/* an electric racket over the windows (desktop); the crosshair if the browser won't take it */
+	cursor:
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg transform='rotate(-45 14 14)' fill='none' stroke-linecap='round'%3E%3Cpath d='M14 25v13' stroke='%23fff7e6' stroke-width='6'/%3E%3Cpath d='M14 25v13' stroke='%232d3a47' stroke-width='3.4'/%3E%3Cpath d='M14 32v6' stroke='%23f7dd8d' stroke-width='3.4'/%3E%3Cellipse cx='14' cy='13.5' rx='9.5' ry='11.5' fill='%23fff7e6' fill-opacity='.3' stroke='%23fff7e6' stroke-width='4.5'/%3E%3Cpath d='M9 3.7v19.6M14 2v23M19 3.7v19.6M5.7 8h16.6M4.5 13.5h19M5.7 19h16.6' stroke='%232d3a47' stroke-width='.8' opacity='.6'/%3E%3Cellipse cx='14' cy='13.5' rx='9.5' ry='11.5' stroke='%232d3a47' stroke-width='2.2'/%3E%3C/g%3E%3C/svg%3E")
+			14 14,
+		crosshair;
+}
+.ar-swat-field[data-paused] * {
+	animation-play-state: paused !important;
+}
+
+.ar-swat-bar {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 2.3em;
+	padding: 0 0.1em;
+}
+.ar-swat-lives {
+	display: flex;
+	gap: 0.35em;
+}
+.ar-swat-life {
+	height: 1.55em;
+	transition:
+		transform 0.45s var(--spring),
+		opacity 0.45s;
+}
+.ar-swat-life.gone {
+	opacity: 0.25;
+	transform: scale(0.7) rotate(-35deg);
+	filter: grayscale(1);
+}
+
+.ar-swat-grid {
+	flex: 1;
+	min-height: 0;
+	display: grid;
+	grid-template: repeat(3, minmax(0, 1fr)) / repeat(3, minmax(0, 1fr));
+	gap: 0.35em;
+}
+.ar-swat-spot {
+	position: relative;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 1em;
+	background: none;
+	color: inherit;
+	font: inherit;
+	cursor: inherit;
+	-webkit-tap-highlight-color: transparent;
+	-webkit-touch-callout: none;
+}
+.ar-swat-spot:focus-visible {
+	outline: 2.5px solid var(--flower);
+	outline-offset: -2px;
+}
+.ar-swat-spot > * {
+	position: absolute;
+	pointer-events: none;
+}
+
+/* the window: an arch of warm light with its frame and bars, and a sill under it */
+.ar-swat-win {
+	left: 24%;
+	right: 24%;
+	top: 10%;
+	bottom: 27%;
+	border: 0.22em solid var(--night);
+	border-radius: 999px 999px 0.3em 0.3em;
+	background: radial-gradient(90% 70% at 50% 75%, var(--cream), var(--flower) 75%);
+	box-shadow: 0 0 1.6em -0.3em color-mix(in srgb, var(--flower) 60%, transparent);
+}
+.ar-swat-spot:nth-child(2) .ar-swat-win,
+.ar-swat-spot:nth-child(6) .ar-swat-win,
+.ar-swat-spot:nth-child(7) .ar-swat-win {
+	background: radial-gradient(90% 70% at 50% 75%, var(--cream), color-mix(in srgb, var(--blush) 70%, var(--flower)) 75%);
+	box-shadow: 0 0 1.6em -0.3em color-mix(in srgb, var(--blush) 55%, transparent);
+}
+.ar-swat-win::before,
+.ar-swat-win::after {
+	content: "";
+	position: absolute;
+	background: var(--night);
+	opacity: 0.75;
+}
+.ar-swat-win::before {
+	left: calc(50% - 0.08em);
+	top: 0;
+	bottom: 0;
+	width: 0.16em;
+}
+.ar-swat-win::after {
+	left: 0;
+	right: 0;
+	top: 52%;
+	height: 0.16em;
+}
+.ar-swat-sill {
+	left: 17%;
+	right: 17%;
+	bottom: 21%;
+	height: 7%;
+	border-radius: 0.25em;
+	background: var(--steel);
+	box-shadow:
+		inset 0 0.12em 0 var(--mist),
+		0 0.2em 0.3em -0.1em rgb(45 58 71 / 0.6);
+}
+.ar-swat-key {
+	top: 6%;
+	left: 8%;
+	display: none;
+	color: var(--haze);
+	font: 500 0.8em/1 var(--display);
+	opacity: 0.55;
+}
+@media (hover: hover) and (pointer: fine) {
+	.ar-swat-key {
+		display: block;
+	}
+}
+
+/* the mosquito: pops out over the window, hovers, wings a blur */
+.ar-swat-bug {
+	left: 11%;
+	top: 0;
+	width: 78%;
+	overflow: visible;
+	animation: ar-swat-pop 0.22s var(--spring) both;
+}
+.ar-swat-hover {
+	animation: ar-swat-hover 0.7s ease-in-out infinite;
+}
+.ar-swat-legs,
+.ar-swat-nose {
+	fill: none;
+	stroke: var(--night);
+	stroke-width: 2;
+	stroke-linecap: round;
+}
+.ar-swat-nose {
+	stroke-width: 2.3;
+}
+.ar-swat-wings {
+	fill: color-mix(in srgb, var(--haze) 75%, transparent);
+	stroke: var(--night);
+	stroke-width: 1.2;
+	transform-box: view-box;
+	transform-origin: 30px 26px;
+	animation: ar-swat-flap 0.07s linear infinite alternate;
+}
+.ar-swat-ink {
+	fill: var(--night);
+}
+.ar-swat-stripes {
+	fill: none;
+	stroke: var(--cream);
+	stroke-width: 1.4;
+	stroke-linecap: round;
+}
+.ar-swat-eye {
+	fill: var(--cream);
+}
+
+/* the tuberose: rises out of its pot on the sill */
+.ar-swat-rose {
+	left: 29%;
+	width: 42%;
+	bottom: 26%;
+	transform-origin: 50% 100%;
+	animation: ar-swat-rise 0.3s var(--spring) both;
+}
+.ar-swat-stem {
+	fill: none;
+	stroke: var(--night);
+	stroke-width: 3.6;
+	stroke-linecap: round;
+}
+.ar-swat-stem-in {
+	fill: none;
+	stroke: var(--sage);
+	stroke-width: 1.8;
+	stroke-linecap: round;
+}
+.ar-swat-leaf {
+	fill: var(--sage);
+	stroke: var(--night);
+	stroke-width: 1;
+}
+.ar-swat-floret ellipse {
+	fill: var(--paper);
+	stroke: var(--night);
+	stroke-width: 0.8;
+}
+.ar-swat-floret circle {
+	fill: var(--flower);
+}
+.ar-swat-bud {
+	fill: var(--cream);
+	stroke: var(--night);
+	stroke-width: 0.9;
+}
+.ar-swat-pot {
+	fill: var(--rosewood);
+	stroke: var(--night);
+	stroke-width: 1.1;
+}
+
+/* effects: each plays once and ends invisible */
+.ar-swat-fx {
+	inset: 0;
+}
+.ar-swat-fx > * {
+	position: absolute;
+	pointer-events: none;
+}
+.ar-swat-flash {
+	left: 8%;
+	width: 84%;
+	aspect-ratio: 1;
+	top: 45%;
+	margin-top: -42%;
+	border-radius: 50%;
+	background: radial-gradient(circle, var(--paper) 0 18%, color-mix(in srgb, var(--flower) 85%, transparent) 40%, transparent 70%);
+	animation: ar-swat-flash 0.35s ease-out both;
+}
+.ar-swat-bolt {
+	left: 32%;
+	width: 36%;
+	top: 12%;
+	fill: var(--flower);
+	stroke: var(--night);
+	stroke-width: 1.6;
+	stroke-linejoin: round;
+	animation: ar-swat-bolt 0.5s var(--spring) both;
+}
+.ar-swat-fried {
+	animation: ar-swat-fried 0.6s ease-in both;
+}
+.ar-swat-fried .ar-swat-hover,
+.ar-swat-fried .ar-swat-wings,
+.ar-swat-away .ar-swat-wings {
+	animation: none;
+}
+.ar-swat-away {
+	animation: ar-swat-away 0.55s ease-in both;
+}
+.ar-swat-ouch {
+	left: 50%;
+	top: 30%;
+	translate: -50% 0;
+	padding: 0.1em 0.5em 0.2em;
+	border-radius: 999px;
+	background: var(--cream);
+	color: var(--rose-ink);
+	font: 700 1.25em/1 var(--hand);
+	box-shadow: var(--lift);
+	animation: ar-swat-ouch 0.9s ease-out both;
+}
+.ar-swat-sad {
+	animation: ar-swat-sad 0.9s ease-in-out both;
+}
+.ar-swat-ring {
+	left: 22%;
+	width: 56%;
+	aspect-ratio: 1;
+	top: 42%;
+	margin-top: -28%;
+	border: 0.2em solid color-mix(in srgb, var(--cream) 75%, transparent);
+	border-radius: 50%;
+	animation: ar-swat-ring 0.3s ease-out both;
+}
+
+@keyframes ar-swat-pop {
+	from {
+		opacity: 0;
+		transform: translateY(25%) scale(0.2);
+	}
+}
+@keyframes ar-swat-hover {
+	25% {
+		transform: translate(2px, -2px);
+	}
+	50% {
+		transform: translate(0, -3.5px);
+	}
+	75% {
+		transform: translate(-2px, -1.5px);
+	}
+}
+@keyframes ar-swat-flap {
+	to {
+		transform: scaleY(0.5) rotate(-10deg);
+	}
+}
+@keyframes ar-swat-rise {
+	from {
+		opacity: 0;
+		transform: translateY(30%) scale(0.5);
+	}
+}
+@keyframes ar-swat-flash {
+	from {
+		transform: scale(0.3);
+	}
+	to {
+		opacity: 0;
+		transform: scale(1.25);
+	}
+}
+@keyframes ar-swat-bolt {
+	0% {
+		opacity: 0;
+		transform: scale(0.2) rotate(-15deg);
+	}
+	35% {
+		opacity: 1;
+		transform: scale(1.15);
+	}
+	70% {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+		transform: scale(1);
+	}
+}
+@keyframes ar-swat-fried {
+	to {
+		opacity: 0;
+		transform: translateY(45%) rotate(170deg) scale(0.6);
+	}
+}
+@keyframes ar-swat-away {
+	to {
+		opacity: 0;
+		transform: translate(70%, -90%) scale(0.45);
+	}
+}
+@keyframes ar-swat-ouch {
+	from {
+		opacity: 0;
+		transform: scale(0.5);
+	}
+	20% {
+		opacity: 1;
+		transform: none;
+	}
+	70% {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+		transform: translateY(-50%);
+	}
+}
+@keyframes ar-swat-sad {
+	15% {
+		transform: rotate(-12deg);
+	}
+	30% {
+		transform: rotate(10deg);
+	}
+	45% {
+		transform: rotate(-7deg);
+	}
+	60% {
+		opacity: 1;
+		transform: rotate(4deg);
+	}
+	to {
+		opacity: 0;
+		transform: translateY(12%) rotate(22deg) scale(0.85);
+	}
+}
+@keyframes ar-swat-ring {
+	from {
+		opacity: 0.9;
+		transform: scale(0.3);
+	}
+	to {
+		opacity: 0;
+		transform: scale(1.1);
+	}
+}
+@keyframes ar-swat-fade {
+	to {
+		opacity: 0;
+	}
+}
+
+/* Reduced motion: no buzzing or flying about; the effects just fade (they still say what happened). */
+@media (prefers-reduced-motion: reduce) {
+	.ar-swat-bug,
+	.ar-swat-rose,
+	.ar-swat-hover,
+	.ar-swat-wings {
+		animation: none;
+	}
+	.ar-swat-fx > * {
+		animation: ar-swat-fade 0.6s ease-in both !important;
+	}
+	.ar-swat-ring {
+		display: none;
+	}
+}

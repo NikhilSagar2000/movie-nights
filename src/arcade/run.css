@@ -1,0 +1,13 @@
+/* Rooftop Run: the drawn head laid over the canvas. The field is a size container so the head (and its em-sized
+   dizzy stars) scale with the stage, and the per-frame translateY in cqh is a share of the field's height. */
+.ar-run-field {
+	container-type: size;
+}
+.ar-run-me {
+	position: absolute;
+	display: flex;
+	translate: -50% 0;
+	font-size: 3.7cqh;
+	pointer-events: none;
+	filter: drop-shadow(0 0 0.7cqh rgb(234 239 244 / 0.85)); /* a moonlit rim: dark hair on a night sky */
+}

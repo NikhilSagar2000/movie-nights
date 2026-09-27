@@ -1,0 +1,6 @@
+/* Ladoo Stack: the field is misty sky until the canvas paints; any tap on it drops the box */
+.ar-stack-field {
+	background: var(--haze);
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent; /* no grey flash over the field on every tap */
+}

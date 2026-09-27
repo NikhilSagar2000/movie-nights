@@ -1,8 +1,8 @@
-import { useEffect, type ComponentType } from "react";
+import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import { ArrowLeft, ChatCircleSlash, FilmSlate, MusicNotes, type Icon } from "@phosphor-icons/react";
 import { other, type Game, type GameKind, type Who } from "../shared/types";
 import { profileOf, send, useRoom, type RoomState } from "./room";
-import { Duo, Face, Head, type Mood } from "./Character";
+import { Duo, Face, Head, Loader, type Mood } from "./Character";
 import { Away, cls, resendPlays, type Base, type Ctx } from "./games/lead";
 import MindMeld from "./games/MindMeld";
 import WhoAmIGame, { whoamiInit, whoamiStatus, type WhoAmI } from "./games/WhoAmI";
@@ -11,7 +11,11 @@ import CharadesGame, { charadesInit, charadesStatus, type Charades } from "./gam
 import EmojiMovieGame, { emojiInit, emojiStatus, type EmojiMovie } from "./games/EmojiMovie";
 import AntakshariGame, { antakshariInit, antakshariStatus, type Antakshari } from "./games/Antakshari";
 import SameWaveGame, { waveInit, waveStatus, type SameWave } from "./games/SameWave";
+import { bestKey, fmt, readBest, SOLO_IDS, soloMeta, useSoloRoute } from "./arcade";
 import "./games.css";
+import "./arcade/arcade.css";
+
+const Solo = lazy(() => import("./arcade/Solo")); // the solo frame and toolkit load with the first solo game
 
 type Meta = {
 	name: string;
@@ -104,9 +108,25 @@ const KINDS = Object.keys(GAMES) as GameKind[];
 // ---------- page ----------
 export default function Games() {
 	const room = useRoom();
+	const solo = useSoloRoute();
 	if (!room) return null;
 	// A game from an older version of the site (or an old open tab) has no screen any more: show the hub.
-	return room.game && GAMES[room.game.kind] ? <GameScreen room={room} game={room.game} /> : <Hub room={room} />;
+	const game = room.game && GAMES[room.game.kind] ? room.game : null;
+	// a solo game is never cut off by a game for two: it just says one is open
+	const live = room.online.some((p) => p.who === other(room.you));
+	if (solo)
+		return (
+			<Suspense
+				fallback={
+					<main className="page">
+						<Loader text="Getting it ready" />
+					</main>
+				}
+			>
+				<Solo key={solo} id={solo} you={room.you} waiting={live && game ? GAMES[game.kind].name : undefined} />
+			</Suspense>
+		);
+	return game ? <GameScreen room={room} game={game} /> : <Hub room={room} />;
 }
 
 function Hub({ room }: { room: RoomState }) {
@@ -118,8 +138,11 @@ function Hub({ room }: { room: RoomState }) {
 		<main className="page">
 			<header className="hub-head">
 				<h1>Game corner</h1>
-				<p>Games for two. Nobody keeps score.</p>
+				<p>{live ? "Games for two. Nobody keeps score." : `${partner} is away. Play one on your own till they're back.`}</p>
 			</header>
+			{/* alone: the solo games come first */}
+			{!live && <SoloShelf first />}
+			{!live && <h2 className="ar-h2">Games for two</h2>}
 			{!live && <Away who={them} name={partner} />}
 			<ul className="hub-grid">
 				{KINDS.map((k) => {
@@ -162,7 +185,36 @@ function Hub({ room }: { room: RoomState }) {
 					);
 				})}
 			</ul>
+			{live && <SoloShelf />}
 		</main>
+	);
+}
+
+/** The solo arcade: a card per game, with your best on this device. */
+function SoloShelf({ first }: { first?: boolean }) {
+	return (
+		<section className={cls("ar-shelf", first && "first")} aria-labelledby="ar-shelf-h">
+			<h2 id="ar-shelf-h">On your own</h2>
+			<p>Little arcade games for when you're on your own. Just for fun.</p>
+			<ul className="ar-grid">
+				{SOLO_IDS.map((id) => {
+					const m = soloMeta(id);
+					const best = m.modes ? null : readBest(bestKey(id));
+					return (
+						<li key={id}>
+							<a className="ar-card" data-tone={m.tone} href={`#/games/${id}`}>
+								<span className="ar-art" aria-hidden="true">
+									{m.art}
+								</span>
+								{best !== null && <span className="chip ar-best">Best {fmt(best, m.unit)}</span>}
+								<span className="ar-name">{m.name}</span>
+								<span className="ar-blurb">{m.blurb}</span>
+							</a>
+						</li>
+					);
+				})}
+			</ul>
+		</section>
 	);
 }
 
@@ -223,6 +275,7 @@ function GameScreen({ room, game }: { room: RoomState; game: Game }) {
 				<View key={game.id} c={c} />
 				<p className="gm-hint">{meta.hint}</p>
 			</section>
+			{!c.live && <SoloShelf />}
 		</main>
 	);
 }

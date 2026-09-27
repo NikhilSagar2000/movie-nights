@@ -1,0 +1,314 @@
+/* ===== Arcade: games for one. Prefix ar- (each game's own CSS loads with it, as ar-<game>-).
+   The shelf of cards on the Games hub, the Solo frame, and the canvas field the games draw in. ===== */
+
+/* ---- Shelf on the hub ---- */
+.ar-shelf {
+	margin-top: 2.6em;
+}
+.ar-shelf.first {
+	margin: 0 0 2.6em;
+}
+.ar-shelf h2,
+.ar-h2 {
+	margin: 0;
+	font-size: 1.6em;
+}
+.ar-shelf > p {
+	margin: 0.15em 0 1em;
+}
+.ar-h2 {
+	margin-bottom: 0.9em;
+}
+
+.ar-grid {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	grid-auto-rows: 9.5em;
+	gap: 0.9em;
+}
+.ar-card {
+	position: relative;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	gap: 0.1em;
+	height: 100%;
+	padding: 0.9em 1em;
+	border-radius: 1.4em;
+	background: var(--cream);
+	color: var(--night);
+	box-shadow: var(--lift);
+	text-decoration: none;
+	transition: transform 0.35s var(--spring);
+}
+.ar-card:hover {
+	transform: translateY(-0.3em);
+}
+.ar-card:active {
+	transform: scale(0.98);
+}
+.ar-card[data-tone="night"] {
+	background: var(--night-sky);
+	color: var(--cream);
+}
+.ar-card[data-tone="blush"] {
+	background: var(--blush);
+}
+.ar-card[data-tone="sage"] {
+	background: color-mix(in srgb, var(--sage) 50%, var(--cream));
+}
+.ar-art {
+	position: absolute;
+	top: 0.2em;
+	right: 0.3em;
+	font-size: 2.7em;
+	line-height: 1.2;
+	rotate: 10deg;
+	transition: transform 0.35s var(--spring);
+}
+.ar-card:hover .ar-art {
+	transform: rotate(-14deg) scale(1.12);
+}
+.ar-name {
+	position: relative;
+	font: 500 1.15em/1.15 var(--display);
+}
+.ar-blurb {
+	position: relative;
+	font-size: 0.8em;
+	line-height: 1.3;
+	color: var(--ink-soft);
+}
+.ar-card[data-tone="night"] .ar-blurb {
+	color: var(--haze);
+}
+.ar-best {
+	position: absolute;
+	top: 0.75em;
+	left: 0.75em;
+	font-size: 0.72em;
+}
+
+/* ---- The Solo frame ---- */
+.ar-screen .gm-head {
+	margin-bottom: 1em;
+}
+.ar-chips {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+}
+.ar-score b {
+	font-variant-numeric: tabular-nums;
+}
+.ar-modes {
+	display: inline-flex;
+	gap: 0.25em;
+	margin: 0 0 1em;
+	padding: 0.25em;
+	border-radius: 999px;
+	background: var(--cream);
+	box-shadow: var(--lift);
+}
+.ar-mode {
+	padding: 0.4em 0.95em;
+	border: 0;
+	border-radius: 999px;
+	background: none;
+	color: var(--ink-soft);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+.ar-mode.on {
+	background: var(--dusk);
+	color: var(--cream);
+}
+.ar-waiting {
+	display: flex;
+	width: fit-content;
+	gap: 0.7em;
+	margin: 0 0 1em;
+	padding-right: 0.3em;
+}
+
+/* The stage is the game's box: as wide as fits, never taller than the screen. */
+.ar-stage {
+	position: relative;
+	width: min(100%, calc((100dvh - 15em) * var(--aspect, 1)));
+	aspect-ratio: var(--aspect, 1);
+	margin-inline: auto;
+	outline: none;
+	container-type: size; /* the cards on top shrink on a short stage (below) */
+}
+.ar-screen:has(.ar-modes) .ar-stage {
+	width: min(100%, calc((100dvh - 18.5em) * var(--aspect, 1))); /* the mode tabs take a row */
+}
+.ar-stage > .loader {
+	position: absolute;
+	inset: 0;
+	place-content: center;
+}
+.ar-field {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	border-radius: 1.4em;
+	box-shadow: var(--lift);
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-tap-highlight-color: transparent; /* no flash over the whole game on every tap */
+}
+.ar-field canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+/* Tap to start / Paused / Game over, over the stage */
+.ar-cover {
+	position: absolute;
+	inset: 0;
+	z-index: 5;
+	display: grid;
+	place-content: center;
+	justify-items: center;
+	gap: 0.15em;
+	padding: 1em;
+	border: 0;
+	border-radius: 1.4em;
+	background: rgb(45 58 71 / 0.45);
+	color: var(--cream);
+	font: inherit;
+	cursor: pointer;
+	animation: ar-fade 0.25s ease-out both;
+}
+.ar-cover b {
+	font: 500 1.9em/1.1 var(--display);
+}
+.ar-cover span {
+	font-weight: 600;
+	opacity: 0.85;
+}
+.ar-over {
+	cursor: default;
+	background: rgb(45 58 71 / 0.55);
+}
+.ar-over-card {
+	display: grid;
+	justify-items: center;
+	gap: 0.25em;
+	max-width: 100%;
+	padding: 1.1em 1.6em 1.3em;
+	border-radius: 1.4em;
+	background: var(--cream);
+	color: var(--night);
+	box-shadow: var(--lift);
+	text-align: center;
+	animation: gm-pop 0.5s var(--spring) both;
+}
+.ar-over-head {
+	position: relative;
+	display: flex;
+}
+.ar-over-card h2 {
+	margin: 0.15em 0 0;
+	font-size: 1.5em;
+}
+.ar-over-card p {
+	margin: 0;
+	color: var(--ink-soft);
+	font-weight: 600;
+}
+.ar-over-btns {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.5em;
+	margin-top: 0.7em;
+}
+
+/* a short stage (a wide game on a phone): the game-over card drops its head and tightens up to fit */
+@container (max-height: 270px) {
+	.ar-over-head {
+		display: none;
+	}
+	.ar-over-card {
+		gap: 0.1em;
+		padding: 0.7em 1.2em 0.9em;
+	}
+	.ar-over-card h2 {
+		font-size: 1.25em;
+	}
+	.ar-over-btns {
+		margin-top: 0.4em;
+	}
+}
+
+@keyframes ar-fade {
+	from {
+		opacity: 0;
+	}
+}
+
+@media (max-width: 900px) {
+	.ar-grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+@media (max-width: 640px) {
+	.ar-grid {
+		grid-template-columns: repeat(2, 1fr);
+		grid-auto-rows: 9em;
+		gap: 0.8em;
+	}
+	.ar-art {
+		font-size: 2.3em;
+	}
+	.ar-over-head {
+		font-size: 0.8em;
+	}
+	/* the play area matters most on a phone (and the call bubbles sit at the bottom): back and the scores share one
+	   row and the big title is only for screen readers, so the game sits ~80px higher */
+	.ar-screen {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		align-items: center;
+		gap: 0.9em 0.6em;
+	}
+	.ar-screen > * {
+		grid-column: 1 / -1;
+	}
+	.ar-screen > .gm-back {
+		grid-column: 1;
+		margin: 0;
+	}
+	.ar-screen > .gm-head {
+		grid-column: 2;
+		justify-content: flex-end;
+		margin: 0;
+	}
+	.ar-screen .gm-title {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+	.ar-chips {
+		gap: 0.35em;
+	}
+	.ar-chips .chip {
+		font-size: 0.8em;
+	}
+	.ar-screen > :is(.ar-modes, .ar-waiting) {
+		margin: 0;
+	}
+}
