@@ -12,9 +12,10 @@ import {
 	type Ref,
 	type RefObject,
 } from "react";
-import { EyeSlash, Heart, Microphone, MicrophoneSlash, Minus, SpeakerHigh, VideoCamera, VideoCameraSlash } from "@phosphor-icons/react";
+import { EyeSlash, FlipHorizontal, HandPointing, Heart, Microphone, MicrophoneSlash, Minus, SpeakerHigh, VideoCamera, VideoCameraSlash } from "@phosphor-icons/react";
 import { other } from "../shared/types";
 import { Face, Flower } from "./Character";
+import { LetterListener } from "./Letters";
 import { JarReveal } from "./Memories";
 import { profileOf, useRoom, type RoomState } from "./room";
 import { setCam, setMic, useCall, type CallState } from "./rtc";
@@ -23,11 +24,15 @@ import {
 	NudgeListener,
 	onFlowerIn,
 	onFlowerOut,
+	onPokeIn,
+	onPokeOut,
 	saveView,
 	sendFlower,
+	sendPoke,
 	setSpot,
 	setView,
 	useFlowerSent,
+	usePokeSent,
 	useLive,
 	useVideo,
 	useView,
@@ -114,6 +119,7 @@ export default function FaceCams() {
 		<>
 			{room && <Bubbles room={room} call={call} />}
 			<NudgeListener />
+			<LetterListener />
 			<JarReveal />
 		</>
 	);
@@ -203,7 +209,25 @@ function Bubbles({ room, call }: { room: RoomState; call: CallState }) {
 		return () => clearTimeout(t);
 	}, [note]);
 
-	const mode: LayoutMode = !onTheater ? "page" : call.localScreen || call.peerSharing ? "movie" : "idle";
+	// A poke either way gives their bubble a little wiggle.
+	const pokeSent = usePokeSent();
+	const [poked, setPoked] = useState(0);
+	useEffect(() => {
+		const wiggle = () => setPoked(Date.now());
+		const offOut = onPokeOut(wiggle);
+		const offIn = onPokeIn(wiggle);
+		return () => {
+			offOut();
+			offIn();
+		};
+	}, []);
+	useEffect(() => {
+		if (!poked) return;
+		const t = setTimeout(() => setPoked(0), 700);
+		return () => clearTimeout(t);
+	}, [poked]);
+
+	const mode: LayoutMode = !onTheater ? "page" : call.localScreen || call.peerSharing || room.tube ? "movie" : "idle";
 	const layout = v[mode];
 	const max = Math.max(MIN, Math.round(vw * 0.45));
 	const shrink = Math.min(1, vw / 900); // smaller defaults on phones
@@ -281,6 +305,29 @@ function Bubbles({ room, call }: { room: RoomState; call: CallState }) {
 				caption={them.name}
 				connecting={partnerHere && call.connection !== "connected"}
 				glow={note > 0}
+				poked={poked > 0}
+				tools={
+					<button
+						className={`fc-tool${v.flipPartner ? " on" : ""}`}
+						aria-pressed={v.flipPartner}
+						aria-label={`Flip ${them.name}'s picture (only if it looks mirrored)`}
+						title={`Flip ${them.name}'s picture (only if it looks mirrored)`}
+						onClick={() => setView({ flipPartner: !v.flipPartner })}
+					>
+						<FlipHorizontal aria-hidden />
+					</button>
+				}
+				controls={
+					<button
+						className="fc-ctl"
+						disabled={!partnerHere || pokeSent}
+						aria-label={pokeSent ? `You poked ${them.name}` : `Poke ${them.name}`}
+						title={pokeSent ? `You poked ${them.name}` : `Poke ${them.name}`}
+						onClick={() => sendPoke()}
+					>
+						<HandPointing aria-hidden />
+					</button>
+				}
 			>
 				{partnerHere && !call.peerMicOn && (
 					<span className="fc-mic-off" title={`${them.name}'s mic is off`}>
@@ -352,8 +399,12 @@ function Bubble(props: {
 	connecting?: boolean;
 	/** A flower just arrived from them: a soft blush glow. */
 	glow?: boolean;
-	/** Always-visible buttons on the bubble's bottom edge (my mic/camera). */
+	/** A poke just went out or came in: a quick wiggle. */
+	poked?: boolean;
+	/** Always-visible buttons on the bubble's bottom edge (my mic/camera, their poke). */
 	controls?: ReactNode;
+	/** Extra hover tools before hide/minimize (their bubble: flip the picture). */
+	tools?: ReactNode;
 	children: ReactNode;
 }) {
 	const { who, spot, size, area, hidden } = props;
@@ -408,7 +459,7 @@ function Bubble(props: {
 	return (
 		<figure
 			ref={props.ref}
-			className={`fc-cam ${who}${hidden ? " hidden" : ""}${dragging ? " dragging" : ""}${props.connecting ? " connecting" : ""}${props.glow ? " glow" : ""}`}
+			className={`fc-cam ${who}${hidden ? " hidden" : ""}${dragging ? " dragging" : ""}${props.connecting ? " connecting" : ""}${props.glow ? " glow" : ""}${props.poked ? " poked" : ""}`}
 			style={{ "--size": `${size}px`, "--who": props.color, left, top } as Vars}
 			role="group"
 			tabIndex={0}
@@ -424,6 +475,7 @@ function Bubble(props: {
 			{props.controls && <div className="fc-controls">{props.controls}</div>}
 			<figcaption>{props.caption}</figcaption>
 			<div className="fc-tools">
+				{props.tools}
 				<button className="fc-tool" aria-label={props.hideLabel} title={props.hideLabel} onClick={props.onHide}>
 					<EyeSlash aria-hidden />
 				</button>

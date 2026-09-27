@@ -1,8 +1,9 @@
-// Memories: the watchlist jar (add, remove, shake → server pick → reveal) and the ticket stubs wall.
+// Memories: the watchlist jar (add, remove, shake → server pick → reveal), the ticket stubs wall and the letter box.
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
-import { FilmSlate, Heart, Plus, Shuffle, X } from "@phosphor-icons/react";
+import { EnvelopeSimple, FilmSlate, Heart, Plus, Shuffle, X } from "@phosphor-icons/react";
 import { LIMITS, other, type JarItem, type Stub, type Who } from "../shared/types";
 import { Flower, FlowerBurst, Head } from "./Character";
+import { readLetters, writeLetter } from "./Letters";
 import { profileOf, send, useRoom, type RoomState } from "./room";
 import "./memories.css";
 
@@ -36,6 +37,7 @@ export default function Memories() {
 			<h1 className="sr-only">Memories</h1>
 			<JarSection room={room} />
 			<StubWall room={room} />
+			<LetterBox room={room} />
 		</main>
 	) : null;
 }
@@ -405,5 +407,52 @@ function RateForm({ stub, name }: { stub: Stub; name: string }) {
 				Save my half
 			</button>
 		</form>
+	);
+}
+
+// ---------- letter box ----------
+
+/** Every note either of you left, newest first. Tap one to open it again. */
+function LetterBox({ room }: { room: RoomState }) {
+	const them = profileOf(room, other(room.you));
+	const letters = [...room.letters].reverse();
+	return (
+		<section className="mem-letters" aria-labelledby="letters-h">
+			<div className="mem-stubs-head">
+				<h2 id="letters-h">Letters</h2>
+				<button className="btn paper sm" onClick={writeLetter}>
+					<EnvelopeSimple aria-hidden />
+					Write a letter
+				</button>
+			</div>
+			{letters.length ? (
+				<ul className="mem-letters-grid">
+					{letters.map((l) => {
+						const mine = l.from === room.you;
+						const unread = !mine && !l.openedAt;
+						return (
+							<li key={l.id} style={{ "--tilt": tilt(l.id, 3) } as Vars}>
+								<button className={`mem-letter${unread ? " new" : ""}`} data-paper={l.paper} onClick={() => readLetters([l.id])}>
+									<span className="mem-letter-flap" aria-hidden="true" />
+									{unread && <Flower className="mem-letter-seal" />}
+									<span className="mem-letter-who">{mine ? `To ${them.name}` : `From ${them.name}`}</span>
+									<span className="mem-letter-meta">{fmtDate(new Date(l.at).toLocaleDateString("sv-SE"))}</span>
+									{(unread || mine) && <span className="mem-letter-state">{unread ? "New" : l.openedAt ? "Opened" : "Not opened yet"}</span>}
+								</button>
+							</li>
+						);
+					})}
+				</ul>
+			) : (
+				<div className="mem-empty">
+					<Peek />
+					<p>
+						<b>No letters yet</b>
+						<br />
+						Leave {them.name} a note and it waits here for them.
+					</p>
+				</div>
+			)}
+		</section>
 	);
 }

@@ -280,11 +280,19 @@ function setPeerSharing(on: boolean) {
 	tuneCam();
 }
 
+let tubeOn = false;
+/** A YouTube video is on the stage (Listen together): the mics mute like for a movie, so neither sends it back as echo. */
+export function setTubeMovie(on: boolean) {
+	if (tubeOn === on) return;
+	tubeOn = on;
+	muteForMovie(on);
+}
+
 function muteForMovie(movie: boolean) {
 	if (movie && micBeforeMovie === null) {
 		micBeforeMovie = state.micOn;
 		setMic(false);
-	} else if (!movie && micBeforeMovie !== null && !state.localScreen && !state.peerSharing) {
+	} else if (!movie && micBeforeMovie !== null && !state.localScreen && !state.peerSharing && !tubeOn) {
 		setMic(micBeforeMovie);
 		micBeforeMovie = null;
 	}

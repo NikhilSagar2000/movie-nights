@@ -1,6 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import {
 	LIMITS,
+	PAPERS,
 	PEOPLE,
 	other,
 	type ChatMsg,
@@ -8,20 +9,44 @@ import {
 	type Game,
 	type GameKind,
 	type JarItem,
+	type Letter,
 	type Peer,
 	type Profiles,
 	type ServerMsg,
 	type Snapshot,
 	type Stub,
+	type Tube,
+	type TubeItem,
 	type Who,
 } from "../shared/types";
+import { YT_ID } from "../shared/tube";
 
 type Attachment = { who: Who; sid: string };
 type SealStore = { gameId: string; round: number; answers: Partial<Record<Who, string>> };
+/** The tuberose's points, plus today's tally per kind so each has a daily cap. */
+type GardenStore = { pts: number; day: string; counts: Partial<Record<Growth, number>> };
+// [points, times per day]. ponytail: tune after a few weeks of real use.
+const GROWTH = { together: [2, 1], stub: [3, 1], game: [1, 3], letter: [1, 2], tube: [1, 3] } as const;
+type Growth = keyof typeof GROWTH;
+const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); // their day, not UTC's
 
-const KINDS: GameKind[] = ["ttt", "c4", "memory", "rps", "mindmeld", "doodle"];
+const KINDS: GameKind[] = ["mindmeld", "whoami", "taboo", "charades", "emoji", "antakshari", "wave"];
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const id = () => crypto.randomUUID().slice(0, 8);
+const secs = (v: unknown) => Math.max(0, Math.min(86_400, Number(v) || 0));
+
+/** A video's title, from YouTube's public oEmbed. The URL is built from a checked 11-character id, never from user input. */
+async function titleOf(videoId: string) {
+	try {
+		const res = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}`, {
+			signal: AbortSignal.timeout(4000),
+		});
+		const j = (await res.json()) as { title?: unknown };
+		return str(j.title, LIMITS.title) || "A YouTube video";
+	} catch {
+		return "A YouTube video";
+	}
+}
 
 /**
  * One Room per couple. It is the WebSocket hub and the database.
@@ -68,6 +93,7 @@ export class Room extends DurableObject<Env> {
 		server.serializeAttachment({ who, sid } satisfies Attachment);
 		server.send(JSON.stringify({ t: "init", ...(await this.snapshot(who)) } satisfies ServerMsg));
 		this.broadcast({ t: "presence", online: this.online() });
+		await this.grow("together");
 		return new Response(null, { status: 101, webSocket: client });
 	}
 
@@ -133,7 +159,8 @@ export class Room extends DurableObject<Env> {
 				const stub: Stub = { id: id(), title, date: new Date().toISOString().slice(0, 10), hearts: {}, notes: {} };
 				const stubs = [stub, ...((await s.get<Stub[]>("stubs")) ?? [])];
 				await s.put("stubs", stubs);
-				return this.broadcast({ t: "stubs", stubs });
+				this.broadcast({ t: "stubs", stubs });
+				return this.grow("stub");
 			}
 			case "stub:rate": {
 				const hearts = Math.min(5, Math.max(1, Math.round(Number(m.hearts) || 0)));
@@ -150,18 +177,85 @@ export class Room extends DurableObject<Env> {
 				return this.broadcast({ t: "stubs", stubs });
 			}
 
+			case "letter:send": {
+				const text = str(m.text, LIMITS.letter);
+				if (!text) return;
+				const paper = PAPERS.includes(m.paper) ? m.paper : "cream";
+				const letters = [...((await s.get<Letter[]>("letters")) ?? []), { id: id(), from: who, text, paper, at: Date.now() }].slice(-LIMITS.lettersKeep);
+				await s.put("letters", letters);
+				this.broadcast({ t: "letters", letters });
+				return this.grow("letter");
+			}
+			case "letter:open": {
+				// only the person it was written to can open it, once
+				const letters = (await s.get<Letter[]>("letters")) ?? [];
+				const letter = letters.find((l) => l.id === m.id);
+				if (!letter || letter.from === who || letter.openedAt) return;
+				letter.openedAt = Date.now();
+				await s.put("letters", letters);
+				return this.broadcast({ t: "letters", letters });
+			}
+
+			// ---- listen together: the Room keeps the clock (`at`), so both players can work out where the video is ----
+			case "tube:load":
+			case "tube:queue": {
+				if (typeof m.id !== "string" || !YT_ID.test(m.id)) return;
+				const item: TubeItem = { key: id(), id: m.id, title: await titleOf(m.id), by: who };
+				const tube = await s.get<Tube>("tube");
+				const next: Tube =
+					m.t === "tube:queue" && tube
+						? { ...tube, queue: [...tube.queue, item].slice(0, LIMITS.tubeQueue) }
+						: { ...item, playing: true, pos: 0, at: Date.now(), queue: tube?.queue ?? [] };
+				await s.put("tube", next);
+				this.broadcast({ t: "tube", tube: next });
+				if (m.t === "tube:load") await this.grow("tube");
+				return;
+			}
+			case "tube:unqueue": {
+				const tube = await s.get<Tube>("tube");
+				if (!tube) return;
+				const next = { ...tube, queue: tube.queue.filter((q) => q.key !== m.key) };
+				await s.put("tube", next);
+				return this.broadcast({ t: "tube", tube: next });
+			}
+			case "tube:play":
+			case "tube:pause":
+			case "tube:seek": {
+				const tube = await s.get<Tube>("tube");
+				if (!tube) return;
+				const playing = m.t === "tube:play" ? true : m.t === "tube:pause" ? false : tube.playing;
+				const next = { ...tube, playing, pos: secs(m.pos), at: Date.now() };
+				await s.put("tube", next);
+				return this.broadcast({ t: "tube", tube: next });
+			}
+			case "tube:ended":
+			case "tube:skip": {
+				const tube = await s.get<Tube>("tube");
+				if (!tube || (m.t === "tube:ended" && m.key !== tube.key)) return; // both players report the end: advance once
+				const [head, ...rest] = tube.queue;
+				const next: Tube | null = head ? { ...head, playing: true, pos: 0, at: Date.now(), queue: rest } : null;
+				if (next) await s.put("tube", next);
+				else await s.delete("tube");
+				return this.broadcast({ t: "tube", tube: next });
+			}
+			case "tube:stop":
+				await s.delete("tube");
+				return this.broadcast({ t: "tube", tube: null });
+
 			case "game:new": {
 				if (!KINDS.includes(m.kind)) return;
-				const game: Game = { id: id(), kind: m.kind, state: m.state ?? null, reveals: [] };
+				const game: Game = { id: id(), kind: m.kind, state: m.state ?? null, reveals: [], rev: 0 };
 				await s.put("game", game);
 				await s.delete("sealed");
 				this.broadcast({ t: "sealed", sealed: null });
-				return this.broadcast({ t: "game", game });
+				this.broadcast({ t: "game", game });
+				return this.grow("game");
 			}
 			case "game:state": {
 				const game = await s.get<Game>("game");
 				if (!game || game.id !== m.id) return; // stale move from a finished game
-				const next = { ...game, state: m.state ?? null };
+				if (m.rev !== (game.rev ?? 0)) return; // built on an older state: a newer write already landed
+				const next = { ...game, state: m.state ?? null, rev: (game.rev ?? 0) + 1 };
 				await s.put("game", next);
 				return this.broadcast({ t: "game", game: next });
 			}
@@ -202,18 +296,42 @@ export class Room extends DurableObject<Env> {
 	}
 
 	private async snapshot(you: Who): Promise<Snapshot> {
-		const got = await this.ctx.storage.get(["profiles", "chat", "jar", "stubs", "game", "sealed"]);
+		const got = await this.ctx.storage.get(["profiles", "chat", "jar", "stubs", "letters", "tube", "garden", "game", "sealed"]);
 		const seal = got.get("sealed") as SealStore | undefined;
+		let game = (got.get("game") as Game | undefined) ?? null;
+		if (game && !KINDS.includes(game.kind)) {
+			// a game this version no longer has (e.g. Connect Four): drop it so nobody lands on a dead screen
+			await this.ctx.storage.delete(["game", "sealed"]);
+			game = null;
+		}
 		return {
 			you,
+			now: Date.now(),
 			online: this.online(),
 			profiles: (got.get("profiles") as Profiles) ?? {},
 			chat: (got.get("chat") as ChatMsg[]) ?? [],
 			jar: (got.get("jar") as JarItem[]) ?? [],
 			stubs: (got.get("stubs") as Stub[]) ?? [],
-			game: (got.get("game") as Game) ?? null,
-			sealed: seal ? { round: seal.round, submitted: Object.keys(seal.answers) as Who[] } : null,
+			letters: (got.get("letters") as Letter[]) ?? [],
+			tube: (got.get("tube") as Tube) ?? null,
+			garden: { pts: (got.get("garden") as GardenStore | undefined)?.pts ?? 0 },
+			game,
+			sealed: game && seal ? { round: seal.round, submitted: Object.keys(seal.answers) as Who[] } : null,
 		};
+	}
+
+	/** The tuberose grows a little, but only while you're both here, and each kind only so often a day. */
+	private async grow(kind: Growth) {
+		if (new Set(this.online().map((p) => p.who)).size < 2) return;
+		const s = this.ctx.storage;
+		const day = today();
+		let g = (await s.get<GardenStore>("garden")) ?? { pts: 0, day, counts: {} };
+		if (g.day !== day) g = { ...g, day, counts: {} };
+		const [pts, max] = GROWTH[kind];
+		if ((g.counts[kind] ?? 0) >= max) return;
+		g = { ...g, pts: g.pts + pts, counts: { ...g.counts, [kind]: (g.counts[kind] ?? 0) + 1 } };
+		await s.put("garden", g);
+		this.broadcast({ t: "garden", garden: { pts: g.pts } });
 	}
 
 	private online(): Peer[] {

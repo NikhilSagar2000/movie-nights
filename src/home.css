@@ -1,5 +1,6 @@
 /* ===== Home lane: Nav, Home, Login, Name your love, Door, and the replaced-tab screen (Home.tsx, Login.tsx, main.tsx).
-   Every class is hm-*, except the hooks other code relies on (.nav, .love-input, .love-save). Tokens from styles.css. ===== */
+   Every class is hm-*, except the hooks other code relies on (.nav, .love-input, .love-save) and the tuberose (tr-*,
+   Tuberose.tsx). Tokens from styles.css. ===== */
 
 /* ---------- Nav: a floating cream pill ---------- */
 .nav {
@@ -78,6 +79,45 @@
 .hm-out:hover {
 	background: var(--haze);
 	color: var(--night);
+}
+/* unopened notes from them: a little blush envelope with a count, next to their face */
+.hm-mail {
+	position: relative;
+	flex: none;
+	background: var(--blush);
+	color: var(--night);
+	animation: hm-mail 3s ease-in-out infinite;
+}
+.hm-mail:hover {
+	background: #f3b7c5;
+}
+.hm-mail-count {
+	position: absolute;
+	top: -0.35em;
+	right: -0.35em;
+	display: grid;
+	place-items: center;
+	min-width: 1.5em;
+	height: 1.5em;
+	padding: 0 0.35em;
+	border-radius: 999px;
+	background: var(--rose-ink);
+	color: var(--cream);
+	font-size: 0.72em;
+	font-weight: 700;
+}
+@keyframes hm-mail {
+	0%,
+	84%,
+	100% {
+		transform: none;
+	}
+	88% {
+		transform: rotate(-9deg);
+	}
+	94% {
+		transform: rotate(7deg);
+	}
 }
 
 /* the theater is dark: the nav turns to misty glass */
@@ -175,6 +215,196 @@ body:has(.theater) .hm-who {
 	background: var(--blue-hour);
 	box-shadow: 0 0 0 0.7em var(--cream), var(--lift);
 }
+/* the window and the tuberose pot on its sill (the arch clips its children, so the pot sits outside it) */
+.hm-sill {
+	position: relative;
+}
+/* ---------- Our little tuberose: a rosewood pot on the sill, drawn in the same ink as the heads ---------- */
+.tr-wrap {
+	position: absolute;
+	left: -1.4em;
+	bottom: -1.3em;
+	z-index: 2;
+	width: 7.6em;
+}
+.tr-btn {
+	--focus: var(--dusk);
+	position: relative;
+	display: block;
+	width: 100%;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--night);
+	cursor: pointer;
+	anchor-name: --tr;
+	transition: transform 0.35s var(--spring);
+}
+.tr-btn:hover {
+	transform: rotate(-3deg) scale(1.04);
+}
+.tr-btn:focus-visible {
+	border-radius: 1.2em;
+	outline-offset: 2px;
+}
+.tr {
+	display: block;
+	width: 100%;
+	overflow: visible;
+	filter: drop-shadow(0 0.5em 0.6em rgb(45 58 71 / 0.25));
+}
+.tr :is(path, ellipse, rect, circle) {
+	stroke: currentColor;
+	stroke-width: 1.6;
+	stroke-linejoin: round;
+}
+.tr .tr-leaf path {
+	fill: var(--sage);
+	stroke-width: 1.1;
+}
+.tr .tr-line {
+	fill: none;
+}
+.tr .tr-stem,
+.tr .tr-stem-in {
+	fill: none;
+	stroke-linecap: round;
+}
+.tr .tr-stem {
+	stroke-width: 4.4;
+}
+.tr .tr-stem-in {
+	stroke: var(--sage);
+	stroke-width: 2.2;
+}
+.tr .tr-bud {
+	fill: url(#tr-bud);
+	stroke-width: 1.1;
+}
+.tr .tr-flower ellipse {
+	fill: var(--cream);
+	stroke-width: 0.9;
+}
+.tr .tr-eye {
+	fill: var(--flower);
+	stroke: none;
+}
+.tr .tr-soil {
+	fill: var(--night);
+}
+.tr .tr-pot {
+	fill: var(--rosewood);
+}
+.tr .tr-rim {
+	fill: var(--cream);
+}
+/* its famous scent: two soft curls that drift up once it flowers */
+.tr .tr-scent path {
+	fill: none;
+	stroke: var(--dusk);
+	stroke-width: 1.2;
+	stroke-linecap: round;
+	opacity: 0;
+	animation: tr-scent 4.5s ease-in-out infinite;
+}
+.tr .tr-scent path + path {
+	animation-delay: 2.2s;
+}
+/* whatever just grew pops up from its base */
+.tr[data-grew="1"] [data-s="1"],
+.tr[data-grew="2"] [data-s="2"],
+.tr[data-grew="3"] [data-s="3"],
+.tr[data-grew="4"] [data-s="4"],
+.tr[data-grew="5"] [data-s="5"],
+.tr[data-grew="6"] [data-s="6"],
+.tr[data-grew="7"] [data-s="7"],
+.tr[data-grew="8"] [data-s="8"],
+.tr[data-grew="9"] [data-s="9"] {
+	transform-box: fill-box;
+	transform-origin: 50% 100%;
+	animation: tr-pop 0.9s var(--spring) both;
+}
+.tr-grew {
+	position: absolute;
+	top: -0.6em;
+	left: 55%;
+	padding: 0.2em 0.75em;
+	border-radius: 999px;
+	background: var(--cream);
+	color: var(--rose-ink);
+	box-shadow: var(--lift);
+	font-size: 0.8em;
+	font-weight: 700;
+	white-space: nowrap;
+	animation: tr-pop 0.6s var(--spring) both;
+}
+.tr-info {
+	--focus: var(--dusk);
+	width: min(17em, calc(100vw - 32px));
+	padding: 0.9em 1em;
+	border: 0;
+	border-radius: 1.4em;
+	background: var(--cream);
+	color: var(--night);
+	box-shadow: var(--lift), 0 1em 3em -1em rgb(45 58 71 / 0.45);
+}
+.tr-info:popover-open {
+	display: grid;
+	gap: 0.4em;
+}
+.tr-info p {
+	margin: 0;
+}
+.tr-info-title {
+	color: var(--ink-soft);
+	font-size: 0.85em;
+	font-weight: 700;
+}
+.tr-info-stage {
+	font: 500 1.4em/1.1 var(--display);
+}
+.tr-meter {
+	display: block;
+	height: 0.5em;
+	margin-top: 0.2em;
+	border-radius: 999px;
+	background: linear-gradient(90deg, var(--sage) calc(var(--p, 0) * 100%), var(--haze) 0);
+}
+.tr-next {
+	color: var(--ink-soft);
+	font-size: 0.9em;
+	font-weight: 600;
+}
+@supports (anchor-name: --a) {
+	.tr-info {
+		position-anchor: --tr;
+		inset: auto;
+		bottom: anchor(top);
+		left: anchor(left);
+		margin: 0 0 8px;
+		position-try-fallbacks: flip-block, flip-inline;
+	}
+}
+@keyframes tr-pop {
+	from {
+		transform: scale(0.2);
+		opacity: 0;
+	}
+}
+@keyframes tr-scent {
+	0% {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+	40% {
+		opacity: 0.55;
+	}
+	100% {
+		opacity: 0;
+		transform: translateY(-12px);
+	}
+}
+
 .hm-window-moon {
 	top: 13%;
 	right: 17%;
@@ -244,6 +474,15 @@ body:has(.theater) .hm-who {
 	font-size: 3.4em;
 	overflow-wrap: anywhere;
 	text-wrap: balance;
+}
+.hm-leave {
+	margin-top: 0.2em;
+}
+.hm-chips {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.6em;
 }
 .hm-lede {
 	max-width: 30ch;
@@ -375,6 +614,11 @@ body:has(.theater) .hm-who {
 	}
 	.hm-window .ch-duo {
 		bottom: 1.6em;
+	}
+	.tr-wrap {
+		left: -0.6em;
+		bottom: -1em;
+		width: 5.8em;
 	}
 	.hm-window .clouds {
 		font-size: 0.7em;

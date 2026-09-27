@@ -340,6 +340,39 @@ body:has(.th-stage-wrap.is-full) {
 		opacity: 1;
 	}
 }
+/* Fullscreen: the stage covers the page, so the toolbar floats over the top of the movie (under the cams, chat and toasts)
+   and fades with the chat/exit buttons once the pointer rests. Opacity only: the View popover lives inside the toolbar. */
+.theater.is-full .th-above {
+	position: fixed;
+	top: 12px;
+	left: 50%;
+	translate: -50% 0;
+	z-index: 920;
+	width: max-content;
+	max-width: calc(100vw - 150px); /* the top-right corner belongs to chat + exit */
+	padding: 8px;
+	border-radius: 1.6em;
+	background: rgb(24 32 41 / 0.72);
+	backdrop-filter: blur(10px);
+	box-shadow:
+		inset 0 0 0 1px rgb(234 239 244 / 0.12),
+		0 1em 2.4em -1em rgb(0 0 0 / 0.6);
+	transition: opacity 0.4s;
+}
+.theater .th-stage-wrap.is-full .th-stage-top:not(.bar) {
+	top: 12px;
+	left: auto;
+	right: 12px;
+}
+.theater.is-full.idle .th-above:not(:hover, :has(:focus-visible, select:focus, :popover-open)),
+.theater.is-full.idle .th-stage-tools:not(:hover, :has(:focus-visible)) {
+	opacity: 0;
+	pointer-events: none;
+}
+.theater.is-full.idle,
+.theater.is-full.idle * {
+	cursor: none;
+}
 .th-stage-tools .btn.glass {
 	background: rgb(45 58 71 / 0.55);
 	backdrop-filter: blur(6px);
@@ -1213,6 +1246,10 @@ body:has(.theater) .fc-cam {
 .fc-tool:hover {
 	background: var(--night);
 }
+.fc-tool.on {
+	background: var(--cream);
+	color: var(--night);
+}
 .fc-tool svg {
 	width: 16px;
 	height: 16px;
@@ -1327,6 +1364,62 @@ body:has(.theater) .fc-cam {
 .fc-pause > .btn {
 	align-self: flex-start;
 	margin-top: -0.6em;
+}
+
+/* A poke: a small cream pill at the top with their knocking face (yours: a tiny "You poked …") */
+.fc-poke {
+	--focus: var(--dusk);
+	position: fixed;
+	top: 16px;
+	left: 50%;
+	z-index: 990;
+	display: flex;
+	align-items: center;
+	gap: 0.7em;
+	max-width: calc(100vw - 32px);
+	padding: 0.4em 0.45em 0.4em 0.45em;
+	border-radius: 999px;
+	background: var(--cream);
+	color: var(--night);
+	box-shadow:
+		var(--lift),
+		0 1em 3em -1em rgb(0 0 0 / 0.45);
+	translate: -50% 0;
+	animation: th-drop 0.5s var(--spring);
+}
+.fc-poke > span {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.fc-poke.mine {
+	padding: 0.5em 1.1em;
+	font-weight: 600;
+	font-size: 0.9em;
+}
+.fc-poke:has(+ .fc-pause) {
+	top: 9em; /* a pause request is showing too: sit under it */
+}
+/* in fullscreen the toolbar floats at the top: toasts drop in under it */
+body:has(.theater.is-full) :is(.fc-poke, .fc-pause) {
+	top: 76px;
+}
+body:has(.theater.is-full) .fc-poke:has(+ .fc-pause) {
+	top: calc(76px + 8.5em);
+}
+.fc-cam.poked .fc-bubble {
+	animation: fc-wiggle 0.6s ease-in-out;
+}
+@keyframes fc-wiggle {
+	20% {
+		transform: rotate(-7deg) scale(1.04);
+	}
+	45% {
+		transform: rotate(6deg) scale(1.04);
+	}
+	70% {
+		transform: rotate(-3deg);
+	}
 }
 
 /* A flower arriving (not during a movie): the page dims, and inside a big face the flower travels from the sender to you */
@@ -1540,4 +1633,152 @@ body:has(.theater) .fc-cam {
 	100% {
 		opacity: 0;
 	}
+}
+
+/* ---------- Listen together (Tube.tsx): tb-* ---------- */
+.tb-player {
+	position: absolute;
+	inset: 0;
+	background: #000;
+}
+.tb-frame,
+.tb-frame iframe {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border: 0;
+}
+.tb-tap {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	z-index: 2;
+	translate: -50% -50%;
+}
+.tb-error {
+	--focus: var(--haze);
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	display: grid;
+	place-items: center;
+	align-content: center;
+	gap: 0.8em;
+	padding: 1.2em;
+	background: rgb(24 32 41 / 0.9);
+	color: var(--cream);
+	text-align: center;
+}
+.tb-error p {
+	margin: 0;
+	font-weight: 600;
+}
+.tb-error-actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.5em;
+}
+/* over a YouTube player the stage's corners hold its title and settings: chat + fullscreen move into the reaction
+   pill (Theater.tsx), and the resize handle steps aside */
+.th-pill > .th-stage-tools {
+	opacity: 1;
+	margin-left: 0.3em;
+}
+.th-stage-wrap:has(.tb-player) .th-size {
+	display: none;
+}
+/* the empty stage: paste a link right on the plate */
+.tb-start {
+	display: grid;
+	justify-items: center;
+	gap: 0.3em;
+	width: min(26em, 100%);
+}
+.tb-start .tb-form {
+	width: 100%;
+}
+.tb-row {
+	display: flex;
+	gap: 0.5em;
+}
+.tb-row .input {
+	flex: 1;
+	min-width: 0;
+}
+.tb-bad {
+	margin: 0.4em 0 0;
+	color: var(--blush);
+	font-size: 0.85em;
+	font-weight: 600;
+}
+/* under the stage while a video is on */
+.tb-bar {
+	--focus: var(--haze);
+	display: grid;
+	gap: 0.7em;
+	width: min(100%, 56em);
+	margin-inline: auto;
+	padding: 0.7em 0.8em;
+	border-radius: 1.4em;
+	background: rgb(169 183 198 / 0.12);
+	box-shadow: inset 0 0 0 1px rgb(234 239 244 / 0.12);
+	color: var(--haze);
+}
+.tb-now {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4em 0.6em;
+	min-width: 0;
+}
+.tb-now > svg {
+	flex: none;
+	width: 1.4em;
+	height: 1.4em;
+	color: var(--blush);
+}
+.tb-title {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--cream);
+	font-weight: 600;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+.tb-by {
+	flex: none;
+	color: var(--fog);
+	font-size: 0.85em;
+}
+.tb-actions {
+	flex: none;
+	display: flex;
+	gap: 0.4em;
+	margin-left: auto;
+}
+.tb-queue {
+	display: grid;
+	gap: 0.35em;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.tb-queue li {
+	display: flex;
+	align-items: center;
+	gap: 0.6em;
+	padding: 0.3em 0.3em 0.3em 0.4em;
+	border-radius: 0.9em;
+	background: rgb(169 183 198 / 0.1);
+}
+.tb-queue img {
+	flex: none;
+	border-radius: 0.4em;
+	object-fit: cover;
+}
+.tb-queue .btn {
+	color: var(--fog);
 }

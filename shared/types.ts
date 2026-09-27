@@ -17,17 +17,29 @@ export type Stub = {
 	notes: Partial<Record<Who, string>>;
 };
 
-export type GameKind = "ttt" | "c4" | "memory" | "rps" | "mindmeld" | "doodle";
+/** A letter left for the other person ("Leave a note"). `openedAt` is set when the recipient opens it. */
+export type LetterPaper = "cream" | "mist" | "blush";
+export const PAPERS: LetterPaper[] = ["cream", "mist", "blush"];
+export type Letter = { id: string; from: Who; text: string; paper: LetterPaper; at: number; openedAt?: number };
+
+/** Listen together: one YouTube video playing in sync (plus a queue). `pos` seconds at Room time `at`. */
+export type TubeItem = { key: string; id: string; title: string; by: Who };
+export type Tube = TubeItem & { playing: boolean; pos: number; at: number; queue: TubeItem[] };
+
+/** Our little tuberose: points from time spent together (the Room hands them out, capped per day). */
+export type Garden = { pts: number };
+
+export type GameKind = "mindmeld" | "whoami" | "taboo" | "charades" | "emoji" | "antakshari" | "wave";
 export type Reveal = Record<Who, string>;
-/** The server never interprets `state`; it only stores it. Sealed-answer games read `reveals`. */
-export type Game = { id: string; kind: GameKind; state: unknown; reveals: Reveal[] };
+/** The server never interprets `state`; it only stores it. Sealed-answer games read `reveals`.
+ *  `rev` counts accepted writes: a `game:state` built on an older rev is dropped, so a late write can't undo a newer one. */
+export type Game = { id: string; kind: GameKind; state: unknown; reveals: Reveal[]; rev?: number };
 /** Which players have locked in an answer for the current sealed round (answers stay server-side). */
 export type Sealed = { round: number; submitted: Who[] };
 
 export type Peer = { who: Who; sid: string };
 
 // Ephemeral messages the Room forwards to the other person without reading or storing them.
-export type Stroke = { x: number[]; y: number[]; color: string; size: number }; // 0..1 coords
 // Structural copies of the DOM WebRTC types, so the worker (no DOM lib) can compile this file too.
 type SdpInit = { type: "offer" | "answer" | "pranswer" | "rollback"; sdp?: string };
 type IceInit = { candidate?: string; sdpMid?: string | null; sdpMLineIndex?: number | null; usernameFragment?: string | null };
@@ -42,10 +54,10 @@ export type RelayData =
 	/** The resolution this person wants to RECEIVE (null = auto); the sharer encodes to match. */
 	| { k: "quality"; height: 480 | 720 | 1080 | 1440 | null }
 	| { k: "react"; emoji: string; x: number }
+	/** "boop" is the poke (the name on the wire stays, so tabs opened before the rename still understand it). */
 	| { k: "nudge"; kind: "pause" | "flower" | "boop" }
-	| { k: "doodle"; strokes: Stroke[] }
-	| { k: "doodle:clear" }
-	| { k: "doodle:guess"; text: string };
+	/** A guesser's move in a "one knows, one guesses" game, applied by the lead's browser (the only one that knows the answer). */
+	| { k: "play"; id: string; round: number; pid: string; act: string; v?: string | number };
 
 export type ClientMsg =
 	| { t: "relay"; data: RelayData }
@@ -57,18 +69,34 @@ export type ClientMsg =
 	| { t: "stub:new"; title: string }
 	| { t: "stub:rate"; id: string; hearts: number; note: string }
 	| { t: "stub:delete"; id: string }
+	| { t: "letter:send"; text: string; paper: LetterPaper }
+	| { t: "letter:open"; id: string }
+	| { t: "tube:load"; id: string }
+	| { t: "tube:queue"; id: string }
+	| { t: "tube:unqueue"; key: string }
+	| { t: "tube:play"; pos: number }
+	| { t: "tube:pause"; pos: number }
+	| { t: "tube:seek"; pos: number }
+	| { t: "tube:ended"; key: string }
+	| { t: "tube:skip" }
+	| { t: "tube:stop" }
 	| { t: "game:new"; kind: GameKind; state: unknown }
-	| { t: "game:state"; id: string; state: unknown }
+	| { t: "game:state"; id: string; rev: number; state: unknown }
 	| { t: "game:end" }
 	| { t: "seal"; gameId: string; round: number; answer: string };
 
 export type Snapshot = {
 	you: Who;
+	/** The Room's clock when it sent this, so timers agree across devices. */
+	now: number;
 	online: Peer[];
 	profiles: Profiles;
 	chat: ChatMsg[];
 	jar: JarItem[];
 	stubs: Stub[];
+	letters: Letter[];
+	tube: Tube | null;
+	garden: Garden;
 	game: Game | null;
 	sealed: Sealed | null;
 };
@@ -82,8 +110,11 @@ export type ServerMsg =
 	| { t: "jar"; jar: JarItem[] }
 	| { t: "jar:picked"; item: JarItem; by: Who }
 	| { t: "stubs"; stubs: Stub[] }
+	| { t: "letters"; letters: Letter[] }
+	| { t: "tube"; tube: Tube | null }
+	| { t: "garden"; garden: Garden }
 	| { t: "game"; game: Game | null }
 	| { t: "sealed"; sealed: Sealed | null };
 
 // Input limits, enforced by the Room (trust boundary) and mirrored in the UI.
-export const LIMITS = { name: 24, chat: 1000, title: 120, note: 400, answer: 40, relayBytes: 64_000, chatKeep: 200 };
+export const LIMITS = { name: 24, chat: 1000, title: 120, note: 400, answer: 40, relayBytes: 64_000, chatKeep: 200, letter: 800, lettersKeep: 200, tubeQueue: 30 };

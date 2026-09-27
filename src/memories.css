@@ -561,6 +561,96 @@
 	margin: 0;
 }
 
+/* ---------- Letter box: little envelopes, the unopened ones still sealed with his flower ---------- */
+.mem-letters {
+	display: grid;
+	align-content: start;
+	gap: 1.2em;
+}
+@media (min-width: 1024px) {
+	.mem-letters {
+		grid-column: 1 / -1;
+	}
+}
+.mem-letters-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 13em), 1fr));
+	gap: 1.4em 1.2em;
+	margin: 0;
+	padding: 0.4em 0;
+	list-style: none;
+}
+.mem-letters-grid > li {
+	rotate: var(--tilt);
+}
+.mem-letter {
+	--focus: var(--dusk);
+	position: relative;
+	display: grid;
+	align-content: end;
+	gap: 0.15em;
+	width: 100%;
+	aspect-ratio: 16 / 10;
+	padding: 0.8em 1em;
+	overflow: hidden;
+	border: 0;
+	border-radius: 0.6em;
+	background:
+		linear-gradient(160deg, rgb(255 255 255 / 0.4), transparent 45%),
+		var(--pp-env);
+	color: var(--night);
+	box-shadow: 0 0.8em 1.4em -0.8em rgb(45 58 71 / 0.5);
+	text-align: left;
+	cursor: pointer;
+	transition: transform 0.25s var(--spring);
+}
+.mem-letter:hover {
+	transform: translateY(-4px) rotate(-1deg);
+}
+.mem-letter-flap {
+	position: absolute;
+	inset: 0 0 auto;
+	height: 55%;
+	background: linear-gradient(var(--pp-env), color-mix(in srgb, var(--pp-env), #2d3a47 9%));
+	clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.mem-letter:not(.new) .mem-letter-flap {
+	opacity: 0.55; /* already opened: the flap is just tucked in */
+}
+.mem-letter-seal {
+	position: absolute;
+	top: 55%;
+	left: 50%;
+	width: 2.2em;
+	padding: 0.35em;
+	margin: -1.1em 0 0 -1.1em;
+	border-radius: 50%;
+	background: radial-gradient(circle at 35% 30%, #cf8a92, var(--rosewood) 55%, #8b4b54);
+}
+.mem-letter-who {
+	position: relative;
+	font: 700 1.25em/1.1 var(--hand);
+}
+.mem-letter-meta {
+	position: relative;
+	color: var(--ink-soft);
+	font-size: 0.8em;
+	font-weight: 600;
+}
+.mem-letter-state {
+	position: relative;
+	justify-self: start;
+	padding: 0.1em 0.6em;
+	border-radius: 999px;
+	background: rgb(255 255 255 / 0.55);
+	font-size: 0.75em;
+	font-weight: 700;
+}
+.mem-letter.new .mem-letter-state {
+	background: var(--rose-ink);
+	color: var(--cream);
+}
+
 /* ---------- Keyframes (transform and opacity only) ---------- */
 @keyframes mem-wobble {
 	25% {

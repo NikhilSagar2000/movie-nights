@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, FilmSlate, GameController, Heart, House, SignOut, Ticket, X } from "@phosphor-icons/react";
+import { ArrowRight, EnvelopeSimple, FilmSlate, GameController, HandPointing, Heart, House, SignOut, Ticket, X } from "@phosphor-icons/react";
 import { other, type Who } from "../shared/types";
 import type { Route } from "./main";
-import { logout, onRelay, profileOf, relay, useRoom } from "./room";
+import { logout, onRelay, profileOf, useRoom } from "./room";
 import { useCall } from "./rtc";
 import { Duo, Face, Flower, lateNight, type HeadProps, type Moment } from "./Character";
 import { NameYourLove } from "./Login";
+import { readLetters, unreadOf, writeLetter } from "./Letters";
+import { sendPoke, usePokeSent } from "./Theater";
+import { Tuberose } from "./Tuberose";
 import "./home.css";
 
 const LINKS = [
@@ -17,7 +20,7 @@ const LINKS = [
 
 const ROWS = [
 	{ href: "#/theater", title: "Theater", text: "Share a tab and see each other", Icon: FilmSlate, go: true },
-	{ href: "#/games", title: "Games", text: "Six little games, nobody keeps score", Icon: GameController, go: false },
+	{ href: "#/games", title: "Games", text: "Games for two, nobody keeps score", Icon: GameController, go: false },
 	{ href: "#/memories", title: "Memories", text: "The movie jar and your ticket stubs", Icon: Ticket, go: false },
 ] as const;
 
@@ -28,6 +31,7 @@ export function Nav({ route }: { route: Route }) {
 	const partner = profileOf(room, partnerWho);
 	const online = room.online.some((p) => p.who === partnerWho);
 	const presence = `${partner.name} is ${online ? "here" : "away"}`;
+	const unread = unreadOf(room);
 
 	return (
 		<header className="nav">
@@ -43,6 +47,17 @@ export function Nav({ route }: { route: Route }) {
 					</a>
 				))}
 			</nav>
+			{unread.length > 0 && (
+				<button
+					className="btn icon sm hm-mail"
+					onClick={() => readLetters(unread.map((l) => l.id))}
+					aria-label={`${unread.length} unopened ${unread.length === 1 ? "note" : "notes"} from ${partner.name}`}
+					title={`A note from ${partner.name}`}
+				>
+					<EnvelopeSimple aria-hidden weight="fill" />
+					<span className="hm-mail-count">{unread.length}</span>
+				</button>
+			)}
 			<span className="hm-who" title={presence}>
 				<Face who={partnerWho} ring={partner.color} s="2em" mood={online ? "still" : "away"} />
 				<span className="hm-who-name" aria-hidden="true">
@@ -81,11 +96,11 @@ export function Home() {
 	const room = useRoom();
 	const call = useCall();
 	const [renaming, setRenaming] = useState(false);
-	// one-shot moments on each head: theirs arrives or gets booped, yours gets booped back
+	// one-shot moments on each head: theirs arrives or gets poked, yours gets poked back
 	const [them, setThem] = useState<Play>({ m: null, n: 0 });
 	const [mine, setMine] = useState<Play>({ m: null, n: 0 });
-	const lastBoop = useRef(0);
 	const wasOn = useRef<boolean | null>(null);
+	const pokeSent = usePokeSent();
 	const partnerOn = !!room && room.online.some((p) => p.who === other(room.you));
 
 	// their head pops up when they come online (not on first render)
@@ -94,7 +109,7 @@ export function Home() {
 		wasOn.current = partnerOn;
 	}, [partnerOn]);
 
-	// a boop from them squishes your head
+	// a poke from them squishes your head
 	useEffect(
 		() =>
 			onRelay((_, d) => {
@@ -112,12 +127,14 @@ export function Home() {
 	const both = isOn(room.you) && partnerOn;
 	const idle = lateNight() ? "drowsy" : "idle";
 
-	function boop() {
-		const now = Date.now();
-		if (now - lastBoop.current < 600) return;
-		lastBoop.current = now;
-		setThem((p) => ({ m: "squish", n: p.n + 1 }));
-		relay({ k: "nudge", kind: "boop" });
+	// the tuberose grew while you're looking: you both smile
+	const grew = () => {
+		setThem((p) => ({ m: "happy", n: p.n + 1 }));
+		setMine((p) => ({ m: "happy", n: p.n + 1 }));
+	};
+
+	function poke() {
+		if (sendPoke()) setThem((p) => ({ m: "squish", n: p.n + 1 }));
 	}
 
 	const head = (w: Who, play: Play): Partial<HeadProps> => ({ mood: isOn(w) ? idle : "away", twinkle: true, moment: play.m, nonce: play.n });
@@ -126,26 +143,45 @@ export function Home() {
 
 	return (
 		<main className="page hm-home">
-			<div className="arch hm-window">
-				<i className="stars" />
-				<i className="moon hm-window-moon" />
-				<Duo together={both} a={heads.a} b={heads.b}>
-					{pop(them, partnerWho)}
-					{pop(mine, room.you)}
-					{partnerOn && <button className={`hm-boop ${side(partnerWho)}`} onClick={boop} aria-label={`Boop ${partner.name}`} title={`Boop ${partner.name}`} />}
-				</Duo>
-				<i className="clouds" />
+			<div className="hm-sill">
+				<div className="arch hm-window">
+					<i className="stars" />
+					<i className="moon hm-window-moon" />
+					<Duo together={both} a={heads.a} b={heads.b}>
+						{pop(them, partnerWho)}
+						{pop(mine, room.you)}
+						{partnerOn && <button className={`hm-boop ${side(partnerWho)}`} onClick={poke} aria-label={`Poke ${partner.name}`} title={`Poke ${partner.name}`} />}
+					</Duo>
+					<i className="clouds" />
+				</div>
+				<Tuberose pts={room.garden?.pts ?? 0} onGrow={grew} />
 			</div>
 
 			<div className="hm-copy">
 				{both && (
-					<span className="chip sage" title={call.connection === "connected" ? "Your video call is connected" : undefined}>
-						<Heart aria-hidden weight="fill" />
-						Together
-					</span>
+					<div className="hm-chips">
+						<span className="chip sage" title={call.connection === "connected" ? "Your video call is connected" : undefined}>
+							<Heart aria-hidden weight="fill" />
+							Together
+						</span>
+						<button className="btn paper sm hm-poke" onClick={poke} disabled={pokeSent}>
+							<HandPointing aria-hidden />
+							{pokeSent ? `You poked ${partner.name}` : `Poke ${partner.name}`}
+						</button>
+						<button className="btn paper sm" onClick={writeLetter}>
+							<EnvelopeSimple aria-hidden />
+							Write a note
+						</button>
+					</div>
 				)}
 				<h1>{partnerOn ? `${partner.name} is here` : `${partner.name} is not home yet`}</h1>
 				<p className="hm-lede">{partnerOn ? "You are both home. Pick something to do together." : "Their head pops up in the window when they come in."}</p>
+				{!partnerOn && (
+					<button className="btn blush hm-leave" onClick={writeLetter}>
+						<EnvelopeSimple aria-hidden />
+						Leave {partner.name} a note
+					</button>
+				)}
 
 				<div className="hm-rows">
 					{ROWS.map(({ href, title, text, Icon, go }) => (

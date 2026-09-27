@@ -1,5 +1,6 @@
-/* ===== Games: hub, boards, sealed games, doodle. Tokens only (see styles.css).
-   Every class is gm-/hub-/ttt/c4/mg-/rps-/mm-/dd- prefixed (all CSS loads globally). ===== */
+/* ===== Games: hub, game screen and every game. Tokens only (see styles.css).
+   Every class is prefixed (all CSS loads globally): gm- (shared), hub-, mm- Mind Meld, wa- Who Am I, ds- Don't Say It,
+   dc- Dumb Charades (ch- belongs to Character), em- Emoji Movie, ak- Antakshari, sw- Same Wave. ===== */
 
 /* ---- Hub: cream cards on the sky, one night card for Mind Meld ---- */
 .hub-head {
@@ -109,17 +110,118 @@
 	transform: translateX(-6%) rotate(-4deg);
 }
 
-/* Doodle: a dot-grid page with the partner's head bobbing at the corner */
-.hub-doodle {
-	background:
-		radial-gradient(circle 0.12em, var(--mist) 95%, #0000) 0 0 / 1.3em 1.3em,
-		var(--cream);
+/* Who Am I?: a cream card with a giant question mark, their head pondering at the bottom edge */
+.hub-whoami::before {
+	content: "?";
+	position: absolute;
+	top: -0.15em;
+	right: 0.35em;
+	color: var(--fog);
+	font: 600 9em/1 var(--display);
+	rotate: 12deg;
 }
 .hub-card .hub-peek {
 	position: absolute;
-	right: 1.8em;
-	bottom: -1.8em;
-	rotate: -10deg;
+	right: 2.4em;
+	bottom: -1.3em;
+}
+.hub-whoami .hub-blurb {
+	max-width: 17em;
+}
+
+/* Charades: a night stage with film-strip edges, your own head bobbing as if about to act */
+.hub-charades {
+	background: linear-gradient(135deg, var(--night), var(--dusk));
+	color: var(--cream);
+}
+.hub-charades::before,
+.hub-charades::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	height: 0.6em;
+	background: repeating-linear-gradient(90deg, rgb(234 239 244 / 0.22) 0 0.9em, transparent 0.9em 1.8em);
+}
+.hub-charades::before {
+	top: 0.5em;
+}
+.hub-charades::after {
+	bottom: 0.5em;
+}
+.hub-charades .hub-blurb,
+.hub-antakshari .hub-blurb {
+	max-width: 15em;
+	color: var(--haze);
+}
+:is(.hub-charades, .hub-antakshari) .hub-ico {
+	background: rgb(234 239 244 / 0.16);
+	color: var(--cream);
+}
+/* Emoji Movie: three big emoji leaning in the corner */
+.hub-emojis {
+	position: absolute;
+	top: 0.45em;
+	right: 0.5em;
+	font-size: 2.3em;
+	letter-spacing: -0.12em;
+	rotate: -8deg;
+	transition: rotate 0.35s var(--spring);
+}
+.hub-card:hover .hub-emojis {
+	rotate: 4deg;
+}
+/* Same Wave: a haze-to-blush card with a little dial that turns on hover */
+.hub-wave {
+	background: linear-gradient(135deg, var(--haze), var(--blush));
+}
+.hub-wave .hub-blurb {
+	max-width: 14em;
+}
+.hub-dial {
+	position: absolute;
+	top: 1.1em;
+	right: 1.4em;
+	width: 11em;
+}
+.hub-dial-track,
+.hub-dial-spot {
+	fill: none;
+	stroke-width: 16;
+	stroke-linecap: round;
+}
+.hub-dial-track {
+	stroke: var(--cream);
+}
+.hub-dial-spot {
+	stroke: var(--rosewood);
+	stroke-linecap: butt;
+}
+.hub-dial-needle {
+	stroke: var(--night);
+	stroke-width: 5;
+	stroke-linecap: round;
+	transform-origin: 100px 100px;
+	rotate: -60deg;
+	transition: rotate 0.6s var(--spring);
+}
+.hub-card:hover .hub-dial-needle {
+	rotate: -110deg;
+}
+.hub-dial-hub {
+	fill: var(--night);
+}
+/* Antakshari: the dusk sky, a big अ, the two of them bobbing to the music */
+.hub-antakshari {
+	background: linear-gradient(var(--dusk) 40%, var(--mist));
+	color: var(--cream);
+}
+.hub-letter {
+	position: absolute;
+	top: 0.05em;
+	left: 42%;
+	color: rgb(247 221 141 / 0.4);
+	font: 600 6.5em/1 var(--display);
 }
 
 /* ---- Away: their head asleep, peeking from the bottom of a paper strip ---- */
@@ -174,9 +276,6 @@
 .gm-turn:has(.face) {
 	padding-left: 0.3em;
 }
-.gm-turn.mine {
-	animation: gm-nudge 2.6s ease-in-out infinite;
-}
 .gm-players {
 	display: flex;
 	flex-wrap: wrap;
@@ -196,9 +295,6 @@
 .gm-body:has(.gm-done) .gm-hint {
 	display: none; /* the finish strip says it all */
 }
-.gm-body:has(.gm-done) .c4 {
-	margin-top: 0; /* no disc hovers once it's over */
-}
 .gm-hint {
 	margin: 0;
 	max-width: 44ch;
@@ -217,11 +313,6 @@
 .gm-lock {
 	margin: 0;
 	animation: gm-pop 0.4s var(--spring) both;
-}
-
-/* A player's piece: their face in their ring */
-.gm-tok {
-	--rw: 0.2em;
 }
 
 /* Finished: a paper strip, the two heads peeking up from its bottom edge (winner hops, the other goes aww) */
@@ -253,344 +344,12 @@
 	margin: 0 0 0.5em;
 	font-size: 1.6em;
 }
-.gm-duo.ch-duo > .ch-him {
-	margin-left: 6%; /* a little air between them, so a bump reads */
-}
-
-
-/* ---- Tic-tac-toe: paper board, haze squares, faces as pieces ---- */
-.ttt {
-	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 0.6em;
-	width: min(100%, 22em);
-	padding: 1em;
-	border-radius: 1.6em;
-	background: var(--cream);
-	box-shadow: var(--lift);
-}
-.ttt-cell {
-	display: grid;
-	place-items: center;
-	aspect-ratio: 1;
-	padding: 16%;
-	border: 0;
-	border-radius: 1em;
-	background: var(--haze);
-	box-shadow: inset 0 0.2em 0.3em rgb(45 58 71 / 0.12);
-	cursor: pointer;
-	transition: background 0.15s;
-}
-.ttt-cell:disabled {
-	cursor: default;
-}
-.ttt-cell:not(:disabled):hover {
-	background: var(--fog);
-}
-.ttt-cell .gm-tok {
-	--s: 100%;
-	--rw: 0.25em;
-	font-size: 1.1em;
-	animation: gm-pop 0.45s var(--spring) both;
-}
-.ttt-cell.win {
-	background: var(--sage);
-}
-.ttt-cell.win .gm-tok {
-	animation:
-		gm-pop 0.45s var(--spring) both,
-		gm-throb 0.8s 0.5s ease-in-out infinite alternate;
-}
-
-/* ---- Connect Four: dusk board, dark holes, discs in each person's ring color ---- */
-.c4 {
-	display: grid;
-	grid-template-columns: repeat(7, 1fr);
-	gap: 0.55em;
-	width: min(100%, 27.5em);
-	margin-top: 3.4em; /* room for the hovering disc */
-	padding: 1.1em;
-	border-radius: 1.6em;
-	background: var(--dusk);
-	box-shadow: var(--lift);
-	--focus: var(--haze);
-}
-.c4-col {
-	position: relative;
-	display: grid;
-	gap: 0.55em;
-	min-width: 0;
-	padding: 0;
-	border: 0;
-	border-radius: 999px;
-	background: transparent;
-	cursor: pointer;
-	transition: background 0.15s;
-}
-.c4-col:disabled {
-	cursor: default;
-}
-.c4-col:focus-visible {
-	background: rgb(234 239 244 / 0.12);
-}
-.c4-hole {
-	display: grid;
-	aspect-ratio: 1;
-	border-radius: 50%;
-	background: rgb(45 58 71 / 0.6);
-	box-shadow: inset 0 0.2em 0.3em rgb(0 0 0 / 0.25);
-}
-.c4-piece,
-.c4-ghost {
-	border-radius: 50%;
-	background: var(--p);
-	box-shadow: inset 0 -0.28em 0 rgb(45 58 71 / 0.2);
-}
-.c4-piece {
-	animation: c4-drop calc(0.3s + var(--row) * 0.06s) both;
-}
-/* both picked the same ring color: her discs get a cream inner ring */
-.c4-piece.twin,
-.c4-ghost.twin {
-	box-shadow:
-		inset 0 -0.28em 0 rgb(45 58 71 / 0.2),
-		inset 0 0 0 0.45em var(--p),
-		inset 0 0 0 0.7em var(--cream);
-}
-.c4-piece.last {
-	outline: 0.18em solid var(--cream);
-	outline-offset: 0.14em;
-}
-.c4-hole.win .c4-piece {
-	outline: 0.2em solid var(--sage);
-	outline-offset: 0.12em;
-	animation:
-		c4-drop calc(0.3s + var(--row) * 0.06s) both,
-		gm-throb 0.8s 0.7s ease-in-out infinite alternate;
-}
-/* the disc you're about to drop hovers over the column */
-.c4-ghost {
-	--p: var(--who);
-	position: absolute;
-	left: 0;
-	right: 0;
-	bottom: calc(100% + 1.1em + 0.6em);
-	aspect-ratio: 1;
-	opacity: 0;
-	pointer-events: none;
-	transition: opacity 0.15s;
-}
-.c4-col:not(:disabled):focus-visible .c4-ghost {
-	opacity: 0.7;
-	animation: gm-bob 1.4s ease-in-out infinite;
-}
-@media (hover: hover) {
-	/* hover only where hover is real: a tap on a phone shouldn't leave a column lit */
-	.c4-col:not(:disabled):hover {
-		background: rgb(234 239 244 / 0.12);
-	}
-	.c4-col:not(:disabled):hover .c4-ghost {
-		opacity: 0.7;
-		animation: gm-bob 1.4s ease-in-out infinite;
-	}
-}
-
-/* ---- Memory match: dusk backs with his flower, cream fronts ---- */
-.mg {
-	display: grid;
-	grid-template-columns: repeat(4, 1fr);
-	gap: 0.7em;
-	width: min(100%, 28em);
-}
-.mg-card {
-	aspect-ratio: 1;
-	padding: 0;
-	border: 0;
-	border-radius: 1.1em;
-	background: none;
-	perspective: 700px;
-	cursor: pointer;
-}
-.mg-card:disabled {
-	cursor: default;
-}
-.mg-inner {
-	position: relative;
-	display: block;
-	width: 100%;
-	height: 100%;
-	transform-style: preserve-3d;
-	transition: transform 0.5s var(--spring);
-}
-.mg-card:not(:disabled):hover .mg-inner {
-	transform: translateY(-0.2em) rotate(-2deg);
-}
-.mg-card.up .mg-inner {
-	transform: rotateY(180deg);
-}
-.mg-back,
-.mg-front {
-	position: absolute;
-	inset: 0;
-	display: grid;
-	place-items: center;
-	border-radius: 1.1em;
-	-webkit-backface-visibility: hidden;
-	backface-visibility: hidden;
-}
-.mg-back {
-	background:
-		radial-gradient(circle 0.08em, var(--cream) 98%, #0000) 0.4em 0.5em / 1.6em 1.3em,
-		linear-gradient(var(--dusk), var(--steel));
-	box-shadow: var(--lift);
-}
-.mg-back .flw {
-	height: 38%;
-}
-.mg-front {
-	transform: rotateY(180deg);
-	background: var(--cream);
-	box-shadow: var(--lift);
-}
-.mg-face {
-	font-size: clamp(1.8rem, 8vw, 2.6rem);
-	line-height: 1;
-}
-.mg-card.found .mg-front {
-	box-shadow:
-		inset 0 0 0 0.25em var(--who),
-		var(--lift);
-}
-.mg-front .gm-tok {
-	position: absolute;
-	right: 0.4em;
-	bottom: 0.4em;
-	--s: 1.5em;
-}
-
-/* ---- Rock paper scissors: a paper table, her seat left, his right ---- */
-.rps {
-	display: grid;
-	justify-items: center;
-	gap: 1.2em;
-	width: min(100%, 34em);
-	text-align: center;
-}
-.rps-table {
-	position: relative;
-	display: grid;
-	grid-template-columns: 1fr auto 1fr;
-	align-items: center;
-	gap: 0.6em;
-	width: 100%;
-	padding: 2.4em 1.2em 1.2em;
-	border-radius: 1.6em;
-	background: var(--cream);
-	color: var(--night);
-	box-shadow: var(--lift);
-}
-.rps-table > .ch-burst {
-	bottom: 45%;
-	font-size: 1.6em;
-	--petal-line: var(--night); /* yellow on light paper needs its ink line */
-}
-.rps-seat {
-	display: grid;
-	grid-template-rows: 6.5em auto auto; /* her head is taller; both stand on the same line */
-	justify-items: center;
-	align-items: end;
-	gap: 0.7em;
-	margin: 0;
-}
-.rps-seat figcaption {
-	font-weight: 600;
-}
-.rps-hand {
-	display: grid;
-	place-items: center;
-	width: 5.4em;
-	aspect-ratio: 1;
-	border-radius: 50%;
-	background: var(--haze);
-	color: var(--dusk);
-	box-shadow: 0 0 0 0.3em var(--who);
-	animation: gm-pop 0.45s var(--spring) both;
-}
-.rps-hand svg {
-	width: 58%;
-	height: 58%;
-}
-.rps-hand.empty {
-	background: transparent;
-	box-shadow: inset 0 0 0 0.14em var(--steel);
-}
-.rps-hand.flip svg {
-	scale: -1 1;
-}
-.rps-hand.shake {
-	animation: rps-shake 0.52s ease-in-out infinite;
-}
-.rps-hand.won {
-	box-shadow:
-		0 0 0 0.3em var(--who),
-		0 0 0 0.65em var(--sage);
-	animation:
-		gm-pop 0.45s var(--spring) both,
-		gm-throb 0.9s 0.5s ease-in-out infinite alternate;
-}
-.rps-vs {
-	font: 500 1.3em var(--display);
+.gm-done-copy p {
+	margin: -0.3em 0 0.8em;
 	color: var(--ink-soft);
 }
-.rps-count {
-	min-width: 1.2ch;
-	font: 500 3.4em/1 var(--display);
-	color: var(--dusk);
-	animation: gm-pop 0.45s var(--spring) both;
-}
-.rps-choices {
-	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 0.8em;
-	width: 100%;
-}
-.rps-choice {
-	display: grid;
-	justify-items: center;
-	gap: 0.5em;
-	padding: 1em 0.5em 0.9em;
-	border: 0;
-	border-radius: 1.6em;
-	background: var(--cream);
-	color: var(--night);
-	box-shadow: var(--lift);
-	font: 500 1.1em var(--display);
-	text-transform: capitalize;
-	cursor: pointer;
-	transition: transform 0.3s var(--spring);
-}
-.rps-choice:not(:disabled):hover {
-	transform: translateY(-0.25em) rotate(-2deg);
-}
-.rps-choice:not(:disabled):active {
-	transform: scale(0.97);
-}
-.rps-choice:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-}
-.rps-icon {
-	display: grid;
-	place-items: center;
-	width: 3.2em;
-	aspect-ratio: 1;
-	border-radius: 50%;
-	background: var(--fog);
-	color: var(--dusk);
-}
-.rps-icon svg {
-	width: 1.7em;
-	height: 1.7em;
+.gm-duo.ch-duo > .ch-him {
+	margin-left: 6%; /* a little air between them, so a bump reads */
 }
 
 /* ---- Mind Meld: the dusk sky with the two of them, then the chain of words ---- */
@@ -641,12 +400,8 @@
 .mm-duo {
 	translate: 0 12%;
 }
-.mm-duo .ch-burst,
-.dd-yay-head .ch-burst {
+.mm-duo .ch-burst {
 	font-size: 1.6em;
-}
-.dd-yay-head .ch-burst {
-	--petal-line: var(--night); /* yellow on light paper needs its ink line */
 }
 .mm-chain {
 	display: grid;
@@ -705,163 +460,651 @@
 	flex: none;
 }
 
-/* ---- Doodle and guess: a dotted paper page, the partner peeking over its top edge ---- */
-.dd {
+/* ---- Who Am I?: the lead holds a playing card, the guesser faces a night card with a big yellow question mark ---- */
+.wa {
 	display: grid;
-	gap: 1em;
-	width: min(100%, 44em, (100dvh - 26em) * 4 / 3); /* the page, tools included, fits a laptop screen */
-	min-width: min(100%, 26em);
+	gap: 1.1em;
+	width: min(100%, 36em);
 }
-.dd-word {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 0.3em 0.9em;
-	margin: 0;
-	margin-right: 6.5em; /* the partner's head peeks over the paper here */
-	padding: 0.6em 0.8em 0.6em 1.3em;
-	min-height: 3.4em;
-	border-radius: 1.6em;
-	background: var(--cream);
-	color: var(--night);
-	box-shadow: var(--lift);
-	font-weight: 600;
-}
-.dd-word strong {
-	font: 500 1.6em/1.1 var(--display);
-	color: var(--rose-ink);
-}
-.dd-stage {
+.wa-card {
 	position: relative;
-	margin-top: -0.4em;
-}
-.dd-canvas {
-	position: relative;
-	z-index: 1;
-	display: block;
-	width: 100%;
-	aspect-ratio: 4 / 3; /* strokes are stored 0..1, so the shape must never change */
-	border-radius: 1.6em;
-	background:
-		radial-gradient(circle 0.1em, var(--fog) 95%, #0000) 0 0 / 1.3em 1.3em,
-		var(--paper);
-	box-shadow: var(--lift);
-}
-.dd-canvas.can-draw {
-	touch-action: none;
-	cursor: crosshair;
-}
-.dd-stage .dd-peek {
-	position: absolute;
-	right: 1.4em;
-	bottom: calc(100% - 1.5em);
-	z-index: 0;
-}
-.dd-bubbles {
-	position: absolute;
-	inset: 0;
-	z-index: 2;
 	overflow: hidden;
-	border-radius: 1.6em;
-	pointer-events: none;
-}
-.dd-bubble {
-	position: absolute;
-	left: var(--x);
-	bottom: 1em;
-	max-width: 60%;
-	padding: 0.4em 0.9em;
-	border-radius: 1.2em 1.2em 1.2em 0.35em;
-	background: var(--fog);
-	color: var(--night);
-	font-weight: 600;
-	overflow-wrap: anywhere;
-	animation: dd-float 2.8s ease-out both;
-}
-.dd-yay {
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	z-index: 3;
-	translate: -50% -50%;
 	display: grid;
 	justify-items: center;
-	gap: 0.2em;
-	width: max-content;
-	max-width: 90%;
-	padding: 1.2em 1.8em 1.1em;
+	align-content: start;
+	gap: 0.45em;
+	padding: 1.5em 1.4em;
 	border-radius: 1.6em;
+	text-align: center;
+	box-shadow: var(--lift);
+}
+.wa-card.knows {
+	background: var(--cream);
+	color: var(--night);
+	outline: 2px dashed rgb(45 58 71 / 0.16);
+	outline-offset: -10px;
+	animation: gm-pop 0.5s var(--spring) both;
+}
+.wa-card.mystery {
+	min-height: 13em;
+	padding-bottom: 5em;
+	background: linear-gradient(var(--night), var(--dusk));
+	color: var(--cream);
+}
+.wa-card-top {
+	color: var(--ink-soft);
+	font-size: 0.85em;
+	font-weight: 600;
+}
+.wa-name {
+	position: relative;
+	font: 500 2.2em/1.1 var(--display);
+	overflow-wrap: anywhere;
+}
+.wa-q {
+	position: relative;
+	margin-bottom: -0.2em;
+	color: var(--flower);
+	font: 600 4.2em/1 var(--display);
+}
+.wa-card .chip svg {
+	width: 1.1em;
+	height: 1.1em;
+}
+.wa-note {
+	color: var(--ink-soft);
+	font-size: 0.8em;
+}
+.wa-peek {
+	position: absolute;
+	right: 1.6em;
+	bottom: -1.5em;
+}
+.wa-answer {
+	display: grid;
+	gap: 0.8em;
+}
+.wa-asking {
+	margin: 0;
+	min-height: 1.5em;
+	text-align: center;
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+.wa-asking b {
+	color: var(--rose-ink);
+}
+.wa-answers {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 0.5em;
+}
+.wa-a {
+	--focus: var(--dusk);
+	padding: 0.95em 0.4em;
+	border: 0;
+	border-radius: 1.2em;
+	background: var(--haze);
+	color: var(--night);
+	box-shadow: var(--lift);
+	font: 600 1.05em "Figtree", sans-serif;
+	cursor: pointer;
+	transition: transform 0.2s var(--spring);
+}
+.wa-a:hover:not(:disabled) {
+	transform: translateY(-2px);
+}
+.wa-a:active:not(:disabled) {
+	transform: scale(0.95);
+}
+.wa-a:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+.wa-a.yes,
+.wa-chip.yes {
+	background: var(--sage);
+}
+.wa-a.no,
+.wa-chip.no {
+	background: var(--blush);
+}
+.wa-a.kinda,
+.wa-chip.kinda {
+	background: var(--fog);
+}
+.wa-row {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.6em;
+}
+.wa-guess {
+	display: grid;
+	gap: 0.6em;
+}
+.wa-giveup {
+	justify-self: center;
+}
+.wa-wrong {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.4em;
+	margin: 0;
+}
+.wa-log {
+	display: grid;
+	gap: 0.4em;
+	max-height: 19em;
+	margin: 0;
+	padding: 0;
+	overflow: auto;
+	list-style: none;
+}
+.wa-entry {
+	display: flex;
+	align-items: center;
+	gap: 0.7em;
+	padding: 0.45em 0.5em;
+	border-radius: 1em;
+	background: rgb(255 247 230 / 0.75);
+	animation: gm-pop 0.35s var(--spring) both;
+}
+.wa-entry.waiting {
+	box-shadow: inset 0 0 0 2px var(--rose-ink);
+}
+.wa-n {
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: 1.9em;
+	height: 1.9em;
+	border-radius: 50%;
+	background: var(--fog);
+	font-size: 0.85em;
+	font-weight: 700;
+}
+.wa-text {
+	flex: 1;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.wa-chip {
+	flex: none;
+	padding: 0.2em 0.75em;
+	border-radius: 999px;
+	background: var(--haze);
+	font-size: 0.85em;
+	font-weight: 700;
+}
+
+/* ---- Shared: the round timer, a ring that empties ---- */
+.gm-timer {
+	position: relative;
+	isolation: isolate;
+	display: inline-grid;
+	place-items: center;
+	width: 3.4em;
+	height: 3.4em;
+	border-radius: 50%;
+	background: conic-gradient(var(--dusk) calc(var(--p, 1) * 360deg), rgb(169 183 198 / 0.35) 0);
+	color: var(--night);
+	font: 600 1.15em var(--display);
+	font-variant-numeric: tabular-nums;
+}
+.gm-timer::before {
+	content: "";
+	position: absolute;
+	inset: 0.32em;
+	z-index: -1;
+	border-radius: 50%;
+	background: var(--cream);
+}
+.gm-timer.low {
+	background: conic-gradient(var(--rose-ink) calc(var(--p, 1) * 360deg), rgb(180 106 114 / 0.3) 0);
+	color: var(--rose-ink);
+	animation: gm-throb 0.5s ease-in-out infinite alternate;
+}
+
+/* ---- Don't Say It: a cream card, the banned words in rosewood pills ---- */
+.ds {
+	display: grid;
+	justify-items: center;
+	gap: 1em;
+	width: min(100%, 34em);
+}
+.ds-ready {
+	display: grid;
+	justify-items: center;
+	gap: 1em;
+	padding: 1.4em;
+	border-radius: 1.6em;
+	background: var(--cream);
+	box-shadow: var(--lift);
+	text-align: center;
+}
+.ds-ready p {
+	margin: 0;
+	max-width: 30em;
+}
+.ds-top {
+	display: flex;
+	align-items: center;
+	gap: 1em;
+}
+.ds-count {
+	font: 500 1.4em var(--display);
+}
+.ds-card {
+	position: relative;
+	display: grid;
+	justify-items: center;
+	gap: 0.8em;
+	width: 100%;
+	padding: 1.6em 1.4em;
+	border-radius: 1.6em;
+	background: var(--cream);
+	box-shadow: var(--lift);
+	text-align: center;
+	animation: gm-pop 0.4s var(--spring) both;
+}
+.ds-card.listen {
+	background: linear-gradient(var(--night), var(--dusk));
+	color: var(--cream);
+}
+.ds-card.listen p {
+	margin: 0;
+	color: var(--haze);
+}
+.ds-card.buzzed {
+	animation: ds-buzz 0.5s;
+}
+.ds-word {
+	font: 500 2.4em/1.1 var(--display);
+	overflow-wrap: anywhere;
+}
+.ds-ban {
+	display: grid;
+	gap: 0.35em;
+	width: min(100%, 16em);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.ds-ban li {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	padding: 0.35em 0.9em;
+	border-radius: 999px;
+	background: rgb(180 106 114 / 0.12);
+	color: var(--rose-ink);
+	font-weight: 700;
+}
+.ds-ban svg {
+	flex: none;
+	width: 1.1em;
+	height: 1.1em;
+}
+.ds-buzz {
+	position: absolute;
+	top: -0.8em;
+	left: 50%;
+	translate: -50% 0;
+	padding: 0.3em 0.9em;
+	border-radius: 999px;
+	background: var(--rose-ink);
+	color: var(--cream);
+	font-size: 0.85em;
+	font-weight: 700;
+	white-space: nowrap;
+	animation: gm-pop 0.3s var(--spring) both;
+}
+.ds-piles {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.4em;
+}
+.ds-piles .chip {
+	animation: gm-pop 0.35s var(--spring) both;
+}
+.ds-skipped {
+	opacity: 0.6;
+	text-decoration: line-through;
+}
+
+/* ---- Dumb Charades: the actor's camera big on a night stage ---- */
+.dc {
+	display: grid;
+	justify-items: center;
+	gap: 1em;
+	width: min(100%, 40em);
+}
+.dc-stage {
+	position: relative;
+	width: 100%;
+}
+.dc-cam {
+	position: relative;
+	overflow: hidden;
+	aspect-ratio: 4 / 3;
+	border-radius: 1.6em;
+	background: linear-gradient(var(--night), var(--dusk));
+	box-shadow: var(--lift);
+}
+.dc-cam.mine {
+	width: min(100%, 22em);
+	margin-inline: auto;
+}
+.dc-cam video {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.dc-cam video.off {
+	visibility: hidden;
+}
+.dc-cam.mine video {
+	transform: scaleX(-1); /* a mirror, like your bubble */
+}
+.dc-cam-off {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	align-content: center;
+	gap: 0.6em;
+	color: var(--haze);
+	font-weight: 600;
+	text-align: center;
+}
+.dc-timer {
+	position: absolute;
+	top: 0.8em;
+	right: 0.8em;
+}
+.dc-wait {
+	position: absolute;
+	bottom: 0.9em;
+	left: 50%;
+	translate: -50% 0;
+	max-width: calc(100% - 2em);
+	padding: 0.35em 1em;
+	border-radius: 999px;
+	background: rgb(24 32 41 / 0.6);
+	backdrop-filter: blur(6px);
+	color: var(--cream);
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.dc-card {
+	display: grid;
+	justify-items: center;
+	gap: 0.3em;
+	width: 100%;
+	padding: 1em 1.2em;
+	border-radius: 1.4em;
+	background: var(--cream);
+	box-shadow: var(--lift);
+	text-align: center;
+	animation: gm-pop 0.4s var(--spring) both;
+}
+.dc-title {
+	font: 500 2em/1.1 var(--display);
+	overflow-wrap: anywhere;
+}
+.dc-words {
+	color: var(--ink-soft);
+	font-weight: 600;
+}
+
+/* ---- Emoji Movie: the clue big on a night board, a palette to build it ---- */
+.em {
+	display: grid;
+	justify-items: center;
+	gap: 1em;
+	width: min(100%, 36em);
+}
+.em > .wa-card,
+.em-board,
+.em-write {
+	width: 100%;
+}
+.em-board {
+	display: grid;
+	justify-items: center;
+	gap: 0.6em;
+	padding: 1.4em;
+	border-radius: 1.6em;
+	background: linear-gradient(var(--night), var(--dusk));
+	color: var(--cream);
+	box-shadow: var(--lift);
+	text-align: center;
+}
+.em-board.waiting p {
+	margin: 0;
+	color: var(--haze);
+}
+.em-clue {
+	margin: 0;
+	font-size: 2.6em;
+	line-height: 1.3;
+	letter-spacing: 0.05em;
+	overflow-wrap: anywhere;
+	animation: gm-pop 0.4s var(--spring) both;
+}
+.em-clue.small {
+	font-size: 1.8em;
+}
+.em-write {
+	display: grid;
+	gap: 0.7em;
+}
+.em-input {
+	font-size: 1.3em;
+}
+.em-palette {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(2.5em, 1fr));
+	gap: 0.2em;
+	max-height: 12.5em;
+	overflow: auto;
+	padding: 0.5em;
+	border-radius: 1.2em;
+	background: rgb(255 247 230 / 0.75);
+}
+.em-key {
+	aspect-ratio: 1;
+	border: 0;
+	border-radius: 0.7em;
+	background: transparent;
+	font-size: 1.45em;
+	cursor: pointer;
+	transition: transform 0.15s var(--spring);
+}
+.em-key:hover {
+	background: var(--haze);
+	transform: scale(1.15);
+}
+
+/* ---- Same Wave: a half-circle dial from mist to blush; the secret spot is a rosewood band ---- */
+.sw {
+	display: grid;
+	justify-items: center;
+	gap: 0.9em;
+	width: min(100%, 34em);
+}
+.sw-clue {
+	display: grid;
+	justify-items: center;
+	gap: 0.1em;
+	margin: 0;
+}
+.sw-clue span {
+	color: var(--ink-soft);
+	font-size: 0.9em;
+	font-weight: 600;
+}
+.sw-clue strong {
+	font: 500 2.2em/1.1 var(--display);
+	overflow-wrap: anywhere;
+}
+.sw-dial-wrap {
+	position: relative;
+	width: min(100%, 26em);
+}
+.sw-dial {
+	--focus: var(--dusk);
+	display: block;
+	width: 100%;
+	overflow: visible;
+	touch-action: none;
+}
+.sw-dial.can-drag {
+	cursor: grab;
+}
+.sw-dial.can-drag:active {
+	cursor: grabbing;
+}
+.sw-dial:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 6px;
+	border-radius: 1em;
+}
+.sw-track,
+.sw-target path {
+	fill: none;
+	stroke-width: 26;
+}
+.sw-track {
+	stroke-linecap: round;
+}
+.sw-target .z3 {
+	stroke: rgb(180 106 114 / 0.3);
+}
+.sw-target .z2 {
+	stroke: rgb(180 106 114 / 0.55);
+}
+.sw-target .z1 {
+	stroke: var(--rosewood);
+}
+.sw-needle line {
+	stroke: var(--night);
+	stroke-width: 5;
+	stroke-linecap: round;
+	transform-origin: 100px 100px;
+	transition: rotate 0.12s linear;
+}
+.sw-needle circle {
+	fill: var(--night);
+}
+.sw-burst {
+	position: absolute;
+	left: 50%;
+	top: 60%;
+	font-size: 1.4em;
+}
+.sw-ends {
+	display: flex;
+	justify-content: space-between;
+	width: min(100%, 26em);
+	margin-top: -0.4em;
+	font-weight: 700;
+}
+.sw-give,
+.sw-lock {
+	display: grid;
+	justify-items: center;
+	gap: 0.7em;
+	width: 100%;
+	text-align: center;
+}
+.sw-give p,
+.sw-lock p,
+.sw-note {
+	margin: 0;
+	font-weight: 600;
+}
+.sw-give .mm-row {
+	width: 100%;
+}
+
+/* ---- Antakshari: a big yellow letter on the night stage, the singer bobbing at the edge ---- */
+.ak {
+	display: grid;
+	justify-items: center;
+	gap: 1em;
+	width: min(100%, 34em);
+}
+.ak-stage {
+	position: relative;
+	overflow: hidden;
+	display: grid;
+	place-items: center;
+	width: 100%;
+	height: 15em;
+	border-radius: 1.6em;
+	background: linear-gradient(var(--night), var(--dusk));
+	box-shadow: var(--lift);
+	transition: background 0.6s;
+}
+.ak-stage.late {
+	background: linear-gradient(var(--night), var(--rosewood));
+}
+.ak-letter {
+	position: relative;
+	color: var(--flower);
+	font: 600 7em/1 var(--display);
+	animation: ak-in 0.6s var(--spring) both;
+}
+.ak-timer {
+	position: absolute;
+	top: 0.9em;
+	right: 0.9em;
+}
+.ak-count {
+	position: absolute;
+	top: 0.9em;
+	left: 0.9em;
+}
+.ak-singer {
+	position: absolute;
+	left: 1.4em;
+	bottom: -1.4em;
+}
+.ak-say {
+	margin: 0;
+	min-height: 1.5em;
+	text-align: center;
+	font-size: 1.1em;
+	font-weight: 600;
+}
+.ak-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(3.2em, 1fr));
+	gap: 0.4em;
+	width: 100%;
+}
+.ak-key {
+	--focus: var(--dusk);
+	padding: 0.7em 0;
+	border: 0;
+	border-radius: 1em;
 	background: var(--cream);
 	color: var(--night);
 	box-shadow: var(--lift);
-	text-align: center;
-	pointer-events: none;
-	animation: gm-pop 0.5s var(--spring) both;
-}
-.dd-yay-head {
-	position: relative;
-	display: flex;
-	margin-bottom: 0.3em;
-}
-.dd-yay p {
-	margin: 0;
-	font: 500 1.3em var(--display);
-}
-.dd-next {
-	color: var(--ink-soft);
-}
-.dd-tools {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.8em;
-}
-.dd-swatches,
-.dd-sizes {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.5em;
-}
-.dd-swatch,
-.dd-size {
-	display: grid;
-	place-items: center;
-	width: 2.3em;
-	height: 2.3em;
-	padding: 0;
-	border: 0;
-	border-radius: 50%;
+	font: 600 1.2em var(--display);
 	cursor: pointer;
-	transition: transform 0.25s var(--spring);
+	transition: transform 0.15s var(--spring);
 }
-.dd-swatch {
-	background: var(--ink);
-	box-shadow: inset 0 0 0 1px rgb(45 58 71 / 0.15);
-}
-.dd-size {
-	background: var(--cream);
-	box-shadow: var(--lift);
-}
-.dd-swatch.on,
-.dd-size.on {
-	transform: scale(1.06);
-	box-shadow:
-		0 0 0 0.2em var(--cream),
-		0 0 0 0.38em var(--night);
-}
-@media (pointer: coarse) {
-	.dd-swatch,
-	.dd-size {
-		width: 2.75em; /* finger-sized */
-		height: 2.75em;
-	}
-}
-.dd-size span {
-	width: var(--dot);
-	height: var(--dot);
-	border-radius: 50%;
-	background: var(--ink);
+.ak-key:hover {
+	background: var(--flower);
+	transform: translateY(-2px);
 }
 
 /* ---- Phone ---- */
@@ -880,10 +1123,16 @@
 	.hub-name {
 		font-size: 1.2em;
 	}
-	.hub-card .hub-duo,
-	.hub-card .hub-peek {
+	.hub-card .hub-duo {
 		right: 1em;
 		font-size: 0.8em;
+	}
+	.hub-card .hub-peek {
+		right: 0.8em;
+		font-size: 0.75em;
+	}
+	:is(.hub-whoami, .hub-charades, .hub-antakshari, .hub-wave) .hub-blurb {
+		max-width: 52%;
 	}
 	.hub-mindmeld {
 		background: linear-gradient(var(--dusk) 60%, var(--mist)); /* the blurb wraps to three lines here */
@@ -894,21 +1143,24 @@
 	.gm-title {
 		font-size: 1.6em;
 	}
-	.c4 {
-		gap: 0.4em;
-		padding: 0.8em;
+	.wa-answers {
+		grid-template-columns: repeat(2, 1fr);
 	}
-	.c4-col {
-		gap: 0.4em;
+	.ds-word,
+	.dc-title {
+		font-size: 1.8em;
 	}
-	.c4-ghost {
-		bottom: calc(100% + 0.8em + 0.5em);
+	.em-clue {
+		font-size: 2em;
 	}
-	.rps-table {
-		padding-inline: 0.6em;
+	.ak-letter {
+		font-size: 5.5em;
 	}
-	.rps-hand {
-		width: 4.4em;
+	.hub-dial {
+		width: 8em;
+	}
+	.wa-name {
+		font-size: 1.8em;
 	}
 	.gm-done {
 		gap: 0.8em;
@@ -920,31 +1172,27 @@
 	.gm-done h2 {
 		font-size: 1.35em;
 	}
-	.dd-word {
-		margin-right: 5.2em;
-	}
-	.dd-stage .dd-peek {
-		right: 1em;
-		font-size: 0.8em;
-	}
 }
 
 /* ---- Motion (transform and opacity only) ---- */
-@keyframes c4-drop {
-	0% {
-		transform: translateY(calc((var(--row) + 1) * -118%));
-		animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+@keyframes ds-buzz {
+	20% {
+		transform: translateX(-8px);
 	}
-	68% {
-		transform: translateY(0);
-		animation-timing-function: ease-out;
+	40% {
+		transform: translateX(8px);
 	}
-	84% {
-		transform: translateY(-14%);
-		animation-timing-function: ease-in;
+	60% {
+		transform: translateX(-5px);
 	}
-	100% {
-		transform: translateY(0);
+	80% {
+		transform: translateX(5px);
+	}
+}
+@keyframes ak-in {
+	from {
+		transform: scale(0.3) rotate(-20deg);
+		opacity: 0;
 	}
 }
 @keyframes gm-pop {
@@ -953,55 +1201,8 @@
 		opacity: 0;
 	}
 }
-@keyframes gm-bob {
-	50% {
-		transform: translateY(-12%);
-	}
-}
 @keyframes gm-throb {
 	to {
 		transform: scale(1.08);
-	}
-}
-@keyframes gm-nudge {
-	0%,
-	80%,
-	100% {
-		transform: none;
-	}
-	86% {
-		transform: rotate(-3deg);
-	}
-	93% {
-		transform: rotate(3deg);
-	}
-}
-@keyframes rps-shake {
-	50% {
-		transform: translateY(-0.9em) rotate(-12deg);
-	}
-}
-@keyframes dd-float {
-	0% {
-		opacity: 0;
-		transform: translateY(10px) scale(0.8);
-	}
-	12% {
-		opacity: 1;
-		transform: none;
-	}
-	80% {
-		opacity: 1;
-	}
-	100% {
-		opacity: 0;
-		transform: translateY(-150px);
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	/* Guesses are removed by JS timers; skip the fade-out end state so they stay readable until then. */
-	.dd-bubble {
-		animation-fill-mode: backwards;
 	}
 }

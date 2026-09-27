@@ -35,10 +35,11 @@ import {
 	WarningCircle,
 	X,
 } from "@phosphor-icons/react";
-import { LIMITS, other, type Who } from "../shared/types";
+import { LIMITS, other, type Tube, type Who } from "../shared/types";
 import { Duo, Face, Flower, FlowerRain, Head, type HeadProps } from "./Character";
-import { onRelay, profileOf, relay, send, useRoom, type RoomState } from "./room";
-import { dismissReshare, setCam, setMic, setQuality, startShare, stopShare, useCall, type CallState, type Quality } from "./rtc";
+import { getRoom, onRelay, profileOf, relay, send, useRoom, type RoomState } from "./room";
+import { dismissReshare, setCam, setMic, setQuality, setTubeMovie, startShare, stopShare, useCall, type CallState, type Quality } from "./rtc";
+import { TubeBar, TubePlayer, TubeStart } from "./Tube";
 import "./theater.css";
 
 export type Vars = CSSProperties & Record<`--${string}`, string | number>;
@@ -196,6 +197,29 @@ function chime(notes: number[]) {
 		/* no Web Audio: the toast still shows */
 	}
 }
+/** Knock knock: two short wooden taps (a poke). */
+function knock() {
+	try {
+		const ctx = (audioCtx ??= new AudioContext());
+		void ctx.resume();
+		[0, 0.17].forEach((dt) => {
+			const t = ctx.currentTime + dt;
+			const osc = ctx.createOscillator();
+			const gain = ctx.createGain();
+			osc.type = "triangle";
+			osc.frequency.setValueAtTime(420, t);
+			osc.frequency.exponentialRampToValueAtTime(140, t + 0.09);
+			gain.gain.setValueAtTime(0.0001, t);
+			gain.gain.exponentialRampToValueAtTime(0.5, t + 0.005);
+			gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+			osc.connect(gain).connect(ctx.destination);
+			osc.start(t);
+			osc.stop(t + 0.16);
+		});
+	} catch {
+		/* no Web Audio: the toast still shows */
+	}
+}
 
 const baseTitle = document.title;
 let titleTimer: number | undefined;
@@ -232,30 +256,54 @@ const listen = (set: Set<() => void>) => (f: () => void) => {
 /** A flower you just sent (the bubbles fly it across) / one that arrived during a movie (shown small, by the cams). */
 export const onFlowerOut = listen(flowersOut);
 export const onFlowerIn = listen(flowersIn);
-/** True for a moment after a flower goes out, so every send button reads "Flower sent". */
-export function useFlowerSent() {
+/** True for `ms` after each event, so every send button reads "sent" during the cooldown. */
+function useJustSent(on: (f: () => void) => () => void, ms: number) {
 	const [sent, setSent] = useState(false);
 	useEffect(() => {
 		let t: number | undefined;
-		const off = onFlowerOut(() => {
+		const off = on(() => {
 			setSent(true);
 			clearTimeout(t);
-			t = window.setTimeout(() => setSent(false), FLOWER_COOLDOWN);
+			t = window.setTimeout(() => setSent(false), ms);
 		});
 		return () => {
 			off();
 			clearTimeout(t);
 		};
-	}, []);
+	}, [on, ms]);
 	return sent;
 }
+export const useFlowerSent = () => useJustSent(onFlowerOut, FLOWER_COOLDOWN);
+
+// ---------- poke: "I'm here", from Home or their cam bubble ----------
+
+const POKE_COOLDOWN = 2500;
+let pokeAt = 0;
+const pokesOut = new Set<() => void>();
+const pokesIn = new Set<() => void>();
+/** Pokes them (sent as "boop", the name older tabs know). Returns false inside the cooldown. */
+export function sendPoke() {
+	if (Date.now() - pokeAt < POKE_COOLDOWN) return false;
+	pokeAt = Date.now();
+	relay({ k: "nudge", kind: "boop" });
+	pokesOut.forEach((f) => f());
+	return true;
+}
+export const onPokeOut = listen(pokesOut);
+export const onPokeIn = listen(pokesIn);
+export const usePokeSent = () => useJustSent(onPokeOut, POKE_COOLDOWN);
+
+/** A movie (a shared tab, or a YouTube video playing) is on and you're on the theater page: nothing may cover the screen then, only small toasts. */
+export const movieOn = (call: CallState, tube?: Tube | null) =>
+	(!!call.localScreen || call.peerSharing || !!tube?.playing) && location.hash.replace(/^#\/?/, "") === "theater";
 
 export function NudgeListener() {
 	const room = useRoom();
 	const call = useCall();
-	const sharing = useRef(false);
-	sharing.current = !!call.localScreen || call.peerSharing;
+	const callNow = useRef(call);
+	callNow.current = call;
 	const [nudge, setNudge] = useState<{ kind: "pause" | "flower"; key: number } | null>(null);
+	const [poke, setPoke] = useState<{ mine: boolean; key: number } | null>(null);
 
 	useEffect(
 		() =>
@@ -268,36 +316,82 @@ export function NudgeListener() {
 				} else if (d.kind === "flower" || (d.kind as string) === "hug") {
 					// ("hug" is what tabs opened before the rename still send)
 					chime([523, 659, 784]);
-					const inMovie = sharing.current && location.hash.replace(/^#\/?/, "") === "theater";
-					if (inMovie) flowersIn.forEach((f) => f()); // never cover the movie: the bubbles show it
+					if (movieOn(callNow.current, getRoom()?.tube)) flowersIn.forEach((f) => f()); // never cover the movie: the bubbles show it
 					else setNudge({ kind: "flower", key: Date.now() });
-				} // "boop" belongs to Home
+				} else if (d.kind === "boop") {
+					knock();
+					setPoke({ mine: false, key: Date.now() });
+					pokesIn.forEach((f) => f());
+					const r = getRoom();
+					if (document.hidden && r) flashTitle(`${profileOf(r, other(r.you)).name} poked you`, 4000);
+				}
 			}),
 		[],
 	);
+	useEffect(() => onPokeOut(() => setPoke({ mine: true, key: Date.now() })), []);
+	const tubeOn = !!room?.tube;
+	useEffect(() => setTubeMovie(tubeOn), [tubeOn]); // a YouTube video mutes the mics like a movie
+	useEffect(() => {
+		if (!poke) return;
+		const t = setTimeout(() => setPoke(null), poke.mine ? 2000 : 4000);
+		return () => clearTimeout(t);
+	}, [poke]);
 	useEffect(() => {
 		if (!nudge) return;
 		const t = setTimeout(() => setNudge(null), nudge.kind === "flower" ? 6000 : 7000); // waits for the flower to land
 		return () => clearTimeout(t);
 	}, [nudge]);
 
-	if (!room || !nudge) return null;
+	if (!room) return null;
 	const partner = other(room.you);
 	const them = profileOf(room, partner);
-	if (nudge.kind === "flower") return <FlowerOverlay key={nudge.key} from={partner} name={them.name} onClose={() => setNudge(null)} />;
-	return (
-		<div className="fc-pause" role="alert" key={nudge.key}>
-			<span className="fc-pause-head">
-				<Head who={partner} moment="knock" h="6.2em" />
-			</span>
-			<div className="fc-pause-copy">
-				<strong>{them.name} asks to pause</strong>
-				<span>Press ⏯ on your keyboard or use Chrome's media control.</span>
-			</div>
-			<button className="btn icon ghost sm" aria-label="Dismiss" onClick={() => setNudge(null)}>
-				<X aria-hidden />
-			</button>
+	const pokeToast = poke && (
+		<div className={`fc-poke${poke.mine ? " mine" : ""}`} role="status" key={poke.key}>
+			{poke.mine ? (
+				<span>You poked {them.name}</span>
+			) : (
+				<>
+					<Face who={partner} ring={them.color} moment="knock" s="2.6em" />
+					<span>
+						<b>{them.name}</b> poked you
+					</span>
+					<button
+						className="btn sm"
+						onClick={() => {
+							sendPoke();
+							setPoke(null);
+						}}
+					>
+						Poke back
+					</button>
+				</>
+			)}
 		</div>
+	);
+	if (!nudge) return pokeToast;
+	if (nudge.kind === "flower")
+		return (
+			<>
+				{pokeToast}
+				<FlowerOverlay key={nudge.key} from={partner} name={them.name} onClose={() => setNudge(null)} />
+			</>
+		);
+	return (
+		<>
+			{pokeToast}
+			<div className="fc-pause" role="alert" key={nudge.key}>
+				<span className="fc-pause-head">
+					<Head who={partner} moment="knock" h="6.2em" />
+				</span>
+				<div className="fc-pause-copy">
+					<strong>{them.name} asks to pause</strong>
+					<span>Press ⏯ on your keyboard or use Chrome's media control.</span>
+				</div>
+				<button className="btn icon ghost sm" aria-label="Dismiss" onClick={() => setNudge(null)}>
+					<X aria-hidden />
+				</button>
+			</div>
+		</>
 	);
 }
 
@@ -356,7 +450,12 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 	const hosting = !!call.localScreen;
 	const sharing = hosting || call.peerSharing;
 	const pictureLive = useLive(call.remoteScreen);
-	const showing = hosting || (call.peerSharing && pictureLive); // curtains stay shut until frames arrive
+	const tube = sharing ? null : room.tube; // a shared tab takes the stage over a YouTube video
+	const showing = hosting || (call.peerSharing && pictureLive) || !!tube; // curtains stay shut until frames arrive
+	const share = () => {
+		if (room.tube) send({ t: "tube:stop" });
+		void startShare();
+	};
 
 	// ---- reactions: shown locally + relayed; remote ones arrive via onRelay ----
 	const [floaters, setFloaters] = useState<Floater[]>([]);
@@ -446,6 +545,27 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 	}, []);
 	const toggleFull = () =>
 		document.fullscreenElement ? void document.exitFullscreen() : void document.documentElement.requestFullscreen().catch(() => {});
+	// in fullscreen the toolbar floats over the movie and fades once the pointer rests
+	const [idle, setIdle] = useState(false);
+	useEffect(() => {
+		if (!full) {
+			setIdle(false);
+			return;
+		}
+		let t = 0;
+		const wake = () => {
+			setIdle(false);
+			clearTimeout(t);
+			t = window.setTimeout(() => setIdle(true), 3000);
+		};
+		wake();
+		const evs = ["pointermove", "pointerdown", "keydown"] as const;
+		evs.forEach((e) => addEventListener(e, wake));
+		return () => {
+			clearTimeout(t);
+			evs.forEach((e) => removeEventListener(e, wake));
+		};
+	}, [full]);
 
 	// ---- stage size: the largest 16:9 that fits below the toolbar, times the user's scale (0.4–1) ----
 	const wrapRef = useRef<HTMLElement>(null);
@@ -520,10 +640,30 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 	const [hiddenError, setHiddenError] = useState<string | null>(null);
 	const [ending, setEnding] = useState(false);
 	const status = !partnerHere ? "away" : call.connection === "connected" ? "together" : "connecting";
+	// Chat + fullscreen float on the stage's corner. Over a YouTube player that corner holds its title, so (outside
+	// fullscreen) they move into the reaction pill.
+	const tubeTools = !!tube && !full;
+	const stageTools = (
+		<div className="th-stage-tools">
+			<button
+				ref={chatBtn}
+				className="btn icon glass th-chat-toggle"
+				aria-label={unread ? `Chat, ${unread} unread` : "Chat"}
+				aria-expanded={chatOpen}
+				onClick={() => (chatOpen ? closeChat() : setChatOpen(true))}
+			>
+				<ChatCircleDots aria-hidden />
+				{unread > 0 && <span className="th-badge">{unread > 9 ? "9+" : unread}</span>}
+			</button>
+			<button className="btn icon glass" aria-label={full ? "Exit fullscreen" : "Fullscreen"} onClick={toggleFull}>
+				{full ? <CornersIn aria-hidden /> : <CornersOut aria-hidden />}
+			</button>
+		</div>
+	);
 	const bob = (w: Who) => ({ mood: w === partner && !partnerHere ? ("away" as const) : ("bob" as const) });
 
 	return (
-		<main className={`page theater${sharing ? " lights-off" : ""}`}>
+		<main className={`page theater${sharing || tube?.playing ? " lights-off" : ""}${full ? " is-full" : ""}${full && idle && !tube ? " idle" : ""}`}>
 			{sharing && <i className="stars th-stars" />}
 			<div className="th-col">
 				<div className="th-above" ref={aboveRef}>
@@ -565,10 +705,12 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 							</span>
 						</div>
 						<div className="th-group">
-							<button className="btn glass th-tool" disabled={!partnerHere || asked} onClick={askPause}>
-								<HandPalm aria-hidden />
-								<span className="th-lbl">{asked ? "Asked" : "Please pause"}</span>
-							</button>
+							{!tube && (
+								<button className="btn glass th-tool" disabled={!partnerHere || asked} onClick={askPause}>
+									<HandPalm aria-hidden />
+									<span className="th-lbl">{asked ? "Asked" : "Please pause"}</span>
+								</button>
+							)}
 							<button className="btn glass th-tool" disabled={!partnerHere || flowerSent} onClick={sendFlower}>
 								<Flower />
 								<span className="th-lbl">{flowerSent ? "Flower sent" : "Send a flower"}</span>
@@ -615,24 +757,16 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 								</button>
 							</>
 						)}
-						<div className="th-stage-tools">
-							<button
-								ref={chatBtn}
-								className="btn icon glass th-chat-toggle"
-								aria-label={unread ? `Chat, ${unread} unread` : "Chat"}
-								aria-expanded={chatOpen}
-								onClick={() => (chatOpen ? closeChat() : setChatOpen(true))}
-							>
-								<ChatCircleDots aria-hidden />
-								{unread > 0 && <span className="th-badge">{unread > 9 ? "9+" : unread}</span>}
-							</button>
-							<button className="btn icon glass" aria-label={full ? "Exit fullscreen" : "Fullscreen"} onClick={toggleFull}>
-								{full ? <CornersIn aria-hidden /> : <CornersOut aria-hidden />}
-							</button>
-						</div>
+						{!tubeTools && stageTools}
 					</div>
 					<div className={`th-stage${v.hideMovie ? " collapsed" : ""}${showing ? "" : " arch"}`} onDoubleClick={burst}>
-						{hosting ? <LocalPreview stream={call.localScreen!} /> : call.peerSharing ? <RemoteMovie stream={call.remoteScreen} volume={volume} /> : null}
+						{hosting ? (
+							<LocalPreview stream={call.localScreen!} />
+						) : call.peerSharing ? (
+							<RemoteMovie stream={call.remoteScreen} volume={volume} />
+						) : tube ? (
+							<TubePlayer tube={tube} />
+						) : null}
 
 						{/* Sheer misty curtains: drawn until a picture arrives, then they part. */}
 						<div className={`th-curtains${showing ? " open" : ""}`} aria-hidden="true">
@@ -651,7 +785,7 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 										<>
 											<p className="th-ticket">The projector blinked</p>
 											<div className="th-cta">
-												<button className="btn paper" onClick={() => void startShare()}>
+												<button className="btn paper" onClick={share}>
 													<Screencast aria-hidden />
 													Re-share the movie
 												</button>
@@ -665,11 +799,14 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 											<p className="th-ticket">
 												Now showing: {me.name} and {them.name}
 											</p>
-											<button className="btn paper" onClick={() => void startShare()}>
-												<Screencast aria-hidden />
-												Share a tab
-											</button>
-											<p className="th-plate-hint">Pick the Chrome tab and tick "Also share tab audio"</p>
+											<TubeStart
+												share={
+													<button className="btn paper" onClick={share}>
+														<Screencast aria-hidden />
+														Share a tab
+													</button>
+												}
+											/>
 										</>
 									)}
 								</div>
@@ -714,6 +851,7 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 									<input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => setVolume(+e.target.value)} />
 								</label>
 							)}
+							{tubeTools && stageTools}
 						</div>
 						{hosting && (
 							<div className="th-share-note">
@@ -754,7 +892,8 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 					)}
 				</section>
 
-				{!sharing && (
+				{tube && <TubeBar room={room} tube={tube} />}
+				{!sharing && !tube && (
 					<aside className="th-tips" aria-label="Sharing tips">
 						<p>Headphones help avoid echo.</p>
 						<details>
@@ -767,7 +906,7 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 			</div>
 
 			<ChatDrawer room={room} open={chatOpen} onClose={closeChat} />
-			{ending && <EndNightDialog initial={room.picked?.item.title ?? ""} hosting={hosting} onClose={() => setEnding(false)} />}
+			{ending && <EndNightDialog initial={room.picked?.item.title ?? room.tube?.title ?? ""} hosting={hosting} onClose={() => setEnding(false)} />}
 		</main>
 	);
 }
@@ -978,6 +1117,7 @@ function EndNightDialog({ initial, hosting, onClose }: { initial: string; hostin
 		const t = title.trim();
 		if (!t) return;
 		if (hosting) stopShare();
+		if (getRoom()?.tube) send({ t: "tube:stop" }); // the YouTube video ends for both of you too
 		send({ t: "stub:new", title: t });
 		location.hash = "#/memories";
 	};

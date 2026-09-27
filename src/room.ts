@@ -18,6 +18,9 @@ let retry = 0;
 let lastSeen = 0;
 let pingAt = 0;
 let onUnauthorized = () => {};
+let skew = 0;
+/** The Room's clock (this device's clock corrected by the offset seen on connect), so countdowns agree on both screens. */
+export const serverNow = () => Date.now() + skew;
 const listeners = new Set<() => void>();
 const relayListeners = new Set<(from: Who, data: RelayData) => void>();
 
@@ -31,6 +34,7 @@ function handle(m: ServerMsg) {
 	switch (m.t) {
 		case "init": {
 			const { t: _, ...snap } = m;
+			skew = m.now - Date.now();
 			state = { ...snap, connected: true, replaced: false, picked: state?.picked ?? null };
 			return listeners.forEach((l) => l());
 		}
@@ -48,6 +52,12 @@ function handle(m: ServerMsg) {
 			return set({ picked: { item: m.item, by: m.by, at: Date.now() } });
 		case "stubs":
 			return set({ stubs: m.stubs });
+		case "letters":
+			return set({ letters: m.letters });
+		case "tube":
+			return set({ tube: m.tube });
+		case "garden":
+			return set({ garden: m.garden });
 		case "game":
 			return set({ game: m.game });
 		case "sealed":
