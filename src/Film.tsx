@@ -1,12 +1,25 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ClosedCaptioning, Pause, Play, SkipForward, Stop, WarningCircle, X } from "@phosphor-icons/react";
-import { dismissProblem, filmDo, filmNow, setCc, showPlayer, stopFilm, useFilm } from "./filmPlayer";
+import { CaretDown, CaretUp, ClosedCaptioning, ListNumbers, Pause, Play, Plus, SkipForward, Stop, WarningCircle, X } from "@phosphor-icons/react";
+import {
+	addFiles,
+	dismissProblem,
+	filmDo,
+	filmNow,
+	moveEpisode,
+	playEpisode,
+	removeEpisode,
+	setCc,
+	showPlayer,
+	stopFilm,
+	useFilm,
+} from "./filmPlayer";
 import { clock } from "./filmLogic";
+import { profileOf, useRoom } from "./room";
 import "./film.css";
 
-/* "Play a movie file", while one is on (loaded on demand; the picker is in Theater.tsx): the stage on the laptop with
-   the file, and what both screens share: the control row, the subtitle line and the "Next episode" card. The player
-   itself lives in filmPlayer.ts. */
+/* "Play a movie file", while one is on (loaded on demand; the picker is in Theater.tsx): the stage and the playlist on
+   the laptop with the files, and what both screens share: the control row, the paused sign, the subtitle line and the
+   "Next episode" card. The player itself lives in filmPlayer.ts. */
 
 /** The laptop with the file: the real player, at the file's own quality. */
 export function FilmStage() {
@@ -74,24 +87,108 @@ export function FilmBar({ peerSharing }: { peerSharing: boolean }) {
 					Next
 				</button>
 			)}
+			{mine && <FilmList current={film.i} />}
 			{mine && (
-				<button className="btn glass sm" onClick={stopFilm}>
-					<Stop aria-hidden />
-					Stop
+				<button className="btn icon glass" aria-label="Stop" title="Stop the movie" onClick={stopFilm}>
+					<Stop weight="fill" aria-hidden />
 				</button>
 			)}
 		</div>
 	);
 }
 
+/** The picked files, in play order, on the laptop with them: move, play now, take off, or add more. */
+function FilmList({ current }: { current: number }) {
+	const { playlist } = useFilm();
+	const add = useRef<HTMLInputElement>(null);
+	const last = playlist.length - 1;
+	return (
+		<>
+			<button className="btn glass sm fm-list-btn" popoverTarget="fm-list">
+				<ListNumbers aria-hidden />
+				Playlist
+			</button>
+			<div id="fm-list" popover="auto" className="fm-list">
+				<p className="fm-list-head">
+					{playlist.length} {playlist.length === 1 ? "file" : "files"}, playing from this laptop
+				</p>
+				<ol>
+					{playlist.map((ep, i) => (
+						<li key={ep.id} className={i === current ? "on" : undefined}>
+							<button
+								className="fm-list-play"
+								disabled={i === current}
+								aria-label={i === current ? `${ep.title}, playing now` : `Play ${ep.title} now`}
+								onClick={() => playEpisode(i)}
+							>
+								<span className="fm-list-n">{i === current ? <Play weight="fill" aria-hidden /> : i + 1}</span>
+								<span className="fm-list-title">{ep.title}</span>
+								{ep.subs && <span className="fm-list-cc">CC</span>}
+							</button>
+							<button className="btn icon ghost sm" aria-label={`Move ${ep.title} up`} disabled={i === 0} onClick={() => moveEpisode(i, i - 1)}>
+								<CaretUp aria-hidden />
+							</button>
+							<button className="btn icon ghost sm" aria-label={`Move ${ep.title} down`} disabled={i === last} onClick={() => moveEpisode(i, i + 1)}>
+								<CaretDown aria-hidden />
+							</button>
+							<button className="btn icon ghost sm" aria-label={`Take ${ep.title} off the playlist`} disabled={i === current} onClick={() => removeEpisode(i)}>
+								<X aria-hidden />
+							</button>
+						</li>
+					))}
+				</ol>
+				<button className="btn sm fm-list-add" onClick={() => add.current?.click()}>
+					<Plus aria-hidden />
+					Add files
+				</button>
+				<input
+					ref={add}
+					type="file"
+					multiple
+					hidden
+					accept="video/*,.mkv,.srt,.vtt"
+					onChange={(e) => {
+						const files = [...(e.target.files ?? [])];
+						e.target.value = "";
+						addFiles(files);
+					}}
+				/>
+			</div>
+		</>
+	);
+}
+
 /** Over the movie on both screens: the subtitle line (if this screen shows them) and the "Next episode" card. */
 export function FilmOverlay({ peerSharing }: { peerSharing: boolean }) {
 	const { line, cc } = useFilm();
+	const room = useRoom();
 	const now = filmNow(peerSharing);
-	if (!now) return null;
+	// playing again: a play sign swells and fades (paused has its own sign, below)
+	const playing = !!now?.film.playing;
+	const was = useRef(playing);
+	const [flash, setFlash] = useState(0);
+	useEffect(() => {
+		if (playing && !was.current) setFlash((n) => n + 1);
+		was.current = playing;
+	}, [playing]);
+	if (!now || !room) return null;
 	const { film } = now;
+	const pausedBy = film.by && film.by !== room.you ? profileOf(room, film.by).name : null;
 	return (
 		<>
+			{!film.playing && film.nextIn === null && (
+				<button className="fm-paused" aria-label="Play (K)" onClick={() => filmDo("play")}>
+					<span className="fm-disc">
+						<Play weight="fill" aria-hidden />
+					</span>
+					{pausedBy && <span className="fm-paused-by">{pausedBy} paused</span>}
+				</button>
+			)}
+			{flash > 0 && film.playing && (
+				<span key={flash} className="fm-disc fm-flash" aria-hidden="true">
+					<Play weight="fill" />
+				</span>
+			)}
 			{cc && film.subs && line && (
 				<p className="fm-subs" aria-live="off">
 					<span>{line}</span>

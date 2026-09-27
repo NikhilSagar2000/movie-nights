@@ -4,12 +4,14 @@
 // "film" state (from the player's own events, so nothing echoes). The element lives here, not in React, so the movie
 // keeps playing while you look at another page.
 import { useSyncExternalStore } from "react";
-import type { FilmAct, FilmState, RelayData } from "../shared/types";
+import { other, type FilmAct, type FilmState, type RelayData, type Who } from "../shared/types";
 import { decodeSubs, order, srtToVtt, titleOf } from "./filmLogic";
 import { getRoom, onRelay, relay, send } from "./room";
 import { setScreenTracks, shareFilm, stopShare } from "./rtc";
 
-type Episode = { video: File; sub: File | null };
+type Episode = { id: number; video: File; sub: File | null };
+/** The playlist as the laptop with the files shows it. */
+export type ListItem = { id: number; title: string; subs: boolean };
 /** A file Chrome can't fully play: its sound (AC3/DTS) or its picture (e.g. HEVC). */
 export type Problem = { name: string; kind: "sound" | "picture" };
 type Store = {
@@ -23,6 +25,8 @@ type Store = {
 	problem: Problem | null;
 	/** Subtitles shown on this device (each of you decides). */
 	cc: boolean;
+	/** My playlist (empty unless I'm playing files). */
+	playlist: ListItem[];
 };
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
@@ -34,6 +38,7 @@ let store: Store = {
 	theirsAt: 0,
 	line: "",
 	problem: null,
+	playlist: [],
 	cc: (() => {
 		try {
 			return localStorage.getItem("cc") !== "off";
@@ -77,6 +82,10 @@ let nextIn: number | null = null;
 let countdown = 0;
 let loadId = 0;
 let soundCheck = 0;
+/** Who last played or paused it (a pause from the partner arrives as a request; anything else is this laptop). */
+let by: Who | null = null;
+let pendingBy: Who | null = null;
+const me = () => getRoom()?.you ?? "a";
 
 /** Off the Theater page the player waits here: still in the page (a <video> taken out of it pauses) but invisible. */
 function player() {
@@ -90,6 +99,11 @@ function player() {
 	el.setAttribute("aria-label", "The movie");
 	holder.append(el);
 	document.body.append(holder);
+	for (const ev of ["play", "pause"])
+		el.addEventListener(ev, () => {
+			by = pendingBy ?? me();
+			pendingBy = null;
+		});
 	for (const ev of ["play", "playing", "waiting", "pause", "seeked", "loadedmetadata", "durationchange"]) el.addEventListener(ev, update);
 	el.addEventListener("ended", ended);
 	el.addEventListener("playing", () => {
@@ -133,7 +147,9 @@ function snapshot(): FilmState | null {
 		title: titleOf(ep.video.name).slice(0, 120),
 		pos: v.currentTime || 0,
 		dur: Number.isFinite(v.duration) ? v.duration : 0,
-		playing: !v.paused && !v.ended && v.readyState > 2, // not while it loads or buffers: their clock would run ahead
+		playing: !v.paused && !v.ended,
+		buffering: !v.paused && v.readyState <= 2, // loading or stalled: their clock waits
+		by,
 		next: queue[idx + 1] ? titleOf(queue[idx + 1].video.name).slice(0, 120) : null,
 		nextIn,
 		subs: !!ep.sub,
@@ -182,14 +198,22 @@ function savedPlace(): { name: string; pos: number } | null {
 
 // ---------- playing ----------
 
+let epSeq = 0;
+const episodes = (files: File[]): Episode[] => order(files).map((e) => ({ ...e, id: ++epSeq }));
+function listChanged() {
+	set({ playlist: queue.map((e) => ({ id: e.id, title: titleOf(e.video.name), subs: !!e.sub })) });
+	update(); // "next" may have changed
+}
+
 /** Files from the picker: videos in episode order, with their subtitles. */
 export function playFiles(files: File[]) {
-	const list = order(files);
+	const list = episodes(files);
 	if (!list.length) return;
 	if (getRoom()?.tube) send({ t: "tube:stop" }); // the movie takes the stage from a YouTube video, for both of you
 	player();
 	shareFilm(teardown); // ends a shared tab or an earlier film first
 	queue = list;
+	listChanged();
 	const place = savedPlace();
 	const at = place ? list.findIndex((e) => e.video.name === place.name) : -1;
 	void load(Math.max(0, at), at >= 0 ? place!.pos : 0);
@@ -240,8 +264,10 @@ function ended() {
 	if (queue[idx + 1] && nextIn === null) {
 		nextIn = 10;
 		countdown = window.setInterval(() => {
-			if (nextIn !== null && --nextIn <= 0) void load(idx + 1);
-			else update();
+			if (nextIn === null) return;
+			if (!queue[idx + 1]) stopCountdown(); // the next one was taken off the playlist
+			else if (--nextIn <= 0) return void load(idx + 1);
+			update();
 		}, 1000);
 	}
 	update();
@@ -258,6 +284,7 @@ function teardown() {
 	clearTimeout(soundCheck);
 	loadId++;
 	queue = [];
+	by = pendingBy = null;
 	capture?.getTracks().forEach((t) => capture!.removeTrack(t));
 	if (el) {
 		el.pause();
@@ -268,23 +295,50 @@ function teardown() {
 	URL.revokeObjectURL(url);
 	URL.revokeObjectURL(subUrl);
 	url = subUrl = "";
-	set({ mine: null, line: "", problem: null });
+	set({ mine: null, line: "", problem: null, playlist: [] });
 	live({ k: "film", film: null });
 }
 
 /** A button press, from either of you. Mine: applied here. Theirs: sent to their laptop (and shown right away). */
 export function filmDo(act: FilmAct, pos?: number) {
-	if (queue.length) return apply(act, pos, idx);
+	if (queue.length) return apply(act, pos, idx, me());
 	const t = store.theirs;
 	if (!t) return;
 	live({ k: "film:do", act, pos, i: t.i }); // not queued: a pause pressed during a blip mustn't land minutes later
 	const now = theirsNow();
-	if (act === "play" || act === "pause") set({ theirs: { ...t, pos: now, playing: act === "play" }, theirsAt: performance.now() });
+	if (act === "play" || act === "pause") set({ theirs: { ...t, pos: now, playing: act === "play", by: me() }, theirsAt: performance.now() });
 	if (act === "seek" && Number.isFinite(pos)) set({ theirs: { ...t, pos: clamp(pos!, 0, t.dur), nextIn: null }, theirsAt: performance.now() });
 }
 export const stopFilm = () => queue.length && stopShare();
 
-function apply(act: FilmAct, pos: number | undefined, i: number | undefined) {
+// ---------- the playlist (on the laptop with the files) ----------
+
+/** Move an episode; the one playing stays the one playing. */
+export function moveEpisode(from: number, to: number) {
+	if (!queue[from] || !queue[to]) return;
+	const [ep] = queue.splice(from, 1);
+	queue.splice(to, 0, ep);
+	if (idx === from) idx = to;
+	else if (from < idx && to >= idx) idx--;
+	else if (from > idx && to <= idx) idx++;
+	listChanged();
+}
+export function removeEpisode(i: number) {
+	if (i === idx || !queue[i]) return;
+	queue.splice(i, 1);
+	if (i < idx) idx--;
+	listChanged();
+}
+export const playEpisode = (i: number) => void (queue[i] && i !== idx && load(i));
+/** More files onto the end (their subtitles matched among themselves). */
+export function addFiles(files: File[]) {
+	const more = episodes(files);
+	if (!more.length || !queue.length) return;
+	queue.push(...more);
+	listChanged();
+}
+
+function apply(act: FilmAct, pos: number | undefined, i: number | undefined, from: Who) {
 	const v = el;
 	if (!v || !queue.length) return;
 	if (act === "next") {
@@ -295,6 +349,7 @@ function apply(act: FilmAct, pos: number | undefined, i: number | undefined) {
 		stopCountdown(); // any other press keeps you on this episode
 		update();
 	}
+	if ((act === "play" && v.paused) || (act === "pause" && !v.paused)) pendingBy = from;
 	if (act === "play") void v.play().catch(() => {});
 	else if (act === "pause") v.pause();
 	else if (act === "seek" && typeof pos === "number" && Number.isFinite(pos)) v.currentTime = clamp(pos, 0, v.duration || 0);
@@ -306,7 +361,7 @@ function apply(act: FilmAct, pos: number | undefined, i: number | undefined) {
 function theirsNow() {
 	const t = store.theirs;
 	if (!t) return 0;
-	return t.playing ? Math.min(t.dur || Infinity, t.pos + (performance.now() - store.theirsAt) / 1000) : t.pos;
+	return t.playing && !t.buffering ? Math.min(t.dur || Infinity, t.pos + (performance.now() - store.theirsAt) / 1000) : t.pos;
 }
 
 /** The film on screen, mine or theirs, and where it is. Theirs counts only while their share is on and still reporting. */
@@ -328,7 +383,18 @@ function readFilm(x: unknown): FilmState | null {
 		pos = num(f.pos),
 		dur = num(f.dur);
 	if (i === null || title === null || pos === null || dur === null) return null;
-	return { i, title, pos, dur, playing: f.playing === true, next: str(f.next, 120), nextIn: num(f.nextIn), subs: f.subs === true };
+	return {
+		i,
+		title,
+		pos,
+		dur,
+		playing: f.playing === true,
+		buffering: f.buffering === true,
+		by: f.by === "a" || f.by === "b" ? f.by : null,
+		next: str(f.next, 120),
+		nextIn: num(f.nextIn),
+		subs: f.subs === true,
+	};
 }
 const ACTS: readonly FilmAct[] = ["play", "pause", "seek", "next", "stay"];
 
@@ -338,5 +404,5 @@ onRelay((from, d: RelayData) => {
 		const film = readFilm(d.film);
 		set({ theirs: film, theirsAt: performance.now(), ...(film ? {} : { line: "" }) });
 	} else if (d.k === "film:sub" && !queue.length) set({ line: str(d.text, 500) ?? "" });
-	else if (d.k === "film:do" && ACTS.includes(d.act)) apply(d.act, num(d.pos) ?? undefined, num(d.i) ?? undefined);
+	else if (d.k === "film:do" && ACTS.includes(d.act)) apply(d.act, num(d.pos) ?? undefined, num(d.i) ?? undefined, other(me()));
 });

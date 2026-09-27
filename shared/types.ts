@@ -66,8 +66,20 @@ export type RelayData =
 	| { k: "film:do"; act: FilmAct; pos?: number; i?: number };
 
 export type FilmAct = "play" | "pause" | "seek" | "next" | "stay";
-/** `i` = episode index; `nextIn` = seconds left on the "Next episode" card (null = no card). */
-export type FilmState = { i: number; title: string; pos: number; dur: number; playing: boolean; next: string | null; nextIn: number | null; subs: boolean };
+/** `i` = episode index; `playing` = not paused (`buffering`: but stalled right now); `by` = who last played or paused it;
+ *  `nextIn` = seconds left on the "Next episode" card (null = no card). */
+export type FilmState = {
+	i: number;
+	title: string;
+	pos: number;
+	dur: number;
+	playing: boolean;
+	buffering: boolean;
+	by: Who | null;
+	next: string | null;
+	nextIn: number | null;
+	subs: boolean;
+};
 
 /** The solo arcade games (ids match src/arcade/index.ts). Scores are higher-is-better, except the times in SOLO_LOW. */
 export const SOLO_GAMES = ["popcorn", "lantern", "stack", "run", "swat", "snake", "bloom", "bricks", "mines", "jumble"] as const;

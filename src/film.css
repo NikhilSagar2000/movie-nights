@@ -31,7 +31,7 @@
 .fm-title {
 	flex: 0 1 auto;
 	min-width: 0;
-	max-width: 12em;
+	max-width: 10em;
 	overflow: hidden;
 	color: var(--cream);
 	font-weight: 600;
@@ -118,4 +118,187 @@
 }
 .fm-problem .th-cmd {
 	background: var(--night);
+}
+
+/* Paused: a play button in the middle of the picture (it stays, so it's always clear); playing again: a play sign
+   that swells and fades. Sized to the stage. */
+.fm-paused {
+	position: absolute;
+	inset: 0;
+	z-index: 4;
+	display: grid;
+	place-content: center;
+	justify-items: center;
+	gap: 0.7em;
+	padding: 0;
+	border: 0;
+	background: rgb(24 32 41 / 0.25);
+	color: var(--cream);
+	font: inherit;
+	cursor: pointer;
+	animation: fm-fade 0.25s ease-out;
+}
+.fm-disc {
+	display: grid;
+	place-items: center;
+	width: clamp(56px, 11cqi, 104px);
+	aspect-ratio: 1;
+	border-radius: 50%;
+	background: rgb(24 32 41 / 0.62);
+	backdrop-filter: blur(6px);
+	box-shadow: inset 0 0 0 1px rgb(234 239 244 / 0.2);
+	color: var(--cream);
+	font-size: clamp(24px, 4.6cqi, 46px);
+}
+.fm-disc svg {
+	translate: 0.06em 0; /* a triangle looks centred a touch right of centre */
+}
+.fm-paused .fm-disc {
+	animation: fm-pop 0.35s var(--spring);
+}
+.fm-paused:hover .fm-disc {
+	background: rgb(24 32 41 / 0.8);
+}
+.fm-paused-by {
+	padding: 0.25em 0.8em;
+	border-radius: 999px;
+	background: rgb(24 32 41 / 0.62);
+	font-size: clamp(13px, 1.9cqi, 18px);
+	font-weight: 600;
+}
+.fm-flash {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	z-index: 4;
+	translate: -50% -50%;
+	pointer-events: none;
+	animation: fm-flash 0.6s ease-out forwards;
+}
+.fm-flash svg {
+	translate: 0.06em 0;
+}
+@keyframes fm-fade {
+	from {
+		opacity: 0;
+	}
+}
+@keyframes fm-pop {
+	from {
+		scale: 0.6;
+		opacity: 0;
+	}
+}
+@keyframes fm-flash {
+	from {
+		scale: 0.8;
+		opacity: 0.95;
+	}
+	to {
+		scale: 1.6;
+		opacity: 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.fm-paused .fm-disc {
+		animation: fm-fade 0.2s;
+	}
+	.fm-flash {
+		animation: fm-fade 0.6s reverse forwards;
+	}
+}
+
+/* The playlist: opens above its button */
+.fm-list-btn {
+	anchor-name: --fm-list;
+}
+.fm-list {
+	--focus: var(--dusk);
+	width: min(26em, calc(100vw - 32px));
+	max-height: min(28em, 70vh);
+	overflow-y: auto;
+	padding: 0.8em;
+	border: 0;
+	border-radius: 1.6em;
+	background: var(--cream);
+	color: var(--night);
+	box-shadow: var(--lift), 0 1em 3em -1em rgb(0 0 0 / 0.5);
+}
+@supports (anchor-name: --a) {
+	.fm-list {
+		position-anchor: --fm-list;
+		inset: auto;
+		bottom: anchor(top);
+		left: anchor(left);
+		margin: 0 0 8px;
+		position-try-fallbacks: flip-inline, flip-block;
+	}
+}
+.fm-list-head {
+	margin: 0.2em 0.5em 0.5em;
+	font-size: 0.85em;
+	font-weight: 600;
+	opacity: 0.7;
+}
+.fm-list ol {
+	display: grid;
+	gap: 0.15em;
+	margin: 0 0 0.6em;
+	padding: 0;
+	list-style: none;
+}
+.fm-list li {
+	display: flex;
+	align-items: center;
+	gap: 0.1em;
+	border-radius: 1em;
+}
+.fm-list li.on {
+	background: rgb(169 183 198 / 0.3);
+}
+.fm-list-play {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	gap: 0.6em;
+	padding: 0.5em 0.6em;
+	border: 0;
+	border-radius: 1em;
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+.fm-list-play:hover:not(:disabled) {
+	background: rgb(169 183 198 / 0.2);
+}
+.fm-list-play:disabled {
+	cursor: default;
+	font-weight: 600;
+}
+.fm-list-n {
+	flex: none;
+	width: 1.6em;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+	opacity: 0.7;
+}
+.fm-list-title {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+.fm-list-cc {
+	flex: none;
+	padding: 0 0.35em;
+	border-radius: 0.3em;
+	box-shadow: inset 0 0 0 1px currentColor;
+	font-size: 0.7em;
+	font-weight: 700;
+	opacity: 0.6;
+}
+.fm-list-add {
+	margin-left: 0.3em;
 }
