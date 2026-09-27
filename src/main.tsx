@@ -14,6 +14,15 @@ import Memories from "./Memories";
 
 export type Route = "" | "theater" | "games" | "memories";
 
+// A tab opened before a deploy asks for code the new build no longer has (a solo game, a movie file's controls):
+// reload once to get the new build, rather than going blank. Not twice in a row, in case the new build fails too.
+addEventListener("vite:preloadError", (e) => {
+	if (Date.now() - Number(sessionStorage.getItem("reloadedAt")) < 30_000) return;
+	e.preventDefault();
+	sessionStorage.setItem("reloadedAt", String(Date.now()));
+	location.reload();
+});
+
 function useRoute(): Route {
 	const read = () => location.hash.replace(/^#\/?/, "").split("/")[0] as Route; // "#/games/snake" is the games page
 	const [route, setRoute] = useState(read);

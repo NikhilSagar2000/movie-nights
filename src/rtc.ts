@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { other, type Peer, type RelayData, type Who } from "../shared/types";
+import { routeOf } from "./filmLogic";
 import { getRoom, onRelay, relay, sessionId, subscribe } from "./room";
 
 /**
@@ -19,8 +20,8 @@ export type CallState = {
 	micOn: boolean;
 	camOn: boolean;
 	connection: RTCPeerConnectionState | "none";
-	/** This tab was sharing before a refresh; the capture is gone and needs a click to restart. */
-	wasSharing: boolean;
+	/** This tab was sharing (a tab, or a movie file) before a refresh; the capture is gone and needs a click to restart. */
+	wasSharing: false | ShareKind;
 	error: string | null;
 	/** The resolution I want to receive (null = auto). Each person picks their own. */
 	quality: Quality;
@@ -28,7 +29,10 @@ export type CallState = {
 	peerQuality: Quality;
 	peerCamOn: boolean;
 	peerMicOn: boolean;
+	/** Straight between the two browsers, or through the TURN relay (null until connected). */
+	route: "direct" | "relay" | null;
 };
+export type ShareKind = "tab" | "file";
 
 export type Quality = 480 | 720 | 1080 | 1440 | null;
 const BITRATE: Record<480 | 720 | 1080 | 1440, number> = { 480: 1_200_000, 720: 2_500_000, 1080: 5_000_000, 1440: 9_000_000 };
@@ -50,12 +54,13 @@ let state: CallState = {
 	micOn: true,
 	camOn: true,
 	connection: "none",
-	wasSharing: sessionStorage.getItem("sharing") === "1",
+	wasSharing: ((k) => (k === "file" ? "file" : k ? "tab" : false))(sessionStorage.getItem("sharing")), // "1" = a tab, from older pages
 	error: null,
 	quality: readQuality(),
 	peerQuality: null,
 	peerCamOn: true,
 	peerMicOn: true,
+	route: null,
 };
 const listeners = new Set<() => void>();
 function set(patch: Partial<CallState>) {
@@ -155,7 +160,7 @@ function newPeer(sid: string, id = crypto.randomUUID().slice(0, 8)) {
 	const conn = new RTCPeerConnection({ iceServers });
 	pc = conn;
 	const signal = (m: Omit<Extract<RelayData, { k: "signal" }>, "k" | "sid" | "pcid">) => relay({ k: "signal", sid: sessionId, pcid: id, ...m });
-	set({ connection: conn.connectionState, remoteCam: null, remoteScreen: null });
+	set({ connection: conn.connectionState, remoteCam: null, remoteScreen: null, route: null });
 
 	conn.onnegotiationneeded = async () => {
 		try {
@@ -173,7 +178,10 @@ function newPeer(sid: string, id = crypto.randomUUID().slice(0, 8)) {
 		if (conn !== pc) return;
 		const s = conn.connectionState;
 		set({ connection: s });
-		if (s === "connected") announce(); // whatever order we arrived in, the partner hears where we're at
+		if (s === "connected") {
+			announce(); // whatever order we arrived in, the partner hears where we're at
+			void checkRoute();
+		}
 		if (s === "failed") {
 			setPeerSharing(false);
 			conn.restartIce(); // if that doesn't take, the watchdog rebuilds
@@ -256,6 +264,15 @@ function heal() {
 setInterval(() => {
 	if (state.started && pc?.connectionState !== "connected" && Date.now() - builtAt > 15_000) heal();
 }, 5000);
+
+/** Direct or relayed: the "Together" chip says which, so you know when the TURN relay's data allowance is in use. */
+async function checkRoute() {
+	const conn = pc;
+	const stats = conn?.connectionState === "connected" ? await conn.getStats().catch(() => null) : null;
+	const route = stats ? routeOf(stats.values()) : null;
+	if (conn === pc && route !== state.route) set({ route });
+}
+setInterval(() => void checkRoute(), 5000); // ICE can move to another path mid-call
 
 let wasConnected = true;
 let peerWasHere = false;
@@ -367,19 +384,40 @@ export async function startShare() {
 	const video = stream.getVideoTracks()[0];
 	video.contentHint = "motion";
 	video.onended = () => stopShare();
-	sessionStorage.setItem("sharing", "1");
-	set({
-		localScreen: stream,
-		wasSharing: false,
-		error: stream.getAudioTracks().length ? null : "No sound is being shared — pick a Chrome tab and tick “Also share tab audio” 🔊",
-	});
+	beginShare(stream, "tab");
+	set({ error: stream.getAudioTracks().length ? null : "No sound is being shared — pick a Chrome tab and tick “Also share tab audio” 🔊" });
+}
+
+let onShareStop: (() => void) | null = null;
+/** Put a picture on the screen slots: a captured tab, or a movie file playing on this page (filmPlayer.ts). */
+function beginShare(stream: MediaStream, kind: ShareKind, onStop?: () => void) {
+	if (state.localScreen) stopShare(); // one at a time: a new share ends the old one properly
+	onShareStop = onStop ?? null;
+	sessionStorage.setItem("sharing", kind);
+	set({ localScreen: stream, wasSharing: false });
 	attachLocal();
 	capBitrates();
 	relay({ k: "share", on: true });
 	muteForMovie(true);
 }
 
+/** A movie file starts: its tracks come a moment later (setScreenTracks). `onStop` runs however the share ends. */
+export const shareFilm = (onStop: () => void) => beginShare(new MediaStream(), "file", onStop);
+
+/** The file's current tracks. Each episode brings new ones (the old ones stay "live" in the capture), so the screen
+ *  stream is rebuilt from just these: a reconnect or a camera switch re-attaches the right ones. */
+export function setScreenTracks(tracks: MediaStreamTrack[]) {
+	if (!state.localScreen) return;
+	state.localScreen.getTracks().forEach((t) => !tracks.includes(t) && t.stop());
+	tracks.forEach((t) => t.kind === "video" && (t.contentHint = "motion"));
+	set({ localScreen: new MediaStream(tracks) });
+	attachLocal();
+	capBitrates();
+}
+
 export function stopShare() {
+	const stopped = onShareStop;
+	onShareStop = null;
 	state.localScreen?.getTracks().forEach((t) => t.stop());
 	sessionStorage.removeItem("sharing");
 	set({ localScreen: null, wasSharing: false });
@@ -387,6 +425,7 @@ export function stopShare() {
 	tuneCam();
 	relay({ k: "share", on: false });
 	muteForMovie(false);
+	stopped?.();
 }
 
 /** My picture preference; the partner's browser encodes to it whenever they share. */

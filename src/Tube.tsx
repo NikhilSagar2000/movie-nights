@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { ArrowLeft, ArrowSquareOut, Play, Plus, SkipForward, Stop, X, YoutubeLogo } from "@phosphor-icons/react";
 import { parseYouTube, tubeAt } from "../shared/tube";
 import type { Tube } from "../shared/types";
+import { canPlayFiles } from "./filmPlayer";
 import { profileOf, send, serverNow, type RoomState } from "./room";
 
 // The slice of the YouTube IFrame API used here (no types package for it).
@@ -304,7 +305,7 @@ export function TubeStart({ share }: { share: ReactNode }) {
 					Play from YouTube
 				</button>
 			</div>
-			<p className="th-plate-hint">Pick the Chrome tab and tick "Also share tab audio"</p>
+			{canPlayFiles && <p className="th-plate-hint">A movie file plays straight from your laptop. Nothing is uploaded.</p>}
 		</>
 	);
 }

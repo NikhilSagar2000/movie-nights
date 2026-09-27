@@ -1,6 +1,8 @@
 // The movie room: stage, reactions, chat drawer, nudges, toolbar, View menu.
 // Also exports what FaceCams (mounted on every page) needs: media hooks, the per-device view store, icons, nudges.
 import {
+	lazy,
+	Suspense,
 	useCallback,
 	useEffect,
 	useLayoutEffect,
@@ -19,6 +21,7 @@ import {
 	ChatCircleDots,
 	CornersIn,
 	CornersOut,
+	FilmSlate,
 	FrameCorners,
 	HandPalm,
 	Heart,
@@ -37,12 +40,20 @@ import {
 } from "@phosphor-icons/react";
 import { LIMITS, other, type Tube, type Who } from "../shared/types";
 import { Duo, Face, Flower, FlowerRain, Head, type HeadProps } from "./Character";
+import { canPlayFiles, filmDo, filmNow, filmVolume, playFiles, setFilmVolume, useFilm } from "./filmPlayer";
 import { getRoom, onRelay, profileOf, relay, send, useRoom, type RoomState } from "./room";
 import { dismissReshare, setCam, setMic, setQuality, setTubeMovie, startShare, stopShare, useCall, type CallState, type Quality } from "./rtc";
 import { TubeBar, TubePlayer, TubeStart } from "./Tube";
 import "./theater.css";
 
 export type Vars = CSSProperties & Record<`--${string}`, string | number>;
+
+// A movie file's controls load when one is on (the player and the picker are always here)
+const loadFilm = () => import("./Film");
+const FilmStage = lazy(() => loadFilm().then((m) => ({ default: m.FilmStage })));
+const FilmBar = lazy(() => loadFilm().then((m) => ({ default: m.FilmBar })));
+const FilmOverlay = lazy(() => loadFilm().then((m) => ({ default: m.FilmOverlay })));
+const FilmProblem = lazy(() => loadFilm().then((m) => ({ default: m.FilmProblem })));
 
 /** "💗" stays on the wire (older tabs understand it) but is drawn as his flower. */
 const FLOWER = "💗";
@@ -64,8 +75,10 @@ const QUALITIES = [1440, 1080, 720, 480] as const;
 const STAGE_KEYS = { ArrowRight: 0.05, ArrowUp: 0.05, ArrowLeft: -0.05, ArrowDown: -0.05 };
 
 export const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+/** Keys belong to a form field while it has focus. Not a slider: it leaves Space (talk) and the shortcuts alone. */
 export const isTyping = (t: EventTarget | null) =>
-	t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
+	t instanceof HTMLElement &&
+	(t.isContentEditable || ["TEXTAREA", "SELECT"].includes(t.tagName) || (t instanceof HTMLInputElement && t.type !== "range"));
 const timeOf = (at: number) => new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 // ---------- media helpers ----------
@@ -452,7 +465,11 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 	const sharing = hosting || call.peerSharing;
 	const pictureLive = useLive(call.remoteScreen);
 	const tube = sharing ? null : room.tube; // a shared tab takes the stage over a YouTube video
-	const showing = hosting || (call.peerSharing && pictureLive) || !!tube; // curtains stay shut until frames arrive
+	const { mine: myFilm, problem: filmProblem } = useFilm();
+	const filmMine = !!myFilm;
+	const film = filmNow(call.peerSharing); // a movie file, playing on either laptop
+	// curtains stay shut until frames arrive (a paused movie file sends none, but it's still on)
+	const showing = hosting || (call.peerSharing && (pictureLive || !!film)) || !!tube;
 	const share = () => {
 		if (room.tube) send({ t: "tube:stop" });
 		void startShare();
@@ -491,6 +508,18 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 		const x = (e.clientX - r.left) / r.width;
 		for (let i = 0; i < 5; i++) react("💗", x + (Math.random() - 0.5) * 0.14);
 	};
+	// a movie file: a click on the picture plays or pauses it, like any player (a beat later, so a double-click can
+	// float hearts instead)
+	const clickTimer = useRef(0);
+	const stageClick = (e: MouseEvent<HTMLDivElement>) => {
+		if (!film || (e.target as HTMLElement).closest("button, a, input")) return;
+		clearTimeout(clickTimer.current);
+		if (e.detail > 1) return;
+		clickTimer.current = window.setTimeout(() => {
+			const f = filmNow(call.peerSharing);
+			if (f) filmDo(f.film.playing ? "pause" : "play");
+		}, 250);
+	};
 
 	// ---- keyboard: 1–6 react, hold Space to talk ----
 	const talkPrev = useRef<boolean | null>(null);
@@ -512,6 +541,12 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 					setTalking(true);
 				}
 			} else if (/^[1-6]$/.test(e.key) && !e.repeat) react(REACTIONS[+e.key - 1]);
+			else if (/^[jkl]$/.test(e.key) && !e.repeat) {
+				// a movie file: K plays and pauses, J and L jump 10 seconds (Space is for talking)
+				const f = filmNow(call.peerSharing);
+				if (f && e.key === "k") filmDo(f.film.playing ? "pause" : "play");
+				else if (f) filmDo("seek", f.pos + (e.key === "l" ? 10 : -10));
+			}
 		};
 		const up = (e: KeyboardEvent) => {
 			if (e.code !== "Space" || talkPrev.current === null) return;
@@ -526,7 +561,7 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 			removeEventListener("keyup", up);
 			removeEventListener("blur", release);
 		};
-	}, [call.micOn, react]);
+	}, [call.micOn, call.peerSharing, react]);
 	useEffect(
 		() => () => {
 			if (talkPrev.current !== null) setMic(talkPrev.current); // left the page mid-talk
@@ -638,7 +673,10 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 	};
 	const flowerSent = useFlowerSent();
 
-	const [volume, setVolume] = useState(1);
+	const [volume, setVolume] = useState(filmVolume); // a movie file keeps its level across pages
+	useEffect(() => {
+		if (filmMine) setFilmVolume(volume); // only what you hear: the movie reaches them at full level
+	}, [volume, filmMine]);
 	const [hiddenError, setHiddenError] = useState<string | null>(null);
 	const [ending, setEnding] = useState(false);
 	const status = !partnerHere ? "away" : call.connection === "connected" ? "together" : "connecting";
@@ -680,6 +718,11 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 							</button>
 						</div>
 					)}
+					{filmProblem && (
+						<Suspense>
+							<FilmProblem />
+						</Suspense>
+					)}
 
 					<div className="th-toolbar">
 						<div className="th-group">
@@ -704,10 +747,22 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 							<span className={`chip ${status === "together" ? "sage" : "glass"} th-status`} role="status">
 								{status === "together" ? <Heart weight="fill" aria-hidden /> : <span className="on-dot off" />}
 								{status === "away" ? `${them.name} is away` : status === "together" ? "Together" : "Connecting"}
+								{status === "together" && call.route && (
+									<span
+										className="th-route"
+										title={
+											call.route === "direct"
+												? "Your browsers are connected directly: the movie goes straight between you"
+												: "Going through the TURN relay: the movie and cameras count against its data allowance"
+										}
+									>
+										{call.route === "direct" ? "Direct" : "Relayed"}
+									</span>
+								)}
 							</span>
 						</div>
 						<div className="th-group">
-							{!tube && (
+							{!tube && !film && (
 								<button className="btn glass th-tool" disabled={!partnerHere || asked} onClick={askPause}>
 									<HandPalm aria-hidden />
 									<span className="th-lbl">{asked ? "Asked" : "Please pause"}</span>
@@ -761,17 +816,28 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 						)}
 						{!tubeTools && stageTools}
 					</div>
-					<div className={`th-stage${v.hideMovie ? " collapsed" : ""}${showing ? "" : " arch"}`} onDoubleClick={burst}>
+					<div className={`th-stage${v.hideMovie ? " collapsed" : ""}${showing ? "" : " arch"}`} onClick={stageClick} onDoubleClick={burst}>
 						{/* the YouTube player swallows mouse moves and taps: while the bar is hidden, a clear sheet over the video feels
 						    the first one (it wakes the bar and goes, so the next click reaches YouTube) */}
 						{full && idle && tube && <i className="th-wake" aria-hidden="true" />}
 						{hosting ? (
-							<LocalPreview stream={call.localScreen!} />
+							filmMine ? (
+								<Suspense>
+									<FilmStage />
+								</Suspense>
+							) : (
+								<LocalPreview stream={call.localScreen!} />
+							)
 						) : call.peerSharing ? (
 							<RemoteMovie stream={call.remoteScreen} volume={volume} />
 						) : tube ? (
 							<TubePlayer tube={tube} />
 						) : null}
+						{film && (
+							<Suspense>
+								<FilmOverlay peerSharing={call.peerSharing} />
+							</Suspense>
+						)}
 
 						{/* Sheer misty curtains: drawn until a picture arrives, then they part. */}
 						<div className={`th-curtains${showing ? " open" : ""}`} aria-hidden="true">
@@ -790,10 +856,14 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 										<>
 											<p className="th-ticket">The projector blinked</p>
 											<div className="th-cta">
-												<button className="btn paper" onClick={share}>
-													<Screencast aria-hidden />
-													Re-share the movie
-												</button>
+												{call.wasSharing === "file" ? (
+													<FilmPick label="Pick the file again" />
+												) : (
+													<button className="btn paper" onClick={share}>
+														<Screencast aria-hidden />
+														Re-share the movie
+													</button>
+												)}
 												<button className="btn glass" onClick={dismissReshare}>
 													Not now
 												</button>
@@ -806,10 +876,13 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 											</p>
 											<TubeStart
 												share={
-													<button className="btn paper" onClick={share}>
-														<Screencast aria-hidden />
-														Share a tab
-													</button>
+													<>
+														<FilmPick />
+														<button className={`btn ${canPlayFiles ? "glass" : "paper"}`} onClick={share}>
+															<Screencast aria-hidden />
+															Share a tab
+														</button>
+													</>
 												}
 											/>
 										</>
@@ -835,6 +908,11 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 					</div>
 
 					<div className="th-bar">
+						{film && (
+							<Suspense>
+								<FilmBar peerSharing={call.peerSharing} />
+							</Suspense>
+						)}
 						<div className="th-pill">
 							<div className="th-reactions" role="group" aria-label="Reactions">
 								{REACTIONS.map((e, i) => (
@@ -849,7 +927,7 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 									</button>
 								))}
 							</div>
-							{call.peerSharing && !hosting && (
+							{((call.peerSharing && !hosting) || filmMine) && (
 								<label className="th-volume">
 									<SpeakerHigh aria-hidden />
 									<span>Movie volume</span>
@@ -858,7 +936,12 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 							)}
 							{tubeTools && stageTools}
 						</div>
-						{hosting && (
+						{hosting && filmMine && (
+							<p className="th-hint">
+								Playing from your laptop, nothing is uploaded. Sending in {call.peerQuality ? `${call.peerQuality}p` : "Auto"}.
+							</p>
+						)}
+						{hosting && !filmMine && (
 							<div className="th-share-note">
 								<button className="btn sm paper" onClick={stopShare}>
 									Stop sharing
@@ -869,7 +952,11 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 								</p>
 							</div>
 						)}
-						{call.peerSharing && !hosting && <p className="th-hint">You are watching {them.name}'s tab. The sound comes from their side.</p>}
+						{call.peerSharing && !hosting && (
+							<p className="th-hint">
+								{film ? `Playing from ${them.name}'s laptop.` : `You are watching ${them.name}'s tab.`} The sound comes from their side.
+							</p>
+						)}
 						{talking ? (
 							<span className="chip sage th-ptt on" role="status">
 								<Microphone aria-hidden />
@@ -901,11 +988,6 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 				{!sharing && !tube && (
 					<aside className="th-tips" aria-label="Sharing tips">
 						<p>Headphones help avoid echo.</p>
-						<details>
-							<summary>Movie has no sound?</summary>
-							<p>Some downloaded .mkv files use AC3 or DTS audio that Chrome cannot play. Convert it once (the picture stays untouched):</p>
-							<code className="th-cmd">ffmpeg -i movie.mkv -c:v copy -c:a aac movie.mp4</code>
-						</details>
 					</aside>
 				)}
 			</div>
@@ -958,6 +1040,33 @@ function ViewMenu({ view: v, partnerName }: { view: View; partnerName: string })
 					Reset layout
 				</button>
 			</div>
+		</>
+	);
+}
+
+/** "Play a movie file": the button and its hidden picker. One file, or a whole season with its .srt files. Not on
+ *  phones (their browsers can't send a playing video). */
+function FilmPick({ label = "Play a movie file" }: { label?: string }) {
+	const input = useRef<HTMLInputElement>(null);
+	if (!canPlayFiles) return null;
+	return (
+		<>
+			<button className="btn paper" onClick={() => input.current?.click()}>
+				<FilmSlate aria-hidden />
+				{label}
+			</button>
+			<input
+				ref={input}
+				type="file"
+				multiple
+				hidden
+				accept="video/*,.mkv,.srt,.vtt"
+				onChange={(e) => {
+					const files = [...(e.target.files ?? [])];
+					e.target.value = ""; // picking the same file again still counts
+					if (files.length) playFiles(files);
+				}}
+			/>
 		</>
 	);
 }

@@ -57,7 +57,17 @@ export type RelayData =
 	/** "boop" is the poke (the name on the wire stays, so tabs opened before the rename still understand it). */
 	| { k: "nudge"; kind: "pause" | "flower" | "boop" }
 	/** A guesser's move in a "one knows, one guesses" game, applied by the lead's browser (the only one that knows the answer). */
-	| { k: "play"; id: string; round: number; pid: string; act: string; v?: string | number };
+	| { k: "play"; id: string; round: number; pid: string; act: string; v?: string | number }
+	/** "Play a movie file": the laptop with the file says what's playing (null = stopped). */
+	| { k: "film"; film: FilmState | null }
+	/** The subtitle line on screen right now ("" = none). */
+	| { k: "film:sub"; text: string }
+	/** The partner's buttons, applied by the laptop with the file. `i` = the episode they saw, so a doubled "next" skips once. */
+	| { k: "film:do"; act: FilmAct; pos?: number; i?: number };
+
+export type FilmAct = "play" | "pause" | "seek" | "next" | "stay";
+/** `i` = episode index; `nextIn` = seconds left on the "Next episode" card (null = no card). */
+export type FilmState = { i: number; title: string; pos: number; dur: number; playing: boolean; next: string | null; nextIn: number | null; subs: boolean };
 
 /** The solo arcade games (ids match src/arcade/index.ts). Scores are higher-is-better, except the times in SOLO_LOW. */
 export const SOLO_GAMES = ["popcorn", "lantern", "stack", "run", "swat", "snake", "bloom", "bricks", "mines", "jumble"] as const;

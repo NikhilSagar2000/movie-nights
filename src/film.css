@@ -1,0 +1,121 @@
+/* ---------- Play a movie file (Film.tsx) ---------- */
+
+.fm-stage {
+	position: absolute;
+	inset: 0;
+}
+
+/* The control row under the stage (the first row of .th-bar) */
+.fm-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4em 0.6em;
+	width: min(100%, 46em); /* like the reactions pill: the cam bubbles float at the right */
+	padding: 0.35em 0.6em 0.35em 0.35em;
+	border-radius: 1.6em;
+	background: rgb(169 183 198 / 0.14);
+	box-shadow: inset 0 0 0 1px rgb(234 239 244 / 0.12);
+	color: var(--fog);
+	transition: opacity 0.4s;
+}
+.fm-time {
+	font-size: 0.85em;
+	font-variant-numeric: tabular-nums;
+}
+.fm-seek {
+	flex: 1 1 10em;
+	min-width: 6em;
+	accent-color: var(--haze);
+}
+.fm-title {
+	flex: 0 1 auto;
+	min-width: 0;
+	max-width: 12em;
+	overflow: hidden;
+	color: var(--cream);
+	font-weight: 600;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+.th-bar:has(> .fm-bar) > .th-ptt {
+	grid-row: 2;
+}
+/* the stage leaves room for this row too (see the 110px note in theater.css) */
+.th-stage-wrap:has(.fm-bar) {
+	--below: 162px;
+}
+.theater.is-full.idle .fm-bar {
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* Subtitles: the same line on both screens, sized to the stage */
+.fm-subs {
+	position: absolute;
+	inset: auto 6% 5%;
+	z-index: 3;
+	margin: 0;
+	text-align: center;
+	white-space: pre-line;
+	pointer-events: none;
+	font-size: clamp(14px, 3cqi, 40px);
+	font-weight: 600;
+	line-height: 1.35;
+	color: #fff;
+}
+.fm-subs span {
+	padding: 0.08em 0.4em;
+	border-radius: 0.25em;
+	background: rgb(0 0 0 / 0.62);
+	box-decoration-break: clone;
+	-webkit-box-decoration-break: clone;
+}
+
+/* "Next episode in 7" */
+.fm-card {
+	position: absolute;
+	right: 4%;
+	bottom: 16%;
+	z-index: 6;
+	display: grid;
+	gap: 0.3em;
+	max-width: min(22em, 80%);
+	padding: 0.9em 1em;
+	border-radius: 1.2em;
+	background: rgb(24 32 41 / 0.82);
+	backdrop-filter: blur(8px);
+	box-shadow:
+		inset 0 0 0 1px rgb(234 239 244 / 0.14),
+		0 1em 2em -1em rgb(0 0 0 / 0.6);
+	color: var(--fog);
+}
+.fm-card-title {
+	overflow: hidden;
+	color: var(--cream);
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+.fm-card-btns {
+	display: flex;
+	gap: 0.5em;
+	margin-top: 0.3em;
+}
+@container (max-width: 520px) {
+	.fm-card {
+		right: 3%;
+		bottom: 5%;
+		padding: 0.6em 0.7em;
+		font-size: 0.8em;
+	}
+}
+
+.fm-problem > div {
+	flex: 1;
+	min-width: 0;
+	display: grid;
+	gap: 0.5em;
+}
+.fm-problem .th-cmd {
+	background: var(--night);
+}
