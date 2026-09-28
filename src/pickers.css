@@ -1,0 +1,47 @@
+/* Shared pickers (src/Pickers.tsx): small swatches, and pills for one-of-several choices. */
+.pk-small .hm-swatch-row {
+	gap: 0.55em;
+}
+.pk-small .hm-swatch-dot {
+	width: 1.75em;
+}
+.pk-small .hm-swatch-dot svg {
+	width: 0.9em;
+	height: 0.9em;
+}
+.hm-swatch-dot.pk-dark {
+	color: var(--cream);
+}
+.pk-pills {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.45em;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.pk-pill span {
+	display: inline-block;
+	padding: 0.45em 0.95em;
+	border-radius: 999px;
+	background: var(--paper);
+	box-shadow: inset 0 0 0 1.5px var(--fog);
+	font-size: 0.9em;
+	font-weight: 600;
+	cursor: pointer;
+	transition: transform 0.2s var(--spring);
+}
+.pk-pill:hover span {
+	transform: translateY(-1px);
+}
+.pk-pill input:checked + span {
+	background: var(--night);
+	color: var(--cream);
+	box-shadow: none;
+}
+.pk-pill input:focus-visible + span {
+	outline: 2px solid var(--dusk);
+	outline-offset: 2px;
+}

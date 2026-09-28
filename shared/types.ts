@@ -1,6 +1,7 @@
 // The one contract between the browser and the Room Durable Object.
 
 import type { Look, Looks } from "./look";
+import type { Gift } from "./gift";
 
 export type Who = "a" | "b";
 export const PEOPLE: Who[] = ["a", "b"];
@@ -22,7 +23,8 @@ export type Stub = {
 /** A letter left for the other person ("Leave a note"). `openedAt` is set when the recipient opens it. */
 export type LetterPaper = "cream" | "mist" | "blush";
 export const PAPERS: LetterPaper[] = ["cream", "mist", "blush"];
-export type Letter = { id: string; from: Who; text: string; paper: LetterPaper; at: number; openedAt?: number };
+/** `gift`: flowers and/or chocolates sent with it (then `text` may be empty). */
+export type Letter = { id: string; from: Who; text: string; paper: LetterPaper; at: number; openedAt?: number; gift?: Gift };
 
 /** Listen together: one YouTube video playing in sync (plus a queue). `pos` seconds at Room time `at`. */
 export type TubeItem = { key: string; id: string; title: string; by: Who };
@@ -104,8 +106,10 @@ export type ClientMsg =
 	| { t: "stub:new"; title: string }
 	| { t: "stub:rate"; id: string; hearts: number; note: string }
 	| { t: "stub:delete"; id: string }
-	| { t: "letter:send"; text: string; paper: LetterPaper }
+	| { t: "letter:send"; text: string; paper: LetterPaper; gift?: Gift }
 	| { t: "letter:open"; id: string }
+	/** The recipient eats the chocolate in cell `i`. */
+	| { t: "letter:eat"; id: string; i: number }
 	| { t: "tube:load"; id: string }
 	| { t: "tube:queue"; id: string }
 	| { t: "tube:unqueue"; key: string }

@@ -677,3 +677,53 @@
 		transform: scale(0.9);
 	}
 }
+
+/* a letter that came with flowers or chocolates: little badges, and an unopened gift breathes until it's opened */
+.mem-letter-gift {
+	position: absolute;
+	top: 0.55em;
+	right: 0.6em;
+	z-index: 1;
+	display: flex;
+	gap: 0.3em;
+}
+.mem-letter-gift > span {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25em;
+	padding: 0.15em 0.45em;
+	border-radius: 999px;
+	background: rgb(255 252 245 / 0.85);
+	color: var(--rose-ink);
+	font-size: 0.74em;
+	font-weight: 700;
+	animation: mem-pop 0.5s var(--spring) both;
+}
+.mem-letter-gift > span + span {
+	animation-delay: 0.1s;
+}
+.mem-letter-gift svg {
+	width: 1.15em;
+	height: 1.15em;
+}
+.mem-letter.new.gift {
+	animation: mem-breathe 3.2s ease-in-out infinite;
+}
+@keyframes mem-pop {
+	from {
+		scale: 0.4;
+		opacity: 0;
+	}
+}
+@keyframes mem-breathe {
+	50% {
+		scale: 1.035;
+		box-shadow: 0 1.1em 1.8em -0.8em rgb(180 106 114 / 0.55);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.mem-letter-gift > span,
+	.mem-letter.new.gift {
+		animation: none;
+	}
+}

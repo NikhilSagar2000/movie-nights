@@ -61,60 +61,14 @@
 .wd-row .hm-swatch-row {
 	padding: 0.3em;
 }
-.wd-small .hm-swatch-row {
-	gap: 0.55em;
-}
-.wd-small .hm-swatch-dot {
-	width: 1.75em;
-}
-.wd-small .hm-swatch-dot svg {
-	width: 0.9em;
-	height: 0.9em;
-}
-.hm-swatch-dot.wd-dark {
-	color: var(--cream);
-}
 
-/* one-of-several choices as pills (radio buttons underneath) */
-.wd-pills {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: center;
-	gap: 0.45em;
-	min-width: 0;
-	margin: 0;
-	padding: 0;
-	border: 0;
-}
-.wd-row .wd-pills {
+.wd-row .pk-pills {
 	justify-content: flex-start;
 }
-.wd-pill span {
-	display: inline-block;
-	padding: 0.45em 0.95em;
-	border-radius: 999px;
-	background: var(--paper);
-	box-shadow: inset 0 0 0 1.5px var(--fog);
-	font-size: 0.9em;
-	font-weight: 600;
-	cursor: pointer;
-	transition: transform 0.2s var(--spring);
-}
-.wd-look .wd-pill span {
+
+.wd-look .pk-pill span {
 	background: var(--cream);
 	box-shadow: var(--lift);
-}
-.wd-pill:hover span {
-	transform: translateY(-1px);
-}
-.wd-pill input:checked + span {
-	background: var(--night);
-	color: var(--cream);
-	box-shadow: none;
-}
-.wd-pill input:focus-visible + span {
-	outline: 2px solid var(--dusk);
-	outline-offset: 2px;
 }
 
 .wd-actions {

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { EnvelopeSimple, FilmSlate, Heart, Plus, Shuffle, X } from "@phosphor-icons/react";
 import { LIMITS, other, type JarItem, type Stub, type Who } from "../shared/types";
+import { chocolatesLeft } from "../shared/gift";
 import { Flower, FlowerBurst, Head } from "./Character";
 import { readLetters, writeLetter } from "./Letters";
 import { profileOf, send, useRoom, type RoomState } from "./room";
@@ -430,14 +431,30 @@ function LetterBox({ room }: { room: RoomState }) {
 					{letters.map((l) => {
 						const mine = l.from === room.you;
 						const unread = !mine && !l.openedAt;
+						const left = chocolatesLeft(l.gift);
 						return (
 							<li key={l.id} style={{ "--tilt": tilt(l.id, 3) } as Vars}>
-								<button className={`mem-letter${unread ? " new" : ""}`} data-paper={l.paper} onClick={() => readLetters([l.id])}>
+								<button className={`mem-letter${unread ? " new" : ""}${l.gift ? " gift" : ""}`} data-paper={l.paper} onClick={() => readLetters([l.id])}>
 									<span className="mem-letter-flap" aria-hidden="true" />
 									{unread && <Flower className="mem-letter-seal" />}
 									<span className="mem-letter-who">{mine ? `To ${them.name}` : `From ${them.name}`}</span>
 									<span className="mem-letter-meta">{fmtDate(new Date(l.at).toLocaleDateString("sv-SE"))}</span>
 									{(unread || mine) && <span className="mem-letter-state">{unread ? "New" : l.openedAt ? "Opened" : "Not opened yet"}</span>}
+									{l.gift && (
+										<span className="mem-letter-gift">
+											{l.gift.bouquet && (
+												<span title="Flowers">
+													<Flower label="with flowers" />
+												</span>
+											)}
+											{left && (
+												<span title="Chocolates">
+													<Heart aria-label="with chocolates" weight="fill" />
+													{left.left ? `${left.left} of ${left.total} left` : "all eaten"}
+												</span>
+											)}
+										</span>
+									)}
 								</button>
 							</li>
 						);

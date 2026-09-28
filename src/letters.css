@@ -446,6 +446,7 @@ button.lt-env.closed:hover {
 }
 .lt-toast > svg {
 	flex: none;
+	--petal-line: var(--night);
 	width: 1.4em;
 	height: 1.4em;
 	color: var(--rose-ink);
@@ -512,4 +513,9 @@ body:has(.theater.is-full) .lt-toast {
 		transform: scale(0.2) rotate(-120deg);
 		opacity: 0;
 	}
+}
+
+/* while a gift's drawings load (only the first time, and only for a moment) */
+.lt-hint.gs-loading {
+	padding-top: 8em;
 }

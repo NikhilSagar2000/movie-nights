@@ -13,8 +13,9 @@ import Games from "./Games";
 import Memories from "./Memories";
 
 const Wardrobe = lazy(() => import("./Wardrobe"));
+const GiftBuilder = lazy(() => import("./GiftBuilder"));
 
-export type Route = "" | "theater" | "games" | "memories" | "dress";
+export type Route = "" | "theater" | "games" | "memories" | "dress" | "note";
 
 // A tab opened before a deploy asks for code the new build no longer has (a solo game, a movie file's controls):
 // reload once to get the new build, rather than going blank. Not twice in a row, in case the new build fails too.
@@ -98,6 +99,10 @@ function App() {
 			) : route === "dress" ? (
 				<Suspense>
 					<Wardrobe />
+				</Suspense>
+			) : route === "note" ? (
+				<Suspense>
+					<GiftBuilder />
 				</Suspense>
 			) : (
 				<Home />

@@ -1,11 +1,12 @@
 // Dress up (#/dress): change how your own character looks. A draft until Save; your partner sees it after that.
 // The worn things are drawn by src/lookArt.tsx; the Room keeps each person's look (shared/look.ts checks it).
 import { useState } from "react";
-import { ArrowLeft, Check, Shuffle } from "@phosphor-icons/react";
+import { ArrowLeft, Shuffle } from "@phosphor-icons/react";
 import { other, type Who } from "../shared/types";
 import { bareLook, LOOK_ITEMS, LOOK_SLOTS, ONLY, type Look, type LookSlot } from "../shared/look";
 import { profileOf, saveLook, useRoom } from "./room";
 import { Duo, type Mood } from "./Character";
+import { Pills, Swatches, type Swatch } from "./Pickers";
 import "./wardrobe.css";
 
 const NAMES: Record<string, string> = {
@@ -44,8 +45,6 @@ const START: Record<string, string> = {
 	star: "#f2c95e",
 };
 const SLOT_NAMES: Record<LookSlot, string> = { head: "On your head", eyes: "Eyes", cheeks: "Cheeks", clip: "Hair clip" };
-/** [value, name, what the dot shows]. "" = as drawn. */
-type Swatch = [value: string, name: string, dot?: string];
 const INK = "#2d3a47";
 const SKINS: Swatch[] = [["", "As drawn", "#fff7e6"], ["#ffe4cf", "Peach"], ["#f3c9a4", "Sand"], ["#dba57c", "Honey"], ["#b07a55", "Caramel"], ["#7d5539", "Cocoa"]];
 const HAIRS: Swatch[] = [["", "As drawn", INK], ["#17151c", "Black"], ["#5a3d31", "Chocolate"], ["#8a4b35", "Auburn"], ["#b98a45", "Honey"], ["#6b4a78", "Plum"], ["#b46a72", "Rosewood"], ["#3f5b6e", "Deep blue"]];
@@ -66,11 +65,6 @@ const COLORS: Swatch[] = [
 const MOODS: [Mood, string][] = [["still", "Still"], ["idle", "Breathe"], ["bob", "Bob"], ["hop", "Hop"], ["dizzy", "Dizzy"]];
 
 const canWear = (you: Who) => (id: string) => !ONLY[id] || ONLY[id] === you;
-/** Dark dots get a light tick. */
-const dark = (hex: string) => {
-	const n = parseInt(hex.slice(1), 16);
-	return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) < 120;
-};
 const any = <T,>(a: readonly T[]) => a[Math.floor(Math.random() * a.length)];
 
 function surprise(you: Who, now: Look): Look {
@@ -81,39 +75,6 @@ function surprise(you: Who, now: Look): Look {
 	}
 	if (you === "b" && next.head?.id === "phones") next.clip = null; // her headband and a clip want the same spot
 	return next;
-}
-
-function Swatches({ label, name, options, value, onPick, small }: { label: string; name: string; options: Swatch[]; value: string; onPick: (v: string) => void; small?: boolean }) {
-	return (
-		<fieldset className={`hm-swatches${small ? " wd-small" : ""}`}>
-			<legend className="sr-only">{label}</legend>
-			<div className="hm-swatch-row">
-				{options.map(([v, name2, dot = v]) => (
-					<label key={v} className="hm-swatch" title={name2}>
-						<input type="radio" className="sr-only" name={name} value={v} checked={value === v} onChange={() => onPick(v)} />
-						<span className={`hm-swatch-dot${dark(dot) ? " wd-dark" : ""}`} style={{ background: dot }}>
-							{value === v && <Check aria-hidden weight="bold" />}
-						</span>
-						<span className="sr-only">{name2}</span>
-					</label>
-				))}
-			</div>
-		</fieldset>
-	);
-}
-
-function Pills({ label, name, options, value, onPick }: { label: string; name: string; options: [string, string][]; value: string; onPick: (v: string) => void }) {
-	return (
-		<fieldset className="wd-pills">
-			<legend className="sr-only">{label}</legend>
-			{options.map(([v, text]) => (
-				<label key={v} className="wd-pill">
-					<input type="radio" className="sr-only" name={name} value={v} checked={value === v} onChange={() => onPick(v)} />
-					<span>{text}</span>
-				</label>
-			))}
-		</fieldset>
-	);
 }
 
 export default function Wardrobe() {

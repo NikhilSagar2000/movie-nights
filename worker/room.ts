@@ -23,6 +23,7 @@ import {
 import { YT_ID } from "../shared/tube";
 import { bestsOf, recordBest } from "../shared/bests";
 import { cleanLook, type Looks } from "../shared/look";
+import { cleanGift, eat } from "../shared/gift";
 
 type Attachment = { who: Who; sid: string };
 type SealStore = { gameId: string; round: number; answers: Partial<Record<Who, string>> };
@@ -182,9 +183,11 @@ export class Room extends DurableObject<Env> {
 
 			case "letter:send": {
 				const text = str(m.text, LIMITS.letter);
-				if (!text) return;
+				const gift = cleanGift(m.gift);
+				if (!text && !gift) return; // a blank note needs flowers or chocolates with it
 				const paper = PAPERS.includes(m.paper) ? m.paper : "cream";
-				const letters = [...((await s.get<Letter[]>("letters")) ?? []), { id: id(), from: who, text, paper, at: Date.now() }].slice(-LIMITS.lettersKeep);
+				const letter: Letter = { id: id(), from: who, text, paper, at: Date.now(), ...(gift && { gift }) };
+				const letters = [...((await s.get<Letter[]>("letters")) ?? []), letter].slice(-LIMITS.lettersKeep);
 				await s.put("letters", letters);
 				this.broadcast({ t: "letters", letters });
 				return this.grow("letter");
@@ -195,6 +198,16 @@ export class Room extends DurableObject<Env> {
 				const letter = letters.find((l) => l.id === m.id);
 				if (!letter || letter.from === who || letter.openedAt) return;
 				letter.openedAt = Date.now();
+				await s.put("letters", letters);
+				return this.broadcast({ t: "letters", letters });
+			}
+			case "letter:eat": {
+				// only the person it was sent to eats the chocolates, each one once
+				const letters = (await s.get<Letter[]>("letters")) ?? [];
+				const letter = letters.find((l) => l.id === m.id);
+				const gift = letter && letter.from !== who ? eat(letter.gift, m.i) : null;
+				if (!letter || !gift) return;
+				letter.gift = gift;
 				await s.put("letters", letters);
 				return this.broadcast({ t: "letters", letters });
 			}
