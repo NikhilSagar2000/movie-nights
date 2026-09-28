@@ -140,7 +140,8 @@ export default function GiftBuilder() {
 	const [colors, setColors] = useState(() => Object.fromEntries(FLOWER_IDS.map((f) => [f, FLOWERS[f][0]])) as Record<FlowerId, string>);
 	const [sending, setSending] = useState(0);
 	const [sent, setSent] = useState<Draft | null>(null);
-	const step = useSteps(SEND, sending, reduced());
+	const running = useSteps(SEND, sending, reduced());
+	const step = sending ? running : null; // "Leave another" clears it in the same render, not one effect later
 
 	useEffect(() => {
 		if (!sending) storage.set(KEY, JSON.stringify(draft));
