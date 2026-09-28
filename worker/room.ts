@@ -22,6 +22,7 @@ import {
 } from "../shared/types";
 import { YT_ID } from "../shared/tube";
 import { bestsOf, recordBest } from "../shared/bests";
+import { cleanLook, type Looks } from "../shared/look";
 
 type Attachment = { who: Who; sid: string };
 type SealStore = { gameId: string; round: number; answers: Partial<Record<Who, string>> };
@@ -278,6 +279,14 @@ export class Room extends DurableObject<Env> {
 				await s.put("bests", bests);
 				return this.broadcast({ t: "bests", bests });
 			}
+			case "look": {
+				// Your own look only (unlike "profile", which names your partner).
+				const look = cleanLook(m.look, who);
+				if (!look) return;
+				const looks: Looks = { ...((await s.get<Looks>("looks")) ?? {}), [who]: look };
+				await s.put("looks", looks);
+				return this.broadcast({ t: "looks", looks });
+			}
 			case "seal": {
 				const answer = str(m.answer, LIMITS.answer);
 				const game = await s.get<Game>("game");
@@ -311,7 +320,7 @@ export class Room extends DurableObject<Env> {
 	}
 
 	private async snapshot(you: Who): Promise<Snapshot> {
-		const got = await this.ctx.storage.get(["profiles", "chat", "jar", "stubs", "letters", "tube", "garden", "game", "sealed", "bests"]);
+		const got = await this.ctx.storage.get(["profiles", "chat", "jar", "stubs", "letters", "tube", "garden", "game", "sealed", "bests", "looks"]);
 		const seal = got.get("sealed") as SealStore | undefined;
 		let game = (got.get("game") as Game | undefined) ?? null;
 		if (game && !KINDS.includes(game.kind)) {
@@ -333,6 +342,7 @@ export class Room extends DurableObject<Env> {
 			game,
 			sealed: game && seal ? { round: seal.round, submitted: Object.keys(seal.answers) as Who[] } : null,
 			bests: bestsOf(got.get("bests") as Bests | undefined),
+			looks: (got.get("looks") as Looks) ?? {},
 		};
 	}
 

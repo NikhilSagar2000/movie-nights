@@ -1,8 +1,12 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
 import type { Who } from "../shared/types";
+import type { Look } from "../shared/look";
+import { useLook } from "./room";
+import { Worn } from "./lookArt";
 
 /* The two drawn heads: user "a" is him (glasses + flower), "b" is her (long hair).
-   The artwork is the sprite in index.html; styles and every animation are in styles.css (ch-*). */
+   The artwork is the sprite in index.html; styles and every animation are in styles.css (ch-*).
+   Each person can dress up their own (src/lookArt.tsx, lk-*): the look saved in the Room is drawn wherever their head is. */
 
 export const CHAR = { a: "him", b: "her" } as const;
 
@@ -27,18 +31,25 @@ export type HeadProps = {
 	twinkle?: boolean;
 	/** Hide his flower (it is flying somewhere). */
 	flowerGone?: boolean;
+	/** Draw this look instead of the saved one (the dress-up preview). null = as drawn. */
+	look?: Look | null;
 	label?: string;
 	className?: string;
 	style?: CSSProperties;
 	onClick?: () => void;
 };
 
-export function Head({ who, mood = "idle", moment, nonce = 0, h, blush, twinkle, flowerGone, label, className, style, onClick }: HeadProps) {
+export function Head({ who, mood = "idle", moment, nonce = 0, h, blush, twinkle, flowerGone, look: preview, label, className, style, onClick }: HeadProps) {
 	const ch = CHAR[who];
+	const saved = useLook(who);
+	const look = preview === undefined ? saved : preview; // no look: drawn exactly as before
+	const hair = look?.hair;
+	const flower = look ? look.clip?.id === "flower" && look.clip : true; // his clip spot is his flower's; it's his until he swaps it
+	const css = { ...(h && { "--h": h }), ...(look?.skin && { "--skin": look.skin }), ...style } as CSSProperties;
 	return (
 		<span
 			className={`ch-head ch-${ch} ch-${mood}${onClick ? " ch-tap" : ""}${className ? " " + className : ""}`}
-			style={h ? ({ "--h": h, ...style } as CSSProperties) : style}
+			style={h || look?.skin ? css : style}
 			data-flower={flowerGone ? "gone" : undefined}
 			role={label ? "img" : undefined}
 			aria-label={label}
@@ -47,14 +58,24 @@ export function Head({ who, mood = "idle", moment, nonce = 0, h, blush, twinkle,
 		>
 			<span className={`ch-moment${moment ? " " + moment : ""}`} key={`${moment}-${nonce}`}>
 				<svg className="ch" viewBox={VIEWBOX[ch]}>
+					{look && <Worn who={who} look={look} back />}
 					{ch === "him" ? (
 						<>
 							<use href="#him-bare" />
-							<use className="ch-flower" href="#him-flower" />
+							{/* hair colour: the drawing again, clipped to his hair (hair, eyes and lines are one ink shape) */}
+							{hair && <use href="#him-bare" clipPath="url(#lk-him-hair)" style={{ color: hair }} />}
+							{flower && <use className="ch-flower" href="#him-flower" style={flower === true ? undefined : ({ "--petal": flower.c } as CSSProperties)} />}
+						</>
+					) : hair ? (
+						<>
+							{/* all her ink takes the hair colour, then her eyes are drawn again in ink on top */}
+							<use href="#her" style={{ color: hair }} />
+							<use href="#her" clipPath="url(#lk-her-eyes)" />
 						</>
 					) : (
 						<use href="#her" />
 					)}
+					{look && <Worn who={who} look={look} />}
 				</svg>
 				{blush && (
 					<>

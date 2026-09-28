@@ -25,7 +25,7 @@
 	justify-content: center;
 	gap: 0.2em;
 	height: 5.25em;
-	overflow: hidden;
+	clip-path: inset(-6em -6em 0 -6em); /* only the bottom edge clips, so a hat isn't cut off */
 }
 .mem-peek .ch-her {
 	translate: 0 30%;

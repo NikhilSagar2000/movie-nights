@@ -119,6 +119,7 @@ function FilmList({ current }: { current: number }) {
 								className="fm-list-play"
 								disabled={i === current}
 								aria-label={i === current ? `${ep.title}, playing now` : `Play ${ep.title} now`}
+								title={ep.title}
 								onClick={() => playEpisode(i)}
 							>
 								<span className="fm-list-n">{i === current ? <Play weight="fill" aria-hidden /> : i + 1}</span>

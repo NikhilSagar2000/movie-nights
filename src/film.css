@@ -242,6 +242,7 @@
 }
 .fm-list ol {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr); /* an auto column grows to the longest title and pushes the buttons out */
 	gap: 0.15em;
 	margin: 0 0 0.6em;
 	padding: 0;

@@ -41,7 +41,8 @@ import {
 import { LIMITS, other, type Tube, type Who } from "../shared/types";
 import { Duo, Face, Flower, FlowerRain, Head, type HeadProps } from "./Character";
 import { canPlayFiles, filmDo, filmNow, filmVolume, playFiles, setFilmVolume, useFilm } from "./filmPlayer";
-import { getRoom, onRelay, profileOf, relay, send, useRoom, type RoomState } from "./room";
+import { getRoom, onRelay, profileOf, relay, send, useLook, useRoom, type RoomState } from "./room";
+import { HIS_FLOWER } from "../shared/look";
 import { dismissReshare, setCam, setMic, setQuality, setTubeMovie, startShare, stopShare, useCall, type CallState, type Quality } from "./rtc";
 import { TubeBar, TubePlayer, TubeStart } from "./Tube";
 import "./theater.css";
@@ -413,6 +414,8 @@ export function NudgeListener() {
  *  from her, it goes into his hair. Whoever receives it smiles and blushes when it lands. */
 function FlowerOverlay({ from, name, onClose }: { from: Who; name: string; onClose: () => void }) {
 	const [landed, setLanded] = useState(false);
+	const his = useLook("a"); // the gift flies from (or lands in) his flower's spot, so he wears it here even if he swapped it for a clip
+	const withFlower = his && his.clip?.id !== "flower" ? { ...his, clip: HIS_FLOWER } : undefined;
 	useEffect(() => {
 		const t = setTimeout(() => setLanded(true), 2500); // .fc-flower-gift lands at 0.3s + 70% of 3.2s
 		return () => clearTimeout(t);
@@ -431,7 +434,7 @@ function FlowerOverlay({ from, name, onClose }: { from: Who; name: string; onClo
 	return (
 		<div className="fc-flower" role="status" onClick={(e) => e.target === e.currentTarget && onClose()}>
 			<span className="face fc-flower-face">
-				<Duo h="10.5em" a={toHer ? { flowerGone: true } : { flowerGone: !landed, ...receiver }} b={toHer ? receiver : undefined}>
+				<Duo h="10.5em" a={{ look: withFlower, ...(toHer ? { flowerGone: true } : { flowerGone: !landed, ...receiver }) }} b={toHer ? receiver : undefined}>
 					<Flower className={`fc-flower-gift${toHer ? "" : " to-him"}`} />
 				</Duo>
 			</span>

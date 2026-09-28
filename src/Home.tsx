@@ -36,8 +36,8 @@ export function Nav({ route }: { route: Route }) {
 	return (
 		<header className="nav">
 			<span className="hm-brand">
-				<Flower />
-				<span className="hm-brand-name">Our Little Theater</span>
+				<img className="mark" src="/favicon.svg" alt="" />
+				<span className="hm-brand-name">Window Seat</span>
 			</span>
 			<nav className="hm-links" aria-label="Main">
 				{LINKS.map(({ route: r, label, Icon }) => (
@@ -151,6 +151,7 @@ export function Home() {
 						{pop(them, partnerWho)}
 						{pop(mine, room.you)}
 						{partnerOn && <button className={`hm-boop ${side(partnerWho)}`} onClick={poke} aria-label={`Poke ${partner.name}`} title={`Poke ${partner.name}`} />}
+						<a className={`hm-boop hm-dress ${side(room.you)}`} href="#/dress" aria-label="Dress up" title="Dress up" />
 					</Duo>
 					<i className="clouds" />
 				</div>
@@ -209,6 +210,10 @@ export function Home() {
 					<button className="hm-rename" onClick={() => setRenaming(true)}>
 						Rename {partner.name}
 					</button>
+					{" · "}
+					<a className="hm-rename" href="#/dress">
+						Dress up
+					</a>
 				</p>
 			</div>
 

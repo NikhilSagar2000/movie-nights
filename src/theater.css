@@ -790,7 +790,7 @@ body:has(.th-stage-wrap.is-full) {
 	display: flex;
 	align-items: flex-end;
 	height: 4.6em;
-	overflow: hidden;
+	clip-path: inset(-6em -6em 0 -6em); /* only the bottom edge clips, so a hat isn't cut off */
 	border-bottom: 1.5px solid rgb(234 239 244 / 0.2);
 }
 .th-peek .ch-duo {
@@ -1160,6 +1160,18 @@ body:has(.theater) .fc-cam {
 .fc-head .ch-head {
 	translate: 0 calc(var(--level, 0) * -7%);
 	scale: calc(1 + var(--level, 0) * 0.05);
+}
+/* Cam off: the whole character, hat and all, instead of the close-up the small faces use */
+.fc-head .face {
+	align-content: center;
+}
+.fc-head .face > .ch-her {
+	width: 48%;
+	margin-top: 12%;
+}
+.fc-head .face > .ch-him {
+	width: 57%;
+	margin-top: 13%;
 }
 .fc-mic-off {
 	position: absolute;

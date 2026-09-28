@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useState } from "react";
+import { lazy, StrictMode, Suspense, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 import { other, type Who } from "../shared/types";
@@ -12,7 +12,9 @@ import FaceCams from "./FaceCams";
 import Games from "./Games";
 import Memories from "./Memories";
 
-export type Route = "" | "theater" | "games" | "memories";
+const Wardrobe = lazy(() => import("./Wardrobe"));
+
+export type Route = "" | "theater" | "games" | "memories" | "dress";
 
 // A tab opened before a deploy asks for code the new build no longer has (a solo game, a movie file's controls):
 // reload once to get the new build, rather than going blank. Not twice in a row, in case the new build fails too.
@@ -61,7 +63,7 @@ function App() {
 
 	if (auth === "checking") return <Splash text="Warming up the popcorn" />;
 	if (auth === "out") return <Login onIn={setAuth} />;
-	if (!room) return <Splash text="Opening the theater" />;
+	if (!room) return <Splash text="Opening the window" />;
 	if (room.replaced)
 		return (
 			<main className="center-screen hm-login">
@@ -72,7 +74,7 @@ function App() {
 						<Head who="a" mood="bob" />
 					</div>
 					<div className="card hm-login-card hm-replaced">
-						<h1 className="hm-replaced-title">You opened the theater in another tab</h1>
+						<h1 className="hm-replaced-title">You opened Window Seat in another tab</h1>
 						<p className="hint">Only one tab can be in the room at a time.</p>
 						<button className="btn hm-go" onClick={() => location.reload()}>
 							Use this tab instead
@@ -87,7 +89,19 @@ function App() {
 	return (
 		<>
 			<Nav route={route} />
-			{route === "theater" ? <Theater /> : route === "games" ? <Games /> : route === "memories" ? <Memories /> : <Home />}
+			{route === "theater" ? (
+				<Theater />
+			) : route === "games" ? (
+				<Games />
+			) : route === "memories" ? (
+				<Memories />
+			) : route === "dress" ? (
+				<Suspense>
+					<Wardrobe />
+				</Suspense>
+			) : (
+				<Home />
+			)}
 			<FaceCams />
 		</>
 	);

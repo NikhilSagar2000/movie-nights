@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { ClientMsg, JarItem, RelayData, ServerMsg, Snapshot, Who } from "../shared/types";
+import type { Look } from "../shared/look";
 
 /** New on every page load, so the partner can tell a refresh (new call needed) from a Wi-Fi blip (keep the call). */
 export const sessionId = crypto.randomUUID();
@@ -58,6 +59,8 @@ function handle(m: ServerMsg) {
 			return set({ tube: m.tube });
 		case "garden":
 			return set({ garden: m.garden });
+		case "looks":
+			return set({ looks: m.looks });
 		case "bests":
 			return set({ bests: m.bests });
 		case "game":
@@ -131,6 +134,14 @@ export function subscribe(fn: () => void) {
 
 export const getRoom = () => state;
 export const useRoom = () => useSyncExternalStore(subscribe, getRoom);
+/** One person's saved look; a head re-renders only when that look changes (undefined before the Room connects). */
+export const useLook = (who: Who) => useSyncExternalStore(subscribe, () => state?.looks?.[who]);
+/** Save your own look: it shows on your screen straight away, and the Room passes it to the other one. */
+export function saveLook(look: Look) {
+	if (!state) return;
+	set({ looks: { ...state.looks, [state.you]: look } });
+	send({ t: "look", look });
+}
 
 /** Display name + color for a person, with soft defaults until they pick their own. */
 /** The ring colors you can pick for your love. Defaults: a = blush, b = misty sky. */

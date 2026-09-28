@@ -1,4 +1,4 @@
-# Our Little Theater 🧸💗
+# Window Seat 🧸💗
 
 A private movie-night + games website for two. One of you shares a Chrome tab with the movie, the other watches live, you see each other in cam bubbles, send floating hearts, and play little games after.
 

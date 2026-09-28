@@ -2,7 +2,7 @@ import { useId, useState, type CSSProperties, type FormEvent } from "react";
 import { Check, DoorOpen, Eye, EyeSlash, HourglassMedium, WarningCircle } from "@phosphor-icons/react";
 import { LIMITS, other, type Who } from "../shared/types";
 import { profileOf, RINGS, ringOf, send, useRoom } from "./room";
-import { Flower, Head } from "./Character";
+import { Head } from "./Character";
 import "./home.css";
 
 // ---------- Login: a cream card the two of you peek over, and duck behind while the passcode is typed ----------
@@ -34,11 +34,11 @@ export function Login({ onIn }: { onIn: (who: Who) => void }) {
 					? "That is not our passcode. Try again?"
 					: r.status === 429
 						? TOO_MANY
-						: "The theater didn't answer. Try again in a moment.",
+						: "Window Seat didn't answer. Try again in a moment.",
 			);
 			setShake(true);
 		} catch {
-			setError("Couldn't reach the theater. Check your internet and try again.");
+			setError("Couldn't reach Window Seat. Check your internet and try again.");
 		} finally {
 			setBusy(false);
 		}
@@ -55,8 +55,8 @@ export function Login({ onIn }: { onIn: (who: Who) => void }) {
 			<i className="clouds" />
 			<div className="hm-login-col">
 				<h1 className="hm-wordmark">
-					<Flower />
-					Our Little Theater
+					<img className="mark" src="/favicon.svg" alt="" />
+					Window Seat
 				</h1>
 				<div className={`hm-peek${duck ? " duck" : ""}${duck && show ? " show" : ""}`}>
 					<Head who="b" mood={mood} />

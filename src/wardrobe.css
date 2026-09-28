@@ -1,0 +1,143 @@
+/* Dress up (#/dress, src/Wardrobe.tsx): your character in an arch of evening sky, and the wardrobe beside it. */
+.wd-page {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+	gap: 1.6em 2.6em;
+	align-items: start;
+}
+.wd-look {
+	position: sticky;
+	top: 1em;
+	display: grid;
+	justify-items: center;
+	gap: 1.2em;
+}
+.wd-stage {
+	--h: 15em;
+	position: relative;
+	width: calc(100% - 1.4em);
+	max-width: 27em;
+	aspect-ratio: 5 / 6;
+	margin: 0.7em;
+	background: var(--blue-hour);
+	box-shadow: 0 0 0 0.7em var(--cream), var(--lift);
+}
+.wd-moon {
+	top: 12%;
+	right: 16%;
+}
+.wd-stage .ch-duo {
+	position: absolute;
+	left: 50%;
+	bottom: 2.2em;
+	translate: -50% 0;
+}
+
+.wd-wardrobe {
+	display: grid;
+	gap: 1.1em;
+}
+.wd-head h1 {
+	margin: 0;
+}
+.wd-row {
+	display: grid;
+	gap: 0.55em;
+	padding-top: 1.05em;
+	border-top: 1.5px dashed rgb(122 139 158 / 0.35);
+}
+.wd-row h2 {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.5em;
+	margin: 0;
+	font: 500 1.05em var(--display);
+}
+.wd-row h2 small {
+	font: 1.1em var(--hand);
+	color: var(--rose-ink);
+}
+.wd-row .hm-swatch-row {
+	padding: 0.3em;
+}
+.wd-small .hm-swatch-row {
+	gap: 0.55em;
+}
+.wd-small .hm-swatch-dot {
+	width: 1.75em;
+}
+.wd-small .hm-swatch-dot svg {
+	width: 0.9em;
+	height: 0.9em;
+}
+.hm-swatch-dot.wd-dark {
+	color: var(--cream);
+}
+
+/* one-of-several choices as pills (radio buttons underneath) */
+.wd-pills {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.45em;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.wd-row .wd-pills {
+	justify-content: flex-start;
+}
+.wd-pill span {
+	display: inline-block;
+	padding: 0.45em 0.95em;
+	border-radius: 999px;
+	background: var(--paper);
+	box-shadow: inset 0 0 0 1.5px var(--fog);
+	font-size: 0.9em;
+	font-weight: 600;
+	cursor: pointer;
+	transition: transform 0.2s var(--spring);
+}
+.wd-look .wd-pill span {
+	background: var(--cream);
+	box-shadow: var(--lift);
+}
+.wd-pill:hover span {
+	transform: translateY(-1px);
+}
+.wd-pill input:checked + span {
+	background: var(--night);
+	color: var(--cream);
+	box-shadow: none;
+}
+.wd-pill input:focus-visible + span {
+	outline: 2px solid var(--dusk);
+	outline-offset: 2px;
+}
+
+.wd-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.6em;
+	padding-top: 1.1em;
+	border-top: 1.5px dashed rgb(122 139 158 / 0.35);
+}
+.wd-gap {
+	flex: 1;
+}
+
+@media (max-width: 760px) {
+	.wd-page {
+		grid-template-columns: 1fr;
+	}
+	.wd-look {
+		position: static;
+	}
+	.wd-stage {
+		--h: 11em;
+		max-width: 21em;
+	}
+}

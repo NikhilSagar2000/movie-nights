@@ -1,5 +1,7 @@
 // The one contract between the browser and the Room Durable Object.
 
+import type { Look, Looks } from "./look";
+
 export type Who = "a" | "b";
 export const PEOPLE: Who[] = ["a", "b"];
 export const other = (w: Who): Who => (w === "a" ? "b" : "a");
@@ -118,7 +120,9 @@ export type ClientMsg =
 	| { t: "game:end" }
 	| { t: "seal"; gameId: string; round: number; answer: string }
 	| { t: "best"; key: string; score: number }
-	| { t: "best:seen" };
+	| { t: "best:seen" }
+	/** Your own look (dress up). Stored under the sender, never the partner. */
+	| { t: "look"; look: Look };
 
 export type Snapshot = {
 	you: Who;
@@ -135,6 +139,7 @@ export type Snapshot = {
 	game: Game | null;
 	sealed: Sealed | null;
 	bests: Bests;
+	looks: Looks;
 };
 
 export type ServerMsg =
@@ -151,7 +156,8 @@ export type ServerMsg =
 	| { t: "garden"; garden: Garden }
 	| { t: "game"; game: Game | null }
 	| { t: "sealed"; sealed: Sealed | null }
-	| { t: "bests"; bests: Bests };
+	| { t: "bests"; bests: Bests }
+	| { t: "looks"; looks: Looks };
 
 // Input limits, enforced by the Room (trust boundary) and mirrored in the UI.
 export const LIMITS = { name: 24, chat: 1000, title: 120, note: 400, answer: 40, relayBytes: 64_000, chatKeep: 200, letter: 800, lettersKeep: 200, tubeQueue: 30 };
