@@ -22,7 +22,7 @@ Open the printed URL in two browser windows (one normal, one guest/incognito) an
    ```
 2. Set the secrets. Nothing is stored in the code:
    ```sh
-   npx wrangler secret put USERS            # paste: {"a":"your long passphrase","b":"her long passphrase"}
+   npx wrangler secret put USERS            # paste: {"a":"your long passphrase","b":"their long passphrase"}
    npx wrangler secret put SESSION_SECRET   # paste the output of: openssl rand -base64 32
    ```
    TURN relay, for networks where a direct connection fails (you can see yourselves but not each other). Make a free account at expressturn.com (1000 GB a month), then paste the username and password from its dashboard:
@@ -35,13 +35,13 @@ Open the printed URL in two browser windows (one normal, one guest/incognito) an
    ```sh
    npm run deploy
    ```
-   You get a link like `https://movie-nights.<your-subdomain>.workers.dev`. Share it with her, along with her passcode.
+   You get a link like `https://movie-nights.<your-subdomain>.workers.dev`. Share it with the other person, along with their passcode.
 
 Whoever logs in with passcode `a` or `b` doesn't matter. On first login, each of you names the *other* person.
 
 ## Movie night tips
 
-- **Sharing:** Theater → "Share a tab" → pick the **Chrome tab** with the movie and tick **"Also share tab audio"**. You stay on the site and watch it there with her; the movie tab plays in the background.
+- **Sharing:** Theater → "Share a tab" → pick the **Chrome tab** with the movie and tick **"Also share tab audio"**. You stay on the site and watch it there together; the movie tab plays in the background.
 - **Pause:** use your keyboard's ⏯ key or Chrome's media button in the toolbar. No tab switching needed.
 - **No sound?** Some downloaded `.mkv` files use AC3/DTS audio, which Chrome can't play. Fix it in about a minute (the video isn't re-encoded):
   `ffmpeg -i movie.mkv -c:v copy -c:a aac movie.mp4`

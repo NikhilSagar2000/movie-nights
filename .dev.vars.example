@@ -1,4 +1,4 @@
-USERS={"a":"your-long-passphrase","b":"her-long-passphrase"}
+USERS={"a":"your-long-passphrase","b":"their-long-passphrase"}
 SESSION_SECRET=any-long-random-string
 # Optional relay (TURN) for networks that block direct connections. Either or both:
 # the fixed username/password for TURN_SERVER in wrangler.jsonc (e.g. ExpressTURN's free plan)
