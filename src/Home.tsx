@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState } from "react";
-import { ArrowRight, EnvelopeSimple, FilmSlate, GameController, HandPointing, Heart, House, SignOut, Ticket, X } from "@phosphor-icons/react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { CoatHanger, EnvelopeSimple, FilmSlate, GameController, HandPointing, House, SignOut, Ticket, X } from "@phosphor-icons/react";
 import { other, type Who } from "../shared/types";
 import type { Route } from "./main";
-import { logout, onRelay, profileOf, useRoom } from "./room";
-import { useCall } from "./rtc";
+import { logout, onRelay, profileOf, useRoom, type RoomState } from "./room";
 import { Duo, Face, Flower, lateNight, type HeadProps, type Moment } from "./Character";
+import { Envelope } from "./envelope";
 import { NameYourLove } from "./Login";
 import { readLetters, unreadOf, writeLetter } from "./Letters";
 import { sendPoke, usePokeSent } from "./Theater";
 import { Garden } from "./Garden";
+import { Doodle, TableRadio } from "./Songs";
 import "./home.css";
 
 const LINKS = [
@@ -18,15 +19,13 @@ const LINKS = [
 	{ route: "memories", label: "Memories", Icon: Ticket },
 ] as const;
 
-const ROWS = [
-	{ href: "#/theater", title: "Theater", text: "Share a tab and see each other", Icon: FilmSlate, go: true },
-	{ href: "#/games", title: "Games", text: "Games for two, and some to play alone", Icon: GameController, go: false },
-	{ href: "#/memories", title: "Memories", text: "The movie jar and your ticket stubs", Icon: Ticket, go: false },
-] as const;
+/** The note, dress-up and song pages are rooms of Home: the nav keeps Home lit there. */
+const sectionOf = (route: Route): Route => (route === "note" || route === "dress" || route === "song" ? "" : route);
 
 export function Nav({ route }: { route: Route }) {
 	const room = useRoom();
 	if (!room) return null;
+	const section = sectionOf(route);
 	const partnerWho = other(room.you);
 	const partner = profileOf(room, partnerWho);
 	const online = room.online.some((p) => p.who === partnerWho);
@@ -41,8 +40,8 @@ export function Nav({ route }: { route: Route }) {
 			</span>
 			<nav className="hm-links" aria-label="Main">
 				{LINKS.map(({ route: r, label, Icon }) => (
-					<a key={r} href={`#/${r}`} className="hm-link" aria-current={route === r ? "page" : undefined}>
-						<Icon aria-hidden weight={route === r ? "fill" : "regular"} />
+					<a key={r} href={`#/${r}`} className="hm-link" aria-current={section === r ? (route === r ? "page" : "true") : undefined}>
+						<Icon aria-hidden weight={section === r ? "fill" : "regular"} />
 						<span className="hm-link-label">{label}</span>
 					</a>
 				))}
@@ -94,7 +93,6 @@ const side = (w: Who) => (w === "b" ? "l" : "r"); // the Duo draws her (b) on th
 
 export function Home() {
 	const room = useRoom();
-	const call = useCall();
 	const [renaming, setRenaming] = useState(false);
 	// one-shot moments on each head: theirs arrives or gets poked, yours gets poked back
 	const [them, setThem] = useState<Play>({ m: null, n: 0 });
@@ -147,11 +145,24 @@ export function Home() {
 				<div className="arch hm-window">
 					<i className="stars" />
 					<i className="moon hm-window-moon" />
+					<FairyLights on={both} />
 					<Duo together={both} a={heads.a} b={heads.b}>
 						{pop(them, partnerWho)}
 						{pop(mine, room.you)}
-						{partnerOn && <button className={`hm-boop ${side(partnerWho)}`} onClick={poke} aria-label={`Poke ${partner.name}`} title={`Poke ${partner.name}`} />}
-						<a className={`hm-boop hm-dress ${side(room.you)}`} href="#/dress" aria-label="Dress up" title="Dress up" />
+						{partnerOn && (
+							<button className={`hm-boop ${side(partnerWho)}`} onClick={poke} aria-label={`Poke ${partner.name}`} title={`Poke ${partner.name}`}>
+								<span className={`hm-tag poke${pokeSent ? " done" : ""}`} aria-hidden="true">
+									<HandPointing weight="fill" />
+									<span>{pokeSent ? "poked!" : "poke"}</span>
+								</span>
+							</button>
+						)}
+						<a className={`hm-boop hm-dress ${side(room.you)}`} href="#/dress" aria-label="Dress up" title="Dress up">
+							<span className="hm-tag dress" aria-hidden="true">
+								<CoatHanger weight="bold" />
+								<span>dress up</span>
+							</span>
+						</a>
 					</Duo>
 					<i className="clouds" />
 				</div>
@@ -159,44 +170,22 @@ export function Home() {
 			</div>
 
 			<div className="hm-copy">
-				{both && (
-					<div className="hm-chips">
-						<span className="chip sage" title={call.connection === "connected" ? "Your video call is connected" : undefined}>
-							<Heart aria-hidden weight="fill" />
-							Together
-						</span>
-						<button className="btn paper sm hm-poke" onClick={poke} disabled={pokeSent}>
-							<HandPointing aria-hidden />
-							{pokeSent ? `You poked ${partner.name}` : `Poke ${partner.name}`}
-						</button>
-						<button className="btn paper sm" onClick={writeLetter}>
-							<EnvelopeSimple aria-hidden />
-							Write a note
-						</button>
-					</div>
-				)}
-				<h1>{partnerOn ? `${partner.name} is here` : `${partner.name} is not home yet`}</h1>
-				<p className="hm-lede">{partnerOn ? "You are both home. Pick something to do together." : "Their head pops up in the window when they come in."}</p>
-				{!partnerOn && (
-					<button className="btn blush hm-leave" onClick={writeLetter}>
-						<EnvelopeSimple aria-hidden />
-						Leave {partner.name} a note
-					</button>
-				)}
+				<div className="hm-greet">
+					<h1>{partnerOn ? "You're both home" : `${partner.name} is away`}</h1>
+					{!partnerOn && <p className="hm-lede">The lights come on when they're back.</p>}
+				</div>
 
-				<div className="hm-rows">
-					{ROWS.map(({ href, title, text, Icon, go }) => (
-						<a key={href} href={href} className={go ? "hm-row go" : "hm-row"}>
-							<span className="hm-ico">
-								<Icon aria-hidden />
-							</span>
-							<span className="hm-row-text">
-								<b>{title}</b>
-								<span>{text}</span>
-							</span>
-							<ArrowRight aria-hidden className="hm-arrow" />
-						</a>
-					))}
+				<div className="hm-table">
+					<div className="hm-things">
+						<LetterOnTable room={room} />
+						<span className="hm-vase" aria-hidden="true">
+							<Flower className="hm-vase-flw" />
+							<i className="hm-vase-stem" />
+							<i className="hm-vase-glass" />
+						</span>
+						<TableRadio room={room} />
+					</div>
+					<TableArt />
 				</div>
 
 				<p className="hint hm-names">
@@ -210,14 +199,110 @@ export function Home() {
 					<button className="hm-rename" onClick={() => setRenaming(true)}>
 						Rename {partner.name}
 					</button>
-					{" · "}
-					<a className="hm-rename" href="#/dress">
-						Dress up
-					</a>
 				</p>
 			</div>
 
 			{renaming && <RenameDialog onClose={() => setRenaming(false)} />}
 		</main>
+	);
+}
+
+type Vars = CSSProperties & Record<`--${string}`, string | number>;
+
+/** Fairy lights strung across the window, in two swags: lit while you're both home. They come on bulb by bulb, left to
+ *  right, when they arrive (and on the way in), and go out right to left when they leave. */
+const SWAGS = [
+	[0, 8, 75, 42, 150, 10],
+	[150, 10, 225, 42, 300, 8],
+] as const;
+const BULBS = [...[0.16, 0.39, 0.62, 0.86].map((t) => [0, t] as const), [1, 0] as const, ...[0.14, 0.38, 0.61, 0.84].map((t) => [1, t] as const)].map(([w, t]) => {
+	const [x0, y0, cx, cy, x1, y1] = SWAGS[w];
+	const q = (a: number, b: number, c: number) => (1 - t) ** 2 * a + 2 * (1 - t) * t * b + t ** 2 * c;
+	return { x: q(x0, cx, x1), y: q(y0, cy, y1) };
+});
+const HUES = ["var(--flower)", "var(--blush)", "var(--cream)"];
+
+function FairyLights({ on }: { on: boolean }) {
+	// start dark and switch on a moment later, so coming in (or their arrival) plays the bulbs lighting in turn
+	const [lit, setLit] = useState(false);
+	useEffect(() => {
+		const t = setTimeout(() => setLit(on), on ? 450 : 0);
+		return () => clearTimeout(t);
+	}, [on]);
+	return (
+		<svg className={`hm-lights${lit ? " on" : ""}`} viewBox="0 0 300 62" aria-hidden="true">
+			<path className="hm-wire" d="M0 8 Q75 42 150 10 Q225 42 300 8" />
+			{BULBS.map(({ x, y }, i) => (
+				<g key={i} className="hm-bulb" style={{ "--i": i, "--hue": HUES[i % HUES.length] } as Vars} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}>
+					<rect className="hm-cap" x="-1.6" y="0" width="3.2" height="3" rx="0.8" />
+					<g className="hm-glow">
+						<circle cx="0" cy="8" r="8.5" />
+					</g>
+					<ellipse className="hm-glass" cx="0" cy="7.6" rx="3.2" ry="4.4" />
+				</g>
+			))}
+		</svg>
+	);
+}
+
+/** The little table: a gingham cloth with a lace edge, slate legs, a soft shadow on the floor. */
+const SCALLOPS = Array.from({ length: 14 }, () => "a14 9 0 0 1 -28 0").join(" ");
+function TableArt() {
+	return (
+		<svg className="hm-table-art" viewBox="0 0 400 150" aria-hidden="true">
+			<defs>
+				<pattern id="hm-gingham" width="14" height="14" patternUnits="userSpaceOnUse">
+					<rect width="14" height="14" fill="#fff7e6" />
+					<rect width="7" height="14" fill="#f7c8d3" fillOpacity="0.55" />
+					<rect width="14" height="7" fill="#f7c8d3" fillOpacity="0.55" />
+				</pattern>
+			</defs>
+			<ellipse className="hm-floor" cx="200" cy="144" rx="168" ry="5" />
+			<path className="hm-leg" d="M60 50 66 136h12l-2-86Z" />
+			<path className="hm-leg" d="M340 50l-6 86h-12l2-86Z" />
+			<rect className="hm-foot" x="62" y="134" width="20" height="5" rx="2.5" />
+			<rect className="hm-foot" x="318" y="134" width="20" height="5" rx="2.5" />
+			<rect className="hm-top" x="6" y="2" width="388" height="16" rx="7" fill="url(#hm-gingham)" />
+			<rect className="hm-top-light" x="6" y="2" width="388" height="16" rx="7" />
+			<path className="hm-cloth" d={`M4 13H396V48${SCALLOPS}V13Z`} fill="url(#hm-gingham)" />
+			<path className="hm-lace" d={`M396 48${SCALLOPS}`} />
+			<path className="hm-hem" d="M4 14H396" />
+		</svg>
+	);
+}
+
+/** The letter on the table: theirs waiting to be opened (that comes first), yours waiting for them, or a blank one
+ *  asking for a note. The one place on Home to read or write one (the reader has "Write back"). */
+function LetterOnTable({ room }: { room: RoomState }) {
+	const partner = other(room.you);
+	const them = profileOf(room, partner);
+	const unread = unreadOf(room);
+	const waiting = room.letters.filter((l) => l.from === room.you && !l.openedAt);
+	const latest = unread.at(-1) ?? waiting.at(-1);
+	const n = unread.length;
+	const caption = n
+		? n > 1
+			? `${n} notes from ${them.name}!`
+			: `a ${unread[0].gift ? "gift" : "note"} from ${them.name}!`
+		: waiting.length
+			? "waiting to be read"
+			: "leave a note";
+	return (
+		<div className={`hm-thing hm-letter-thing${n ? " new" : ""}`}>
+			<p className="hm-cap">
+				<span>{caption}</span>
+			</p>
+			<Doodle />
+			<button
+				className="hm-letter"
+				onClick={() => (n ? readLetters(unread.map((l) => l.id)) : writeLetter())}
+				aria-label={n ? `Open ${n > 1 ? `${n} notes` : "the note"} from ${them.name}` : `Write ${them.name} a note`}
+			>
+				<span className="hm-letter-lie">
+					<Envelope phase="closed" paper={latest?.paper ?? "cream"} from={n ? partner : room.you} to={n ? profileOf(room, room.you).name : them.name} />
+				</span>
+				{n > 1 && <b className="hm-env-count">{n}</b>}
+			</button>
+		</div>
 	);
 }

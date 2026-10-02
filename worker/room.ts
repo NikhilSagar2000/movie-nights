@@ -15,6 +15,9 @@ import {
 	type ServerMsg,
 	type Snapshot,
 	type Stub,
+	type Song,
+	type SongHit,
+	type SongSearch,
 	type Tube,
 	type TubeItem,
 	type Who,
@@ -24,31 +27,61 @@ import { YT_ID } from "../shared/tube";
 import { bestsOf, recordBest } from "../shared/bests";
 import { cleanLook, type Looks } from "../shared/look";
 import { cleanGift, eat } from "../shared/gift";
+import { dayOf, hitsOf, searchKey, slotFor } from "../shared/song";
 
 type Attachment = { who: Who; sid: string };
 type SealStore = { gameId: string; round: number; answers: Partial<Record<Who, string>> };
 /** The tuberose's points, plus today's tally per kind so each has a daily cap. */
 type GardenStore = { pts: number; day: string; counts: Partial<Record<Growth, number>> };
 // [points, times per day]. ponytail: tune after a few weeks of real use.
-const GROWTH = { together: [2, 1], stub: [3, 1], game: [1, 3], letter: [1, 2], tube: [1, 3] } as const;
+const GROWTH = { together: [2, 1], stub: [3, 1], game: [1, 3], letter: [1, 2], tube: [1, 3], song: [1, 2] } as const;
 type Growth = keyof typeof GROWTH;
-const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); // their day, not UTC's
+/** Searches saved for a week (by searchKey), and today's count against YouTube's free 100 a day (its day, Pacific time). */
+type SongCache = Record<string, { at: number; hits: SongHit[] }>;
+type SongCount = { day: string; n: number };
+const WEEK = 7 * 86_400_000;
+const SEARCHES_A_DAY = 95; // of YouTube's 100, a few to spare
 
 const KINDS: GameKind[] = ["mindmeld", "whoami", "taboo", "charades", "emoji", "antakshari", "wave"];
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const id = () => crypto.randomUUID().slice(0, 8);
 const secs = (v: unknown) => Math.max(0, Math.min(86_400, Number(v) || 0));
 
-/** A video's title, from YouTube's public oEmbed. The URL is built from a checked 11-character id, never from user input. */
-async function titleOf(videoId: string) {
+/** A video's title and channel, from YouTube's public oEmbed ("" when it can't say). The URL is built from a checked
+ *  11-character id, never from user input. */
+async function oembed(videoId: string) {
 	try {
 		const res = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}`, {
 			signal: AbortSignal.timeout(4000),
 		});
-		const j = (await res.json()) as { title?: unknown };
-		return str(j.title, LIMITS.title) || "A YouTube video";
+		const j = (await res.json()) as { title?: unknown; author_name?: unknown };
+		return { title: str(j.title, LIMITS.title), channel: str(j.author_name, 60) };
 	} catch {
-		return "A YouTube video";
+		return { title: "", channel: "" };
+	}
+}
+
+/** Songs for a search, from the YouTube Data API: search.list (its own 100-a-day allowance), then videos.list for the
+ *  durations (1 unit of the separate 10,000). */
+async function ytSearch(key: string, q: string): Promise<SongSearch> {
+	const get = async (path: string, params: Record<string, string>) => {
+		const res = await fetch(`https://www.googleapis.com/youtube/v3/${path}?${new URLSearchParams({ ...params, key })}`, { signal: AbortSignal.timeout(6000) });
+		const j = (await res.json().catch(() => null)) as { error?: { errors?: { reason?: string }[] } } | null;
+		if (!res.ok) throw new Error(j?.error?.errors?.[0]?.reason ?? `status ${res.status}`);
+		return j;
+	};
+	try {
+		const found = (await get("search", { part: "snippet", type: "video", videoEmbeddable: "true", regionCode: "IN", maxResults: "15", q })) as {
+			items?: { id?: { videoId?: unknown } }[];
+		} | null;
+		const ids = (found?.items ?? []).map((it) => it?.id?.videoId).filter((v): v is string => typeof v === "string" && YT_ID.test(v));
+		if (!ids.length) return { hits: [] };
+		const videos = await get("videos", { part: "contentDetails", id: ids.join(",") });
+		return { hits: hitsOf(found, videos).slice(0, 12) };
+	} catch (e) {
+		const reason = (e as Error).message;
+		console.warn("song search failed:", reason); // the reason only; the URL carries the key
+		return { error: reason === "quotaExceeded" || reason === "dailyLimitExceeded" ? "resting" : "failed" };
 	}
 }
 
@@ -72,6 +105,35 @@ export class Room extends DurableObject<Env> {
 	failedLogin(ip: string) {
 		this.loginFails.set(ip, [...(this.loginFails.get(ip) ?? []), Date.now()]);
 		if (this.loginFails.size > 1000) this.loginFails.clear(); // don't let a flood of IPs grow memory
+	}
+
+	/** "A song a day" search, called by the Worker over RPC (only after the login check). */
+	async songSearch(q: string): Promise<SongSearch> {
+		const k = searchKey(q);
+		if (!k) return { hits: [] };
+		const s = this.ctx.storage;
+		const saved = (await s.get<SongCache>("songcache"))?.[k];
+		if (saved && Date.now() - saved.at < WEEK) return { hits: saved.hits };
+		const key = (this.env as Env & { YOUTUBE_API_KEY?: string }).YOUTUBE_API_KEY; // a secret you set yourself; none = search is off
+		if (!key) return { error: "off" };
+		const day = dayOf(Date.now(), "America/Los_Angeles");
+		const count = await s.get<SongCount>("songsearch");
+		const n = count?.day === day ? count.n : 0;
+		if (n >= SEARCHES_A_DAY) return { error: "resting" };
+		await s.put("songsearch", { day, n: n + 1 } satisfies SongCount); // counted before asking, so two at once can't both slip past
+		const res = await ytSearch(key, k);
+		if ("error" in res) {
+			if (res.error === "resting") await s.put("songsearch", { day, n: SEARCHES_A_DAY } satisfies SongCount);
+			return res;
+		}
+		// read again: other searches may have saved theirs while this one was out
+		const cache = { ...(await s.get<SongCache>("songcache")), [k]: { at: Date.now(), hits: res.hits } };
+		const keep = Object.entries(cache)
+			.filter(([, v]) => Date.now() - v.at < WEEK)
+			.sort((a, b) => b[1].at - a[1].at)
+			.slice(0, 150);
+		await s.put("songcache", Object.fromEntries(keep));
+		return res;
 	}
 
 	constructor(ctx: DurableObjectState, env: Env) {
@@ -212,11 +274,38 @@ export class Room extends DurableObject<Env> {
 				return this.broadcast({ t: "letters", letters });
 			}
 
+			// ---- a song a day: one each, swappable until the other person has played it ----
+			case "song:send": {
+				if (typeof m.vid !== "string" || !YT_ID.test(m.vid)) return;
+				const note = str(m.note, LIMITS.songNote);
+				// look it up first: nothing waits on the network between reading the songs and writing them back
+				const { title, channel } = await oembed(m.vid);
+				const songs = (await s.get<Song[]>("songs")) ?? [];
+				const day = dayOf(Date.now());
+				const slot = slotFor(songs, who, day);
+				if (slot === "locked") return;
+				const song: Song = { id: id(), vid: m.vid, title: title || "A song", channel, from: who, day, note, at: Date.now() };
+				const next = (slot === "new" ? [...songs, song] : songs.map((x) => (x === slot.replace ? song : x))).slice(-LIMITS.songsKeep);
+				await s.put("songs", next);
+				this.broadcast({ t: "songs", songs: next });
+				if (slot === "new") await this.grow("song");
+				return;
+			}
+			case "song:played": {
+				// only the person it was dedicated to, once
+				const songs = (await s.get<Song[]>("songs")) ?? [];
+				const song = songs.find((x) => x.id === m.id);
+				if (!song || song.from === who || song.playedAt) return;
+				song.playedAt = Date.now();
+				await s.put("songs", songs);
+				return this.broadcast({ t: "songs", songs });
+			}
+
 			// ---- listen together: the Room keeps the clock (`at`), so both players can work out where the video is ----
 			case "tube:load":
 			case "tube:queue": {
 				if (typeof m.id !== "string" || !YT_ID.test(m.id)) return;
-				const item: TubeItem = { key: id(), id: m.id, title: await titleOf(m.id), by: who };
+				const item: TubeItem = { key: id(), id: m.id, title: (await oembed(m.id)).title || "A YouTube video", by: who };
 				const tube = await s.get<Tube>("tube");
 				const next: Tube =
 					m.t === "tube:queue" && tube
@@ -333,7 +422,7 @@ export class Room extends DurableObject<Env> {
 	}
 
 	private async snapshot(you: Who): Promise<Snapshot> {
-		const got = await this.ctx.storage.get(["profiles", "chat", "jar", "stubs", "letters", "tube", "garden", "game", "sealed", "bests", "looks"]);
+		const got = await this.ctx.storage.get(["profiles", "chat", "jar", "stubs", "letters", "songs", "tube", "garden", "game", "sealed", "bests", "looks"]);
 		const seal = got.get("sealed") as SealStore | undefined;
 		let game = (got.get("game") as Game | undefined) ?? null;
 		if (game && !KINDS.includes(game.kind)) {
@@ -350,6 +439,7 @@ export class Room extends DurableObject<Env> {
 			jar: (got.get("jar") as JarItem[]) ?? [],
 			stubs: (got.get("stubs") as Stub[]) ?? [],
 			letters: (got.get("letters") as Letter[]) ?? [],
+			songs: (got.get("songs") as Song[]) ?? [],
 			tube: (got.get("tube") as Tube) ?? null,
 			garden: { pts: (got.get("garden") as GardenStore | undefined)?.pts ?? 0 },
 			game,
@@ -363,7 +453,7 @@ export class Room extends DurableObject<Env> {
 	private async grow(kind: Growth) {
 		if (new Set(this.online().map((p) => p.who)).size < 2) return;
 		const s = this.ctx.storage;
-		const day = today();
+		const day = dayOf(Date.now());
 		let g = (await s.get<GardenStore>("garden")) ?? { pts: 0, day, counts: {} };
 		if (g.day !== day) g = { ...g, day, counts: {} };
 		const [pts, max] = GROWTH[kind];

@@ -7,52 +7,9 @@ import { parseYouTube, tubeAt } from "../shared/tube";
 import type { Tube } from "../shared/types";
 import { canPlayFiles } from "./filmPlayer";
 import { profileOf, send, serverNow, type RoomState } from "./room";
+import { loadApi, S, timeOf, type YTPlayer } from "./yt";
 
-// The slice of the YouTube IFrame API used here (no types package for it).
-type YTPlayer = {
-	playVideo(): void;
-	pauseVideo(): void;
-	seekTo(seconds: number, allowSeekAhead: boolean): void;
-	loadVideoById(o: { videoId: string; startSeconds?: number }): void;
-	cueVideoById(o: { videoId: string; startSeconds?: number }): void;
-	getCurrentTime(): number | undefined;
-	getDuration(): number | undefined;
-	getPlayerState(): number;
-	getIframe(): HTMLIFrameElement;
-	destroy(): void;
-};
-type YTApi = { Player: new (el: HTMLElement, opts: object) => YTPlayer };
-declare global {
-	interface Window {
-		YT?: YTApi;
-		onYouTubeIframeAPIReady?: () => void;
-	}
-}
-const S = { ENDED: 0, PLAYING: 1, PAUSED: 2, BUFFERING: 3, CUED: 5 };
 const DRIFT = 1.2; // seconds apart before we seek back in line
-/** The player's position, or null while it can't say (mid-load it returns undefined). */
-const timeOf = (p: YTPlayer) => {
-	const t = p.getCurrentTime();
-	return typeof t === "number" && Number.isFinite(t) ? t : null;
-};
-
-let api: Promise<YTApi> | null = null;
-const loadApi = () =>
-	(api ??= new Promise<YTApi>((resolve, reject) => {
-		if (window.YT?.Player) return resolve(window.YT);
-		const prev = window.onYouTubeIframeAPIReady;
-		window.onYouTubeIframeAPIReady = () => {
-			prev?.();
-			resolve(window.YT!);
-		};
-		const s = document.createElement("script");
-		s.src = "https://www.youtube.com/iframe_api";
-		s.onerror = () => {
-			api = null;
-			reject(new Error("YouTube didn't load"));
-		};
-		document.head.appendChild(s);
-	}));
 
 export function TubePlayer({ tube }: { tube: Tube }) {
 	const host = useRef<HTMLDivElement>(null);

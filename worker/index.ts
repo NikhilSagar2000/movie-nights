@@ -56,6 +56,11 @@ export default {
 			return Response.json({ iceServers: [...STUN, ...turn] }, { headers: { "Cache-Control": "no-store" } });
 		}
 
+		if (url.pathname === "/api/songs") {
+			const res = await env.ROOM.get(env.ROOM.idFromName("us")).songSearch(url.searchParams.get("q")?.slice(0, 200) ?? "");
+			return Response.json(res, { headers: { "Cache-Control": "no-store" } });
+		}
+
 		if (url.pathname === "/ws") {
 			if (req.headers.get("Upgrade") !== "websocket") return new Response("expected websocket", { status: 426 });
 			if (req.headers.get("Origin") !== url.origin) return new Response("bad origin", { status: 403 });

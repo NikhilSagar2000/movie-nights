@@ -30,6 +30,12 @@ export type Letter = { id: string; from: Who; text: string; paper: LetterPaper; 
 export type TubeItem = { key: string; id: string; title: string; by: Who };
 export type Tube = TubeItem & { playing: boolean; pos: number; at: number; queue: TubeItem[] };
 
+/** A song dedicated to the other person: one each per day (India's date), swappable until they've played it. */
+export type Song = { id: string; vid: string; title: string; channel: string; from: Who; day: string; note: string; at: number; playedAt?: number };
+/** One search result, and what /api/songs answers ("off": no API key set; "resting": the day's free searches are used up). */
+export type SongHit = { vid: string; title: string; channel: string; secs: number };
+export type SongSearch = { hits: SongHit[] } | { error: "off" | "resting" | "failed" };
+
 /** Our little tuberose: points from time spent together (the Room hands them out, capped per day). */
 export type Garden = { pts: number };
 
@@ -110,6 +116,9 @@ export type ClientMsg =
 	| { t: "letter:open"; id: string }
 	/** The recipient eats the chocolate in cell `i`. */
 	| { t: "letter:eat"; id: string; i: number }
+	/** Today's song for the other person (replaces today's until they've played it). */
+	| { t: "song:send"; vid: string; note: string }
+	| { t: "song:played"; id: string }
 	| { t: "tube:load"; id: string }
 	| { t: "tube:queue"; id: string }
 	| { t: "tube:unqueue"; key: string }
@@ -138,6 +147,7 @@ export type Snapshot = {
 	jar: JarItem[];
 	stubs: Stub[];
 	letters: Letter[];
+	songs: Song[];
 	tube: Tube | null;
 	garden: Garden;
 	game: Game | null;
@@ -156,6 +166,7 @@ export type ServerMsg =
 	| { t: "jar:picked"; item: JarItem; by: Who }
 	| { t: "stubs"; stubs: Stub[] }
 	| { t: "letters"; letters: Letter[] }
+	| { t: "songs"; songs: Song[] }
 	| { t: "tube"; tube: Tube | null }
 	| { t: "garden"; garden: Garden }
 	| { t: "game"; game: Game | null }
@@ -164,4 +175,4 @@ export type ServerMsg =
 	| { t: "looks"; looks: Looks };
 
 // Input limits, enforced by the Room (trust boundary) and mirrored in the UI.
-export const LIMITS = { name: 24, chat: 1000, title: 120, note: 400, answer: 40, relayBytes: 64_000, chatKeep: 200, letter: 800, lettersKeep: 200, tubeQueue: 30 };
+export const LIMITS = { name: 24, chat: 1000, title: 120, note: 400, answer: 40, relayBytes: 64_000, chatKeep: 200, letter: 800, lettersKeep: 200, tubeQueue: 30, songNote: 140, songsKeep: 800 };

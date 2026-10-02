@@ -1,10 +1,12 @@
-// Memories: the watchlist jar (add, remove, shake → server pick → reveal), the ticket stubs wall and the letter box.
+// Memories: the watchlist jar (add, remove, shake → server pick → reveal), the ticket stubs wall, the letter box and the
+// mixtape (Songs.tsx).
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { EnvelopeSimple, FilmSlate, Heart, Plus, Shuffle, X } from "@phosphor-icons/react";
 import { LIMITS, other, type JarItem, type Stub, type Who } from "../shared/types";
 import { chocolatesLeft } from "../shared/gift";
 import { Flower, FlowerBurst, Head } from "./Character";
 import { readLetters, writeLetter } from "./Letters";
+import { Mixtape } from "./Songs";
 import { profileOf, send, useRoom, type RoomState } from "./room";
 import "./memories.css";
 
@@ -39,6 +41,7 @@ export default function Memories() {
 			<JarSection room={room} />
 			<StubWall room={room} />
 			<LetterBox room={room} />
+			<Mixtape room={room} />
 		</main>
 	) : null;
 }

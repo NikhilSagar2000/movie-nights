@@ -55,6 +55,8 @@ function handle(m: ServerMsg) {
 			return set({ stubs: m.stubs });
 		case "letters":
 			return set({ letters: m.letters });
+		case "songs":
+			return set({ songs: m.songs });
 		case "tube":
 			return set({ tube: m.tube });
 		case "garden":
