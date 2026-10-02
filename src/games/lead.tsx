@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import { CornersIn, CornersOut } from "@phosphor-icons/react";
 import { other, type Game, type GameKind, type RelayData, type Who } from "../../shared/types";
 import { Duo, FlowerRain, Head, type Mood } from "../Character";
 import { sameWord } from "../gameLogic";
@@ -56,6 +57,46 @@ export function Away({ who, name }: { who: Who; name: string }) {
 				<b>{name} is away right now.</b> Games wait until you are both here.
 			</p>
 		</div>
+	);
+}
+
+/** Full screen for a game, the Theater's way: the whole page goes full screen (so the cams and nudges stay on top) and
+ *  the game's screen covers it ("is-full", see games.css). Where only videos can go full screen (iPhones) it just covers
+ *  the window. Esc or the browser's own exit comes back through fullscreenchange; leaving the game leaves full screen.
+ *  "was-full" plays the way back in, and the page's scroll is put back where it was. */
+export function useFull() {
+	const [full, setFull] = useState<"" | "is-full" | "was-full">("");
+	const y = useRef(0);
+	useEffect(() => {
+		const sync = () => !document.fullscreenElement && setFull((f) => (f === "is-full" ? "was-full" : f));
+		document.addEventListener("fullscreenchange", sync);
+		return () => {
+			document.removeEventListener("fullscreenchange", sync);
+			if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+		};
+	}, []);
+	useLayoutEffect(() => {
+		if (full === "was-full") scrollTo(0, y.current);
+	}, [full]);
+	const toggle = () => {
+		if (full !== "is-full") {
+			y.current = scrollY;
+			setFull("is-full");
+			if (document.fullscreenEnabled) void document.documentElement.requestFullscreen().catch(() => {});
+		} else if (document.fullscreenElement) void document.exitFullscreen();
+		else setFull("was-full");
+	};
+	return [full, toggle] as const;
+}
+
+/** The same button both ways, so focus stays on it. `icon`: just the corners (the Solo frame's row of icon buttons). */
+export function FullButton({ full, toggle, icon }: { full: string; toggle: () => void; icon?: boolean }) {
+	const label = full === "is-full" ? "Exit full screen" : "Full screen";
+	return (
+		<button className={cls("btn paper sm gm-fs", icon && "icon")} aria-label={icon ? label : undefined} title={icon ? label : undefined} onClick={toggle}>
+			{full === "is-full" ? <CornersIn aria-hidden /> : <CornersOut aria-hidden />}
+			{!icon && label}
+		</button>
 	);
 }
 

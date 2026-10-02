@@ -143,6 +143,8 @@
 }
 .ar-chips {
 	display: flex;
+	flex-wrap: wrap; /* the narrowest phones: the last buttons drop under, never off the screen */
+	justify-content: flex-end;
 	align-items: center;
 	gap: 0.5em;
 }
@@ -196,6 +198,13 @@
 }
 .ar-screen:has(.ar-modes) .ar-stage {
 	width: min(100%, calc((100dvh - 18.5em) * var(--aspect, 1))); /* the mode tabs take a row */
+}
+/* full screen (games.css): no nav or back button above, so the stage takes the screen's height (less the hint under it) */
+.ar-screen.is-full .ar-stage {
+	width: min(100%, calc((100dvh - 9.5em) * var(--aspect, 1)));
+}
+.ar-screen.is-full:has(.ar-modes) .ar-stage {
+	width: min(100%, calc((100dvh - 13em) * var(--aspect, 1)));
 }
 .ar-stage > .loader {
 	position: absolute;
@@ -345,6 +354,12 @@
 		grid-column: 2;
 		justify-content: flex-end;
 		margin: 0;
+	}
+	.ar-screen.is-full {
+		align-content: start; /* as tall as the screen now: the rows mustn't stretch apart */
+	}
+	.ar-screen.is-full > .gm-head {
+		grid-column: 1 / -1; /* the back button is hidden: the scores get its room */
 	}
 	.ar-screen .gm-title {
 		position: absolute;

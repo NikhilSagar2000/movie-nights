@@ -42,7 +42,7 @@ type SongCount = { day: string; n: number };
 const WEEK = 7 * 86_400_000;
 const SEARCHES_A_DAY = 95; // of YouTube's 100, a few to spare
 
-const KINDS: GameKind[] = ["mindmeld", "whoami", "taboo", "charades", "emoji", "antakshari", "wave"];
+const KINDS: GameKind[] = ["mindmeld", "whoami", "taboo", "charades", "emoji", "antakshari", "wave", "ludo"];
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const id = () => crypto.randomUUID().slice(0, 8);
 const secs = (v: unknown) => Math.max(0, Math.min(86_400, Number(v) || 0));

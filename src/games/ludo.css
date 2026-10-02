@@ -1,0 +1,513 @@
+/* ===== Ludo (ld-): a paper board lying on the gingham cloth, their heads as the tokens, a die in a little cup.
+   The colours (--ld-rose …) are set in games.css, so the hub card can use them too. Board units: 1 square = 100cqi / 15. ===== */
+
+.ld {
+	display: grid;
+	justify-items: center;
+	gap: 1.1em;
+	width: min(100%, 34em);
+}
+.gm-screen.is-full .ld {
+	width: min(100%, 34em, 100dvh - 20em); /* full screen: the board and the die both fit on the screen */
+}
+
+/* ---- setup: two toggles, a line (or Let's play) under them ---- */
+.ld-setup {
+	display: grid;
+	justify-items: center;
+	gap: 0.5em;
+}
+.ld-opts {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.6em 1.4em;
+}
+.ld-opt {
+	display: flex;
+	align-items: center;
+	gap: 0.55em;
+	font: 500 1.05em var(--display);
+}
+.ld-opt .ar-modes {
+	margin: 0;
+}
+.ld-opt .ar-mode {
+	min-width: 2.6em;
+}
+.ld-say {
+	display: grid;
+	place-items: center;
+	min-height: 2.8em;
+	margin: 0;
+	font: 700 1.3em/1.1 var(--hand);
+	text-align: center;
+}
+.ld-say .btn {
+	font-size: 0.8em;
+	font-family: "Figtree", system-ui, sans-serif;
+	animation: gm-pop 0.45s var(--spring) both;
+}
+
+/* ---- the cloth and the board on it ---- */
+.ld-cloth {
+	width: 100%;
+	padding: clamp(10px, 4.5%, 1.7em);
+	border-radius: 1.6em;
+	background:
+		linear-gradient(90deg, rgb(247 200 211 / 0.55) 50%, transparent 0) 0 0 / 1.75em 1.75em,
+		linear-gradient(rgb(247 200 211 / 0.55) 50%, transparent 0) 0 0 / 1.75em 1.75em,
+		var(--cream);
+	box-shadow: var(--lift);
+}
+.ld-board {
+	position: relative;
+	width: 100%;
+	aspect-ratio: 1;
+	container-type: inline-size;
+	rotate: -1.2deg;
+}
+.ld-art {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+	filter: drop-shadow(0 0.5em 0.7em rgb(45 58 71 / 0.28));
+	stroke-linejoin: round;
+	stroke-linecap: round;
+}
+.ld-spin {
+	transform-box: view-box;
+	transform-origin: 50% 50%;
+	transition: transform 0.7s var(--spring);
+}
+.ld-paper {
+	fill: var(--paper);
+	stroke: var(--night);
+	stroke-width: 0.07;
+}
+.ld-yard-bg {
+	fill: var(--c);
+	stroke: var(--night);
+	stroke-width: 0.05;
+}
+.ld-nest {
+	fill: var(--paper);
+	stroke: var(--night);
+	stroke-width: 0.045;
+}
+.ld-pillow {
+	fill: var(--c);
+	fill-opacity: 0.5;
+	stroke: var(--night);
+	stroke-width: 0.035;
+	stroke-dasharray: 0.12 0.09;
+}
+.ld-sq {
+	fill: var(--paper);
+	stroke: var(--night);
+	stroke-width: 0.04;
+}
+.ld-sq.mine,
+.ld-tri {
+	fill: var(--c);
+}
+.ld-tri {
+	stroke: var(--night);
+	stroke-width: 0.05;
+}
+.ld-flower {
+	color: var(--night);
+	--petal: var(--flower);
+	--petal-line: var(--night);
+}
+.ld-arrow {
+	fill: none;
+	stroke: var(--night);
+	stroke-width: 0.07;
+}
+
+/* the yards: a soft glow on the turn's colour; in setup, a seat to tap */
+/* placed by where each yard sits on your screen (0 top left, then clockwise); they slide round when the drawing turns */
+.ld-yard {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 40%;
+	height: 40%;
+	pointer-events: none;
+	transition:
+		left 0.7s var(--spring),
+		top 0.7s var(--spring);
+}
+.ld-yard:is([data-q="1"], [data-q="2"]) {
+	left: 60%;
+}
+.ld-yard:is([data-q="2"], [data-q="3"]) {
+	top: 60%;
+}
+.ld-yard.on::before {
+	content: "";
+	position: absolute;
+	inset: 3.6%;
+	border-radius: 15%;
+	box-shadow:
+		0 0 0 0.3cqi var(--paper),
+		0 0 3cqi 1cqi rgb(255 252 245 / 0.9);
+	animation: ld-glow 1.6s ease-in-out infinite alternate;
+}
+.ld-yard[data-asleep]::after {
+	content: "z";
+	position: absolute;
+	right: 7%;
+	top: 6%;
+	color: var(--ink-soft);
+	font: 800 3.6cqi / 1 var(--display);
+	opacity: 0;
+	animation: ld-zz 3.4s ease-in infinite;
+}
+.ld-seat {
+	position: absolute;
+	inset: 3.6%;
+	display: grid;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: 15%;
+	background: none;
+	color: var(--night);
+	cursor: pointer;
+	pointer-events: auto;
+	transition: background-color 0.2s;
+}
+.ld-seat:hover:not(:disabled) {
+	background: rgb(255 252 245 / 0.35);
+}
+.ld-seat:disabled {
+	cursor: default;
+}
+.ld-seat:focus-visible {
+	outline: 3px solid var(--dusk);
+	outline-offset: 2px;
+}
+.ld-seat-name {
+	position: absolute;
+	bottom: 6%;
+	padding: 0.05em 0.55em 0.15em;
+	border-radius: 999px;
+	background: var(--paper);
+	box-shadow: 0 0.15em 0.4em -0.1em rgb(45 58 71 / 0.4);
+	font: 700 clamp(13px, 4cqi, 21px) / 1 var(--hand);
+}
+.ld-seat-name.free {
+	position: static;
+	animation: ld-beckon 2.2s ease-in-out infinite;
+}
+
+/* ---- the tokens: their heads in a ring of the colour ---- */
+/* a gotti: a thick ring of its colour, a paper line, and a small head inside (the same size as before overall) */
+.ld-tok {
+	position: absolute;
+	display: grid;
+	place-items: center;
+	width: 6cqi;
+	aspect-ratio: 1;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: none;
+	font-size: 2.6cqi;
+	transform: translate(-50%, -50%) translateX(calc(var(--dx, 0) * 1.5cqi)) scale(var(--k, 1));
+	--rw: 1cqi;
+}
+.ld-tok > .face {
+	--s: 64%;
+	box-shadow:
+		0 0 0 0.25cqi var(--paper),
+		0 0 0 var(--rw) var(--ring),
+		0 0 0 calc(var(--rw) + 0.22cqi) rgb(45 58 71 / 0.7),
+		0 0.35em 0.4em -0.1em rgb(45 58 71 / 0.55);
+}
+.ld-tok.sleep {
+	width: 7.3cqi; /* tucked up on its pillow */
+	--rw: 1.25cqi;
+}
+.ld-tok.sleep > .face {
+	background: radial-gradient(circle at 50% 30%, var(--paper), var(--fog));
+}
+.ld-tok.sleep .ch-away {
+	opacity: 1; /* dozing, not faded out */
+	filter: none;
+}
+.ld-tok.home {
+	width: 4.2cqi; /* tucked into its triangle */
+	--rw: 0.7cqi;
+}
+.ld-tok.go {
+	cursor: pointer;
+}
+.ld-tok.go > .face {
+	box-shadow:
+		0 0 0 0.25cqi var(--paper),
+		0 0 0 var(--rw) var(--ring),
+		0 0 0 calc(var(--rw) + 0.22cqi) rgb(45 58 71 / 0.7),
+		0 0 0 calc(var(--rw) + 1cqi) var(--paper),
+		0 0.5em 0.6em -0.1em rgb(45 58 71 / 0.6);
+	animation: ld-bob 0.75s ease-in-out infinite alternate;
+}
+.ld-tok.go:focus-visible {
+	outline: 3px solid var(--dusk);
+	outline-offset: 0.5em;
+}
+.ld-burst {
+	position: absolute;
+	left: 50%;
+	top: 56%;
+	z-index: 40;
+	font-size: 3.2cqi;
+}
+
+/* ---- the tray: whose turn, and the die in its cup ---- */
+.ld-tray {
+	display: flex;
+	align-items: center;
+	gap: 0.9em;
+	width: min(100%, 27em);
+	padding: 0.65em 0.9em 0.65em 0.7em;
+	border-radius: 1.6em;
+	background: var(--cream);
+	box-shadow: var(--lift);
+	animation: gm-pop 0.45s var(--spring) both;
+}
+.ld-turn {
+	display: grid;
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+	line-height: 1.25;
+}
+.ld-turn b {
+	font: 500 1.2em var(--display);
+}
+.ld-turn span {
+	color: var(--ink-soft);
+}
+.ld-dice {
+	display: flex;
+	align-items: center;
+}
+.ld-cup {
+	width: 3.3em;
+	margin-right: -0.5em;
+	overflow: visible;
+	transform-origin: 30% 70%;
+}
+.ld-cup-body {
+	fill: var(--ld-rose);
+	stroke: var(--night);
+	stroke-width: 1.4;
+	stroke-linejoin: round;
+}
+.ld-cup-rim {
+	fill: var(--night);
+	stroke: var(--night);
+	stroke-width: 1.4;
+}
+.ld-cup-band {
+	fill: none;
+	stroke: var(--paper);
+	stroke-width: 3;
+}
+.ld-dice.ready .ld-cup {
+	animation: ld-shake 2.4s ease-in-out infinite;
+}
+/* the die: a cube of six faces (his flower is the 1); the tilt shows off its sides, the shade sits on the tray */
+.ld-die {
+	position: relative;
+	display: grid;
+	place-items: center;
+	width: 3.3em;
+	aspect-ratio: 1;
+	padding: 0;
+	border: 0;
+	border-radius: 0.8em;
+	background: none;
+	color: var(--night);
+	perspective: 14em;
+	transition: scale 0.15s var(--spring);
+	--side: 2.45em;
+}
+.ld-die-shade {
+	position: absolute;
+	left: 50%;
+	bottom: -0.05em;
+	width: 2.6em;
+	height: 0.6em;
+	translate: -50% 0;
+	border-radius: 50%;
+	background: radial-gradient(closest-side, rgb(45 58 71 / 0.38), transparent);
+}
+.ld-air,
+.ld-tilt,
+.ld-cube {
+	display: block;
+	transform-style: preserve-3d;
+}
+.ld-air {
+	translate: 0 -0.15em;
+}
+.ld-tilt {
+	transform: rotateX(-20deg) rotateY(-26deg);
+}
+.ld-cube {
+	position: relative;
+	width: var(--side);
+	height: var(--side);
+}
+.ld-face {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+	padding: 0.3em;
+	border: 0.08em solid var(--night);
+	border-radius: 0.45em;
+	background: radial-gradient(circle at 30% 25%, #fff, var(--paper) 55%, #f1e6cf);
+	backface-visibility: hidden;
+}
+.ld-face[data-n="1"] {
+	transform: translateZ(calc(var(--side) / 2));
+}
+.ld-face[data-n="6"] {
+	transform: rotateY(180deg) translateZ(calc(var(--side) / 2));
+}
+.ld-face[data-n="2"] {
+	transform: rotateY(90deg) translateZ(calc(var(--side) / 2));
+}
+.ld-face[data-n="5"] {
+	transform: rotateY(-90deg) translateZ(calc(var(--side) / 2));
+}
+.ld-face[data-n="3"] {
+	transform: rotateX(90deg) translateZ(calc(var(--side) / 2));
+}
+.ld-face[data-n="4"] {
+	transform: rotateX(-90deg) translateZ(calc(var(--side) / 2));
+}
+.ld-face i {
+	width: 74%;
+	aspect-ratio: 1;
+	place-self: center;
+	border-radius: 50%;
+	background: var(--night);
+}
+.ld-face .flw {
+	grid-area: 1 / 1 / 4 / 4;
+	width: 92%;
+	place-self: center;
+	--petal-line: var(--night);
+}
+.ld-dice.ready .ld-die {
+	cursor: pointer;
+}
+.ld-dice.ready .ld-tilt {
+	animation: ld-tempt 2.4s ease-in-out infinite; /* your roll: it turns a little, asking to be picked up */
+}
+.ld-dice.ready .ld-face {
+	border-color: var(--rosewood);
+	box-shadow: inset 0 0 0 0.12em var(--flower);
+}
+.ld-dice.ready .ld-die:active {
+	scale: 0.92;
+}
+.ld-die:focus-visible {
+	outline: 3px solid var(--dusk);
+	outline-offset: 3px;
+}
+.ld-sound {
+	flex: none;
+}
+
+@media (max-width: 640px) {
+	.ld-tray {
+		gap: 0.7em;
+		font-size: 0.92em;
+	}
+	.ld-tray {
+		padding-left: 1em; /* room for the cup on the left */
+	}
+	.ld-dice {
+		order: -1; /* the die on the left: the cams float bottom right */
+	}
+}
+
+@keyframes ld-bob {
+	to {
+		transform: translateY(-22%) scale(1.08);
+	}
+}
+@keyframes ld-tempt {
+	50% {
+		transform: rotateX(-30deg) rotateY(-44deg) translateY(-0.12em);
+	}
+}
+@keyframes ld-zz {
+	0% {
+		opacity: 0;
+		transform: scale(0.6);
+	}
+	30% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+		transform: translate(0.5em, -1em) scale(1.15);
+	}
+}
+@keyframes ld-glow {
+	from {
+		opacity: 0.35;
+	}
+}
+@keyframes ld-beckon {
+	50% {
+		transform: rotate(-5deg) scale(1.06);
+	}
+}
+@keyframes ld-shake {
+	0%,
+	70%,
+	100% {
+		transform: none;
+	}
+	76% {
+		transform: rotate(-10deg);
+	}
+	84% {
+		transform: rotate(8deg);
+	}
+	92% {
+		transform: rotate(-5deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ld-tok.go > .face,
+	.ld-seat-name.free,
+	.ld-dice.ready .ld-cup,
+	.ld-dice.ready .ld-tilt,
+	.ld-say .btn,
+	.ld-tray {
+		animation: none;
+	}
+	.ld-yard.on::before {
+		animation: none;
+	}
+	.ld-yard[data-asleep]::after {
+		animation: none;
+		opacity: 1;
+	}
+	.ld-spin,
+	.ld-yard {
+		transition: none;
+	}
+}

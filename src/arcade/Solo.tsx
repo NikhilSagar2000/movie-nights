@@ -3,11 +3,11 @@ import { ArrowLeft, Pause, Play, SpeakerHigh, SpeakerSlash } from "@phosphor-ico
 import { other, type Who } from "../../shared/types";
 import { better } from "../../shared/bests";
 import { Face, FlowerBurst, Head, Loader } from "../Character";
-import { cls, Rain, vars } from "../games/lead";
+import { cls, FullButton, Rain, useFull, vars } from "../games/lead";
 import { getRoom, profileOf, useRoom } from "../room";
 import { bestKey, bestOf, fmt, saveBest, soloMeta, type SoloId } from "./index";
 import { useKeys, type SoloApi } from "./kit";
-import { setMuted, sfx, unlockSound, useMuted } from "./sound";
+import { setMuted, sfx, useMuted, useUnlockSound } from "./sound";
 
 /* The frame around every solo game: back, title, the score, both of your bests, sound and pause, then the game's
    stage with its "tap to start", "paused" and "game over" cards on top. "Play again" remounts the game with a new key.
@@ -31,6 +31,7 @@ export default function Solo({ id, you, waiting }: { id: SoloId; you: Who; waiti
 	const [score, setScore] = useState(0);
 	const [result, setResult] = useState<Result | null>(null);
 	const muted = useMuted();
+	const [full, toggleFull] = useFull();
 	const key = bestKey(id, mode);
 	const mine = bestOf(room, you, key);
 	const theirs = bestOf(room, them, key);
@@ -43,12 +44,7 @@ export default function Solo({ id, you, waiting }: { id: SoloId; you: Who; waiti
 	useEffect(() => {
 		scrollTo(0, 0); // opened from further down the hub (a block: newer browsers return a promise from scrollTo)
 	}, [id]);
-	// browsers only let sound start from a tap or key (on iPhones only when the finger lifts): those switch it on
-	useEffect(() => {
-		const evs = ["pointerdown", "pointerup", "touchend", "keydown"] as const;
-		evs.forEach((e) => addEventListener(e, unlockSound, true));
-		return () => evs.forEach((e) => removeEventListener(e, unlockSound, true));
-	}, []);
+	useUnlockSound(); // browsers only let sound start from a tap or key
 	// a hidden tab pauses a real-time game
 	useEffect(() => {
 		const on = () => document.hidden && live.current.phase === "play" && m.realtime && setPhase("paused");
@@ -127,7 +123,7 @@ export default function Solo({ id, you, waiting }: { id: SoloId; you: Who; waiti
 		</span>
 	);
 	return (
-		<main className="page gm-screen ar-screen">
+		<main className={cls("page gm-screen ar-screen", full)}>
 			<a className="btn paper sm gm-back" href="#/games">
 				<ArrowLeft aria-hidden />
 				<span className="ar-back-text">All games</span>
@@ -153,6 +149,14 @@ export default function Solo({ id, you, waiting }: { id: SoloId; you: Who; waiti
 							{phase === "paused" ? <Play aria-hidden /> : <Pause aria-hidden />}
 						</button>
 					)}
+					<FullButton
+						full={full}
+						toggle={() => {
+							toggleFull();
+							stage.current?.focus({ preventScroll: true }); // off the button, so Space starts the game instead
+						}}
+						icon
+					/>
 				</div>
 			</header>
 			{m.modes && (

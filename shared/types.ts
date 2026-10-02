@@ -39,7 +39,7 @@ export type SongSearch = { hits: SongHit[] } | { error: "off" | "resting" | "fai
 /** Our little tuberose: points from time spent together (the Room hands them out, capped per day). */
 export type Garden = { pts: number };
 
-export type GameKind = "mindmeld" | "whoami" | "taboo" | "charades" | "emoji" | "antakshari" | "wave";
+export type GameKind = "mindmeld" | "whoami" | "taboo" | "charades" | "emoji" | "antakshari" | "wave" | "ludo";
 export type Reveal = Record<Who, string>;
 /** The server never interprets `state`; it only stores it. Sealed-answer games read `reveals`.
  *  `rev` counts accepted writes: a `game:state` built on an older rev is dropped, so a late write can't undo a newer one. */

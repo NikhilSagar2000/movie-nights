@@ -1,9 +1,9 @@
-import { lazy, Suspense, useEffect, type ComponentType } from "react";
+import { lazy, Suspense, useEffect, useState, type ComponentType } from "react";
 import { ArrowLeft, ChatCircleSlash, FilmSlate, MusicNotes, type Icon } from "@phosphor-icons/react";
 import { other, type Game, type GameKind, type Who } from "../shared/types";
 import { getRoom, profileOf, send, useRoom, type RoomState } from "./room";
 import { Duo, Face, Head, Loader, type Mood } from "./Character";
-import { Away, cls, resendPlays, type Base, type Ctx } from "./games/lead";
+import { Away, cls, FullButton, resendPlays, useFull, type Base, type Ctx } from "./games/lead";
 import MindMeld from "./games/MindMeld";
 import WhoAmIGame, { whoamiInit, whoamiStatus, type WhoAmI } from "./games/WhoAmI";
 import DontSayItGame, { tabooInit, tabooStatus, type DontSayIt } from "./games/DontSayIt";
@@ -11,12 +11,14 @@ import CharadesGame, { charadesInit, charadesStatus, type Charades } from "./gam
 import EmojiMovieGame, { emojiInit, emojiStatus, type EmojiMovie } from "./games/EmojiMovie";
 import AntakshariGame, { antakshariInit, antakshariStatus, type Antakshari } from "./games/Antakshari";
 import SameWaveGame, { waveInit, waveStatus, type SameWave } from "./games/SameWave";
+import { ludoInit, ludoStatus, turnOf, type Ludo } from "./games/ludoState";
 import { bestKey, bestOf, fmt, SOLO_IDS, soloMeta, syncBests, useSoloRoute } from "./arcade";
 import { gameOf } from "../shared/bests";
 import "./games.css";
 import "./arcade/arcade.css";
 
 const Solo = lazy(() => import("./arcade/Solo")); // the solo frame and toolkit load with the first solo game
+const LudoGame = lazy(() => import("./games/Ludo")); // the board and its drawing load when a game starts
 
 type Meta = {
 	name: string;
@@ -29,10 +31,14 @@ type Meta = {
 	status?: (state: never, you: Who, name: (w: Who) => string) => string;
 	/** Lead games: the face shown next to the status is the round's lead. */
 	lead?: boolean;
-	/** A wide hub card. */
-	wide?: boolean;
+	/** Turn games: whose face goes next to the status. */
+	turn?: (state: never) => Who | null;
+	/** A wide hub card; "full" spans the whole row. */
+	wide?: boolean | "full";
+	/** A long game: "All games" asks once before ending it for both. */
+	long?: boolean;
 };
-// Hub order (4 columns): Mind Meld + Who Am I? / Charades + Don't Say It + Emoji Movie / Same Wave + Antakshari.
+// Hub order (4 columns): Mind Meld + Who Am I? / Charades + Don't Say It + Emoji Movie / Same Wave + Antakshari / Ludo.
 const GAMES: Record<GameKind, Meta> = {
 	mindmeld: {
 		name: "Mind Meld",
@@ -103,6 +109,17 @@ const GAMES: Record<GameKind, Meta> = {
 		lead: true,
 		wide: true,
 	},
+	ludo: {
+		name: "Ludo",
+		blurb: "Race your little heads home. Roll a 6 to get going",
+		hint: "A 6, a capture or getting home rolls again. Nobody can be caught on a flower.",
+		init: ludoInit,
+		View: LudoGame,
+		status: (s: Ludo, you, name) => ludoStatus(s, you, name),
+		turn: (s: Ludo) => turnOf(s),
+		wide: "full",
+		long: true,
+	},
 };
 const KINDS = Object.keys(GAMES) as GameKind[];
 
@@ -154,7 +171,7 @@ function Hub({ room }: { room: RoomState }) {
 				{KINDS.map((k) => {
 					const Ico = GAMES[k].icon;
 					return (
-						<li key={k} className={cls(GAMES[k].wide && "hub-wide")}>
+						<li key={k} className={cls(GAMES[k].wide && "hub-wide", GAMES[k].wide === "full" && "hub-full")}>
 							<button className={`hub-card hub-${k}`} onClick={() => send({ t: "game:new", kind: k, state: GAMES[k].init(room.you) })}>
 								{k === "mindmeld" && (
 									<>
@@ -179,6 +196,7 @@ function Hub({ room }: { room: RoomState }) {
 									</span>
 								)}
 								{k === "wave" && <MiniDial />}
+								{k === "ludo" && <MiniBoard you={room.you} />}
 								{Ico && (
 									<span className="hub-ico">
 										<Ico aria-hidden />
@@ -298,16 +316,27 @@ function GameScreen({ room, game }: { room: RoomState; game: Game }) {
 	useEffect(() => {
 		if (meta.lead && partner) resendPlays(game);
 	}, [partner?.sid]);
-	const turn = meta.lead ? ((game.state as Base | null)?.lead ?? null) : null;
+	const turn = meta.turn ? meta.turn(game.state as never) : meta.lead ? ((game.state as Base | null)?.lead ?? null) : null;
+	// a long game asks once ("End game?") before "All games" ends it for both
+	const [sure, setSure] = useState(false);
+	useEffect(() => {
+		if (!sure) return;
+		const t = setTimeout(() => setSure(false), 3000);
+		return () => clearTimeout(t);
+	}, [sure]);
 	const status = meta.status ? meta.status(game.state as never, you, name) : "You both play at once";
+	const [full, toggleFull] = useFull();
 
 	const View = meta.View;
 	return (
-		<main className="page gm-screen">
-			<button className="btn paper sm gm-back" onClick={() => send({ t: "game:end" })}>
-				<ArrowLeft aria-hidden />
-				All games
-			</button>
+		<main className={cls("page gm-screen", full)}>
+			<div className="gm-top">
+				<button className={cls("btn sm gm-back", sure ? "blush" : "paper")} onClick={() => (meta.long && !sure ? setSure(true) : send({ t: "game:end" }))}>
+					<ArrowLeft aria-hidden />
+					{sure ? "End for both?" : "All games"}
+				</button>
+				<FullButton full={full} toggle={toggleFull} />
+			</div>
 			<header className="gm-head">
 				<h1 className="gm-title">{meta.name}</h1>
 				<p className="chip fog gm-turn" aria-live="polite">
@@ -325,11 +354,46 @@ function GameScreen({ room, game }: { room: RoomState; game: Game }) {
 			</div>
 			{!c.live && <Away who={them} name={name(them)} />}
 			<section className="gm-body">
-				<View key={game.id} c={c} />
+				<Suspense fallback={<Loader text="Setting up the board" />}>
+					<View key={game.id} c={c} />
+				</Suspense>
 				<p className="gm-hint">{meta.hint}</p>
 			</section>
 			{!c.live && <SoloShelf room={room} />}
 		</main>
+	);
+}
+
+/** The Ludo hub card: a little board with the two of you on it. */
+function MiniBoard({ you }: { you: Who }) {
+	return (
+		<span className="hub-ludo-art" aria-hidden="true">
+			<svg viewBox="0 0 15 15">
+				<rect className="hub-ludo-paper" width="15" height="15" rx="1" />
+				{["rose", "sage", "sun", "sky"].map((c, q) => (
+					<g key={c} transform={`rotate(${90 * q} 7.5 7.5)`}>
+						<rect className={`hub-ludo-yard ${c}`} x="0.5" y="0.5" width="5.2" height="5.2" rx="1" />
+						<rect className="hub-ludo-nest" x="1.4" y="1.4" width="3.4" height="3.4" rx="0.8" />
+						<path className={`hub-ludo-yard ${c}`} d="M6.2 6.2 7.5 7.5 6.2 8.8Z" />
+						<path className="hub-ludo-lane" d="M0.6 7.5H5.6" />
+					</g>
+				))}
+			</svg>
+			<Face who={you} ring="var(--ld-rose-deep)" rw="0.3em" className="hub-ludo-tok one" />
+			<Face who={other(you)} ring="var(--ld-sky-deep)" rw="0.3em" className="hub-ludo-tok two" />
+			<svg className="hub-ludo-die" viewBox="0 0 10 10">
+				<rect x="0.5" y="0.5" width="9" height="9" rx="2.2" />
+				{[
+					[3, 3],
+					[7, 3],
+					[5, 5],
+					[3, 7],
+					[7, 7],
+				].map(([x, y]) => (
+					<circle key={`${x}${y}`} cx={x} cy={y} r="0.95" />
+				))}
+			</svg>
+		</span>
 	);
 }
 

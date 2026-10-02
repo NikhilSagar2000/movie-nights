@@ -1,9 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
-/* Little synthesized sounds for the solo games (no audio files): a few WebAudio blips, pops and chimes.
+/* Little synthesized sounds for the solo games and Ludo (no audio files): a few WebAudio blips, pops and chimes.
    One mute switch for all of them, remembered in this browser. */
 
-export type Sfx = "pop" | "blip" | "tick" | "coin" | "chime" | "hit" | "thud" | "zap" | "flap" | "hop" | "boom" | "over" | "best";
+export type Sfx = "pop" | "blip" | "tick" | "coin" | "chime" | "hit" | "thud" | "zap" | "flap" | "hop" | "boom" | "over" | "best" | "rattle" | "clack";
 
 let ctx: AudioContext | null = null;
 let muted = (() => {
@@ -37,6 +37,14 @@ export function unlockSound() {
 		/* no WebAudio: silent */
 	}
 }
+/** While mounted, any tap or key switches sound on (on iPhones only when the finger lifts). */
+export function useUnlockSound() {
+	useEffect(() => {
+		const evs = ["pointerdown", "pointerup", "touchend", "keydown"] as const;
+		evs.forEach((e) => addEventListener(e, unlockSound, true));
+		return () => evs.forEach((e) => removeEventListener(e, unlockSound, true));
+	}, []);
+}
 
 type Tone = { f: number; to?: number; dur: number; type?: OscillatorType; gain?: number; at?: number };
 function tone(a: AudioContext, { f, to, dur, type = "sine", gain = 0.12, at = 0 }: Tone) {
@@ -53,8 +61,8 @@ function tone(a: AudioContext, { f, to, dur, type = "sine", gain = 0.12, at = 0 
 	o.start(t);
 	o.stop(t + dur + 0.02);
 }
-function noise(a: AudioContext, dur: number, freq: number, gain: number, kind: BiquadFilterType = "bandpass") {
-	const t = a.currentTime;
+function noise(a: AudioContext, dur: number, freq: number, gain: number, kind: BiquadFilterType = "bandpass", at = 0) {
+	const t = a.currentTime + at;
 	const buf = a.createBuffer(1, Math.ceil(a.sampleRate * dur), a.sampleRate);
 	const d = buf.getChannelData(0);
 	for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -106,6 +114,11 @@ export function sfx(name: Sfx, pitch = 1) {
 				return [523, 392, 262].forEach((f, i) => tone(a, { f, dur: 0.18, type: "triangle", gain: 0.1, at: i * 0.13 }));
 			case "best":
 				return [523, 659, 784, 1047].forEach((f, i) => tone(a, { f, dur: 0.22, gain: 0.09, at: i * 0.09 }));
+			case "rattle": // a die shaken in its cup
+				return [0, 0.05, 0.11, 0.16, 0.22].forEach((at) => noise(a, 0.03, (2000 + Math.random() * 900) * p, 0.1, "bandpass", at));
+			case "clack": // and landing on the table
+				noise(a, 0.045, 1600 * p, 0.18);
+				return tone(a, { f: 230 * p, to: 150 * p, dur: 0.07, type: "triangle", gain: 0.1 });
 		}
 	} catch {
 		/* a sound is never worth an error */

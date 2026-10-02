@@ -302,6 +302,66 @@
 	font-weight: 600;
 	color: var(--night); /* on the sky: night text, never ink-soft */
 }
+
+/* ---- Full screen (useFull in games/lead.tsx): the whole page goes full screen and the game's screen covers it, under
+   the cams (.fc-layer, 950) and the nudges. The same column, without the nav, the back button and the shelf. ---- */
+.gm-top {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.6em;
+	margin-bottom: 0.9em;
+}
+.gm-top .gm-back {
+	margin: 0;
+}
+.gm-top .gm-fs {
+	margin-left: auto;
+}
+.gm-screen.is-full {
+	position: fixed;
+	inset: 0;
+	z-index: 900;
+	max-width: none;
+	padding-inline: max(var(--gutter), (100% - 46em) / 2);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	background: var(--haze) var(--sky);
+	animation: gm-full-in 0.45s var(--spring);
+}
+.gm-screen.is-full :is(.gm-back, .ar-shelf) {
+	display: none;
+}
+body:has(.gm-screen.is-full) {
+	overflow: hidden;
+}
+body:has(.gm-screen.is-full) #root > .nav {
+	visibility: hidden; /* covered anyway: this keeps Tab off its links */
+}
+/* on the way back the page and the nav settle in from above */
+.gm-screen.was-full,
+body:has(.gm-screen.was-full) #root > .nav {
+	animation: gm-full-back 0.4s ease-out;
+}
+@keyframes gm-full-in {
+	from {
+		transform: scale(0.97);
+		opacity: 0;
+	}
+}
+@keyframes gm-full-back {
+	from {
+		transform: translateY(-0.6em);
+		opacity: 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.gm-screen:is(.is-full, .was-full),
+	body:has(.gm-screen.was-full) #root > .nav {
+		animation: none;
+	}
+}
+
 .gm-say {
 	margin: 0;
 	text-align: center;
@@ -1204,5 +1264,150 @@
 @keyframes gm-throb {
 	to {
 		transform: scale(1.08);
+	}
+}
+
+/* ---- Ludo's colours (the board itself is in src/games/ludo.css, loaded with the game) and its hub card ---- */
+.hub-ludo,
+.ld {
+	--ld-rose: #f2a9b9;
+	--ld-sage: #a8b58a;
+	--ld-sun: #f5d57c;
+	--ld-sky: #95a9c0;
+	/* the same, deeper: the rings round the heads (the gottis), so a small piece still says its colour */
+	--ld-rose-deep: #e3879c;
+	--ld-sage-deep: #879a5f;
+	--ld-sun-deep: #e8b93f;
+	--ld-sky-deep: #6f88a6;
+}
+.hub-grid .hub-full {
+	grid-column: 1 / -1;
+}
+/* the board lies on the gingham cloth (as in the game), the name on a paper label */
+.hub-card.hub-ludo {
+	background:
+		linear-gradient(90deg, rgb(247 200 211 / 0.55) 50%, transparent 0) 0 0 / 1.75em 1.75em,
+		linear-gradient(rgb(247 200 211 / 0.55) 50%, transparent 0) 0 0 / 1.75em 1.75em,
+		var(--cream);
+	gap: 0;
+}
+.hub-ludo :is(.hub-name, .hub-blurb) {
+	width: fit-content;
+	max-width: 30em;
+	background: var(--paper);
+}
+.hub-ludo .hub-name {
+	padding: 0.4em 0.75em 0.05em;
+	border-radius: 0.75em 0.75em 0 0;
+}
+.hub-ludo .hub-blurb {
+	padding: 0.1em 0.9em 0.55em;
+	border-radius: 0 0.85em 0.85em 0.85em;
+	box-shadow: 0 0.5em 0.9em -0.6em rgb(45 58 71 / 0.45);
+}
+.hub-ludo-art {
+	position: absolute;
+	right: 9em;
+	top: 50%;
+	width: 9.6em;
+	aspect-ratio: 1;
+	translate: 0 -50%;
+	rotate: -7deg;
+	transition: rotate 0.45s var(--spring);
+}
+.hub-card:hover .hub-ludo-art {
+	rotate: 3deg;
+}
+.hub-ludo-art svg {
+	display: block;
+	width: 100%;
+	filter: drop-shadow(0 0.4em 0.5em rgb(45 58 71 / 0.3));
+	stroke-linejoin: round;
+}
+.hub-ludo-paper {
+	fill: var(--paper);
+	stroke: var(--night);
+	stroke-width: 0.14;
+}
+.hub-ludo-yard {
+	stroke: var(--night);
+	stroke-width: 0.1;
+}
+.hub-ludo-yard.rose {
+	fill: var(--ld-rose);
+}
+.hub-ludo-yard.sage {
+	fill: var(--ld-sage);
+}
+.hub-ludo-yard.sun {
+	fill: var(--ld-sun);
+}
+.hub-ludo-yard.sky {
+	fill: var(--ld-sky);
+}
+.hub-ludo-nest {
+	fill: var(--paper);
+	stroke: var(--night);
+	stroke-width: 0.1;
+}
+.hub-ludo-lane {
+	stroke: var(--night);
+	stroke-width: 0.1;
+	stroke-dasharray: 0.75 0.3;
+}
+.hub-ludo-tok {
+	position: absolute;
+	--s: 2.6em;
+	transition: translate 0.4s var(--spring);
+}
+.hub-ludo-tok.one {
+	left: 4%;
+	top: 34%;
+}
+.hub-ludo-tok.two {
+	left: 56%;
+	top: -4%;
+}
+.hub-card:hover .hub-ludo-tok.one {
+	translate: 0.6em -0.5em;
+}
+.hub-card:hover .hub-ludo-tok.two {
+	translate: -0.3em 0.6em;
+	transition-delay: 0.08s;
+}
+.hub-ludo-art .hub-ludo-die {
+	position: absolute;
+	right: -5.6em;
+	bottom: 4%;
+	width: 3.3em;
+	rotate: 18deg;
+	filter: drop-shadow(0 0.3em 0.35em rgb(45 58 71 / 0.35));
+	transition: rotate 0.6s var(--spring), translate 0.6s var(--spring);
+}
+.hub-card:hover .hub-ludo-die {
+	rotate: -160deg;
+	translate: -0.8em -0.6em;
+}
+.hub-ludo-die rect {
+	fill: var(--paper);
+	stroke: var(--night);
+	stroke-width: 0.45;
+}
+.hub-ludo-die circle {
+	fill: var(--night);
+}
+@media (max-width: 640px) {
+	.hub-ludo-art {
+		right: 1.3em;
+		width: 7.6em;
+	}
+	.hub-ludo-tok {
+		--s: 2em;
+	}
+	.hub-ludo-art .hub-ludo-die {
+		display: none;
+	}
+	.hub-ludo :is(.hub-name, .hub-blurb) {
+		max-width: 11em;
 	}
 }
