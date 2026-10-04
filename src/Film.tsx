@@ -38,8 +38,17 @@ function useTick(on: boolean) {
 	}, [on]);
 }
 
-/** Under the stage, on both screens: play/pause, the seek bar, the title, subtitles, next and (for the owner) stop. */
-export function FilmBar({ peerSharing }: { peerSharing: boolean }) {
+/** Tell the stage this row's height, so it can lift the subtitles and the "Next episode" card above it (--bar-h, film.css). */
+function measureBar(el: HTMLDivElement | null) {
+	if (!el) return;
+	const ro = new ResizeObserver(() => el.parentElement?.style.setProperty("--bar-h", `${el.offsetHeight}px`));
+	ro.observe(el);
+	return () => ro.disconnect();
+}
+
+/** Over the picture on both screens (under it while the movie is hidden): play/pause, the seek bar, the title, subtitles,
+    next and (for the owner) stop. `up`: the pointer is moving on the picture (Theater.tsx). */
+export function FilmBar({ peerSharing, up }: { peerSharing: boolean; up?: boolean }) {
 	const { cc } = useFilm();
 	const now = filmNow(peerSharing);
 	useTick(!!now);
@@ -53,7 +62,7 @@ export function FilmBar({ peerSharing }: { peerSharing: boolean }) {
 		setDrag(null);
 	};
 	return (
-		<div className="fm-bar" role="group" aria-label="Movie controls">
+		<div ref={measureBar} className={`fm-bar${up ? " up" : ""}`} role="group" aria-label="Movie controls">
 			<button className="btn icon glass" aria-label={film.playing ? "Pause (K)" : "Play (K)"} onClick={() => filmDo(film.playing ? "pause" : "play")}>
 				{film.playing ? <Pause weight="fill" aria-hidden /> : <Play weight="fill" aria-hidden />}
 			</button>

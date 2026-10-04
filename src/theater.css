@@ -243,10 +243,9 @@ body:has(.th-stage-wrap.is-full) {
 /* ---------- Stage ---------- */
 /* The largest 16:9 that fits between the toolbar (--above, measured) and the bottom of the viewport,
    times the user's own --scale (0.4–1, the corner handle). 110px = the reaction bar + the hint under it + a little air
-   (.th-bar: 14px + a 51px pill + 8px + a 21px hint line, see below). Change it if those heights change. A movie file's
-   control row adds its own height (--below in film.css). */
+   (.th-bar: 14px + a 51px pill + 8px + a 21px hint line, see below). Change it if those heights change. */
 .th-stage-wrap {
-	--fit: min(100%, max(300px, calc((100dvh - var(--above, 220px) - var(--below, 110px)) * 16 / 9)));
+	--fit: min(100%, max(300px, calc((100dvh - var(--above, 220px) - 110px) * 16 / 9)));
 	position: relative;
 	display: grid;
 	width: calc(var(--fit) * var(--scale, 1));

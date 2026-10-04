@@ -506,7 +506,7 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 		[float],
 	);
 	const burst = (e: MouseEvent<HTMLDivElement>) => {
-		if ((e.target as HTMLElement).closest("button, a, input")) return;
+		if ((e.target as HTMLElement).closest("button, a, input, .fm-bar")) return;
 		const r = e.currentTarget.getBoundingClientRect();
 		const x = (e.clientX - r.left) / r.width;
 		for (let i = 0; i < 5; i++) react("💗", x + (Math.random() - 0.5) * 0.14);
@@ -515,7 +515,7 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 	// float hearts instead)
 	const clickTimer = useRef(0);
 	const stageClick = (e: MouseEvent<HTMLDivElement>) => {
-		if (!film || (e.target as HTMLElement).closest("button, a, input")) return;
+		if (!film || (e.target as HTMLElement).closest("button, a, input, .fm-bar")) return;
 		clearTimeout(clickTimer.current);
 		if (e.detail > 1) return;
 		clickTimer.current = window.setTimeout(() => {
@@ -523,6 +523,21 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 			if (f) filmDo(f.film.playing ? "pause" : "play");
 		}, 250);
 	};
+
+	// a movie file's controls float over the picture: up while the pointer moves on it, gone when it leaves or rests 10 s
+	const [barUp, setBarUp] = useState(false);
+	const barTimer = useRef(0);
+	const wakeBar = () => {
+		setBarUp(true);
+		clearTimeout(barTimer.current);
+		barTimer.current = window.setTimeout(() => setBarUp(false), 10000);
+	};
+	const sleepBar = (e: ReactPointerEvent<HTMLDivElement>) => {
+		if (e.pointerType !== "mouse" || e.buttons) return; // a lifted finger or a seek drag past the edge: the 10 s still runs
+		clearTimeout(barTimer.current);
+		setBarUp(false);
+	};
+	useEffect(() => () => clearTimeout(barTimer.current), []);
 
 	// ---- keyboard: 1–6 react, hold Space to talk ----
 	const talkPrev = useRef<boolean | null>(null);
@@ -819,7 +834,14 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 						)}
 						{!tubeTools && stageTools}
 					</div>
-					<div className={`th-stage${v.hideMovie ? " collapsed" : ""}${showing ? "" : " arch"}`} onClick={stageClick} onDoubleClick={burst}>
+					<div
+						className={`th-stage${v.hideMovie ? " collapsed" : ""}${showing ? "" : " arch"}`}
+						onClick={stageClick}
+						onDoubleClick={burst}
+						onPointerMove={wakeBar}
+						onPointerDown={wakeBar}
+						onPointerLeave={sleepBar}
+					>
 						{/* the YouTube player swallows mouse moves and taps: while the bar is hidden, a clear sheet over the video feels
 						    the first one (it wakes the bar and goes, so the next click reaches YouTube) */}
 						{full && idle && tube && <i className="th-wake" aria-hidden="true" />}
@@ -839,6 +861,7 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 						{film && (
 							<Suspense>
 								<FilmOverlay peerSharing={call.peerSharing} />
+								{!v.hideMovie && <FilmBar peerSharing={call.peerSharing} up={barUp} />}
 							</Suspense>
 						)}
 
@@ -911,7 +934,7 @@ function TheaterRoom({ room, call }: { room: RoomState; call: CallState }) {
 					</div>
 
 					<div className="th-bar">
-						{film && (
+						{film && v.hideMovie && (
 							<Suspense>
 								<FilmBar peerSharing={call.peerSharing} />
 							</Suspense>
