@@ -11,6 +11,7 @@ import {
 	type JarItem,
 	type Letter,
 	type Peer,
+	type Pic,
 	type Profiles,
 	type ServerMsg,
 	type Snapshot,
@@ -28,13 +29,14 @@ import { bestsOf, recordBest } from "../shared/bests";
 import { cleanLook, type Looks } from "../shared/look";
 import { cleanGift, eat } from "../shared/gift";
 import { dayOf, hitsOf, searchKey, slotFor } from "../shared/song";
+import { keptPics, picSlot } from "../shared/pic";
 
 type Attachment = { who: Who; sid: string };
 type SealStore = { gameId: string; round: number; answers: Partial<Record<Who, string>> };
 /** The tuberose's points, plus today's tally per kind so each has a daily cap. */
 type GardenStore = { pts: number; day: string; counts: Partial<Record<Growth, number>> };
 // [points, times per day]. ponytail: tune after a few weeks of real use.
-const GROWTH = { together: [2, 1], stub: [3, 1], game: [1, 3], letter: [1, 2], tube: [1, 3], song: [1, 2] } as const;
+const GROWTH = { together: [2, 1], stub: [3, 1], game: [1, 3], letter: [1, 2], tube: [1, 3], song: [1, 2], pic: [1, 2] } as const;
 type Growth = keyof typeof GROWTH;
 /** Searches saved for a week (by searchKey), and today's count against YouTube's free 100 a day (its day, Pacific time). */
 type SongCache = Record<string, { at: number; hits: SongHit[] }>;
@@ -134,6 +136,29 @@ export class Room extends DurableObject<Env> {
 			.slice(0, 150);
 		await s.put("songcache", Object.fromEntries(keep));
 		return res;
+	}
+
+	/** "Send a pic", called by the Worker over RPC (after the login check): the JPEG, and the line written on it. Today's
+	 *  photo replaces the one before it until the other person has opened it, like a song. */
+	async postPic(who: Who, bytes: ArrayBuffer, note: string): Promise<{ ok: true } | { error: "bad" | "locked" }> {
+		const b = new Uint8Array(bytes);
+		if (!PEOPLE.includes(who) || b.byteLength > LIMITS.picBytes || b[0] !== 0xff || b[1] !== 0xd8 || b[2] !== 0xff) return { error: "bad" };
+		const s = this.ctx.storage;
+		const pics = (await s.get<Pic[]>("pics")) ?? [];
+		const day = dayOf(Date.now());
+		const slot = picSlot(pics, who, day);
+		if (slot === "locked") return { error: "locked" };
+		const pic: Pic = { id: crypto.randomUUID().replaceAll("-", ""), from: who, day, note: str(note, LIMITS.picNote), at: Date.now() };
+		await s.put(`pic:${pic.id}`, bytes);
+		const next = await this.putPics([...pics, pic]); // the one it replaces comes down here
+		this.broadcast({ t: "pics", pics: next });
+		if (slot === "new") await this.grow("pic");
+		return { ok: true };
+	}
+
+	/** A photo's JPEG, for GET /api/pic/<id> (null once it has come down). */
+	async pic(id: string) {
+		return (await this.ctx.storage.get<ArrayBuffer>(`pic:${id}`)) ?? null;
 	}
 
 	constructor(ctx: DurableObjectState, env: Env) {
@@ -272,6 +297,15 @@ export class Room extends DurableObject<Env> {
 				letter.gift = gift;
 				await s.put("letters", letters);
 				return this.broadcast({ t: "letters", letters });
+			}
+
+			case "pic:seen": {
+				const pics = (await s.get<Pic[]>("pics")) ?? [];
+				const pic = pics.find((x) => x.id === m.id);
+				if (!pic || pic.from === who || pic.seenAt) return;
+				pic.seenAt = Date.now();
+				await s.put("pics", pics);
+				return this.broadcast({ t: "pics", pics });
 			}
 
 			// ---- a song a day: one each, swappable until the other person has played it ----
@@ -422,7 +456,7 @@ export class Room extends DurableObject<Env> {
 	}
 
 	private async snapshot(you: Who): Promise<Snapshot> {
-		const got = await this.ctx.storage.get(["profiles", "chat", "jar", "stubs", "letters", "songs", "tube", "garden", "game", "sealed", "bests", "looks"]);
+		const got = await this.ctx.storage.get(["profiles", "chat", "jar", "stubs", "letters", "songs", "pics", "tube", "garden", "game", "sealed", "bests", "looks"]);
 		const seal = got.get("sealed") as SealStore | undefined;
 		let game = (got.get("game") as Game | undefined) ?? null;
 		if (game && !KINDS.includes(game.kind)) {
@@ -440,6 +474,7 @@ export class Room extends DurableObject<Env> {
 			stubs: (got.get("stubs") as Stub[]) ?? [],
 			letters: (got.get("letters") as Letter[]) ?? [],
 			songs: (got.get("songs") as Song[]) ?? [],
+			pics: await this.putPics((got.get("pics") as Pic[]) ?? [], false),
 			tube: (got.get("tube") as Tube) ?? null,
 			garden: { pts: (got.get("garden") as GardenStore | undefined)?.pts ?? 0 },
 			game,
@@ -447,6 +482,16 @@ export class Room extends DurableObject<Env> {
 			bests: bestsOf(got.get("bests") as Bests | undefined),
 			looks: (got.get("looks") as Looks) ?? {},
 		};
+	}
+
+	/** Saves the fridge's photos, taking down (and deleting the pictures of) any whose day is over or that a newer one
+	 *  replaced. `changed`: the list itself is new, so it's saved even when nothing comes down. */
+	private async putPics(pics: Pic[], changed = true) {
+		const keep = keptPics(pics, dayOf(Date.now()));
+		const gone = pics.filter((p) => !keep.includes(p)).map((p) => `pic:${p.id}`);
+		if (gone.length) await this.ctx.storage.delete(gone);
+		if (changed || gone.length) await this.ctx.storage.put("pics", keep);
+		return keep;
 	}
 
 	/** The tuberose grows a little, but only while you're both here, and each kind only so often a day. */

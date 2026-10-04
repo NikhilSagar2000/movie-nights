@@ -511,6 +511,26 @@ body:has(.theater) .hm-who {
 	font-size: 1.1em;
 }
 
+/* the fridge (fridge.css) at the back on the left, and the little table in front of it, nearer to you: lower down, on
+   the right, covering the fridge's lower corner. Both share one grid cell, bottom-aligned. */
+.hm-scene {
+	container-type: inline-size;
+	display: grid;
+	align-items: end;
+}
+.hm-scene > * {
+	grid-area: 1 / 1;
+}
+.hm-scene .hm-table {
+	z-index: 1;
+	justify-self: end;
+	width: 80cqi;
+	pointer-events: none; /* taps between the things reach the fridge behind */
+}
+.hm-scene .hm-things > * {
+	pointer-events: auto;
+}
+
 /* the little table: small things standing on its gingham top, what they mean written above them in handwriting. The
    things scale with the table (container units), so on a phone it's the same scene, smaller. */
 .hm-table {

@@ -1,0 +1,657 @@
+/* ---------- Send a pic: the fridge, at the back on the left behind Home's table: smaller than the table and standing
+   higher on the floor, so it reads as further away. Sized in the scene's container units, so on a phone it's the same
+   scene, smaller. Everything on its door stays left of the letter's caption (the table's padding starts at 28cqi). ---------- */
+.fr {
+	position: relative;
+	justify-self: start;
+	width: max(22cqi, 82px);
+	margin: 0 0 12cqi 3cqi; /* feet well above the table's */
+	aspect-ratio: 100 / 240;
+	font-size: clamp(9px, 2.6cqi, 15px);
+	transform-origin: 50% 100%;
+	animation: fr-thunk 0.8s var(--spring) 0.05s both;
+}
+.fr-art {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+.fr-body {
+	stroke: rgb(45 58 71 / 0.22);
+	stroke-width: 1;
+}
+.fr-bevel {
+	fill: #fff;
+	opacity: 0.75;
+}
+.fr-sheen {
+	fill: #fff;
+	opacity: 0.7;
+}
+.fr-groove {
+	stroke: rgb(45 58 71 / 0.3);
+	stroke-width: 1.5;
+}
+.fr-lip {
+	stroke: #fff;
+	stroke-opacity: 0.85;
+	stroke-width: 0.9;
+}
+.fr-kick {
+	fill: #ead8b8;
+}
+.fr-vent {
+	fill: var(--night);
+	opacity: 0.3;
+}
+.fr-handle-shadow {
+	fill: var(--night);
+	opacity: 0.16;
+}
+.fr-mount {
+	fill: #38475a;
+}
+.fr-handle-light {
+	fill: #fff;
+	opacity: 0.55;
+}
+/* the doors: what's stuck on them (positions are in % of the front): the note and letter magnets on the freezer, the
+   photos on the big door below */
+.fr-door {
+	position: absolute;
+	inset: 0 2%;
+}
+
+/* letter magnets on the freezer */
+.fr-xo {
+	position: absolute;
+	top: 7.5%;
+	right: 17%;
+	display: grid;
+	font: 700 1.8em/0.85 var(--display);
+}
+.fr-xo i {
+	font-style: normal;
+	color: var(--blush);
+	text-shadow:
+		0.02em 0.04em 0 #d9919f,
+		0.04em 0.08em 0 var(--rosewood),
+		0.06em 0.16em 0.1em rgb(45 58 71 / 0.35);
+	rotate: -10deg;
+}
+.fr-xo i + i {
+	margin-left: 0.25em;
+	color: var(--sage);
+	text-shadow:
+		0.02em 0.04em 0 #93a074,
+		0.04em 0.08em 0 #74825a,
+		0.06em 0.16em 0.1em rgb(45 58 71 / 0.35);
+	rotate: 8deg;
+}
+.fr:hover .fr-xo i {
+	animation: fr-jiggle 0.5s ease-in-out;
+}
+.fr:hover .fr-xo i + i {
+	animation-delay: 0.08s;
+}
+
+/* the sticky note on the freezer: how you stick yours up */
+.fr-memo {
+	position: absolute;
+	top: 6%;
+	left: 8%;
+	width: 58%;
+	min-height: 15%;
+	display: grid;
+	place-items: center;
+	padding: 0.95em 0.35em 0.45em;
+	border: 0;
+	border-radius: 0.1em 0.1em 0.2em 0.9em;
+	background: linear-gradient(172deg, #fbe7a8, var(--flower) 55%, #edcd70);
+	color: var(--night);
+	font: 700 1.05em/1 var(--hand);
+	text-align: center;
+	text-wrap: balance;
+	box-shadow:
+		inset 0 -0.6em 0.6em -0.5em rgb(150 110 30 / 0.25),
+		-0.25em 0.45em 0.45em -0.3em rgb(45 58 71 / 0.55),
+		0 0.12em 0.15em rgb(45 58 71 / 0.18);
+	rotate: -4deg;
+	transform-origin: 50% 0.3em;
+	transition:
+		rotate 0.45s var(--spring),
+		scale 0.3s var(--spring);
+}
+button.fr-memo {
+	cursor: pointer;
+}
+button.fr-memo:hover,
+button.fr-memo:focus-visible {
+	rotate: 3deg;
+	scale: 1.07;
+}
+/* keyboard focus (also where focus lands back after Esc): the paper glows, rather than a box around a tilted note */
+.fr-memo:focus-visible,
+.fr-pic:focus-visible {
+	outline: none;
+	filter: drop-shadow(0 0 0.1em var(--cream)) drop-shadow(0 0 0.35em var(--rosewood));
+}
+button.fr-memo:active {
+	scale: 0.95;
+}
+span.fr-memo {
+	background: linear-gradient(172deg, #c3cea6, var(--sage) 55%, #97a479);
+}
+.fr-memo-pin {
+	position: absolute;
+	top: -0.3em;
+	left: 50%;
+	width: 0.95em;
+	height: 0.95em;
+	margin-left: -0.475em;
+	border-radius: 50%;
+	background: radial-gradient(circle at 35% 32%, rgb(255 255 255 / 0.7) 0 18%, transparent 22%), var(--rosewood);
+	box-shadow: 0 0.12em 0.15em rgb(45 58 71 / 0.45);
+}
+span.fr-memo .fr-memo-pin {
+	background: radial-gradient(circle at 35% 32%, rgb(255 255 255 / 0.7) 0 18%, transparent 22%), var(--dusk);
+}
+
+/* the photos on the big door, polaroids under a magnet: theirs on the left, yours on the right */
+.fr-pic {
+	position: absolute;
+	top: 35%;
+	left: 4%;
+	width: 44%;
+	padding: 0;
+	border: 0;
+	background: none;
+	cursor: pointer;
+	rotate: var(--tilt);
+	transform-origin: 50% 0.3em;
+	transition:
+		rotate 0.45s var(--spring),
+		scale 0.35s var(--spring);
+	animation: fr-stick 0.75s var(--spring) 0.55s both;
+}
+.fr-pic.r {
+	top: 39%;
+	left: auto;
+	right: 14%;
+	animation-delay: 0.7s;
+}
+.fr-pic:hover,
+.fr-pic:focus-visible {
+	z-index: 1;
+	rotate: 0deg;
+	scale: 1.14;
+}
+.fr-pic:active {
+	scale: 1.04;
+}
+/* theirs, not opened yet: face down, swaying on its magnet */
+.fr-pic.back {
+	animation:
+		fr-stick 0.75s var(--spring) 0.55s both,
+		fr-sway 2.6s ease-in-out 1.4s infinite;
+}
+.fr-pic.back:hover,
+.fr-pic.back:focus-visible {
+	animation-play-state: paused;
+}
+.fr-card {
+	display: block;
+	padding: 7% 7% 24%;
+	border-radius: 0.1em;
+	background: var(--paper);
+	background-image: linear-gradient(160deg, #fff 30%, #f1ece0);
+	box-shadow:
+		0 0 0 0.5px rgb(45 58 71 / 0.14),
+		0.15em 0.55em 0.55em -0.3em rgb(45 58 71 / 0.6),
+		0 0.1em 0.12em rgb(45 58 71 / 0.15);
+}
+.fr-card img {
+	display: block;
+	width: 100%;
+	aspect-ratio: 1;
+	object-fit: cover;
+	background: var(--fog);
+}
+.fr-back {
+	display: grid;
+	place-items: center;
+	align-content: center;
+	gap: 0.1em;
+	aspect-ratio: 1;
+	background: repeating-linear-gradient(180deg, transparent 0 0.9em, rgb(180 106 114 / 0.16) 0.9em calc(0.9em + 1px)), var(--cream);
+	color: var(--rose-ink);
+	font: 700 0.95em/1 var(--hand);
+}
+.fr-back svg {
+	width: 1.1em;
+	fill: var(--rosewood);
+	animation: fr-beat 1.4s ease-in-out infinite;
+}
+.fr-magnet {
+	position: absolute;
+	top: -0.5em;
+	left: 50%;
+	width: 1.5em;
+	height: auto;
+	margin-left: -0.75em;
+	overflow: visible;
+	filter: drop-shadow(0 0.12em 0.08em rgb(45 58 71 / 0.45));
+	animation: fr-clack 0.45s var(--spring) both;
+}
+.fr-pic .fr-magnet {
+	animation-delay: 1.05s;
+}
+.fr-pic.r .fr-magnet {
+	animation-delay: 1.2s;
+}
+.fr-magnet.heart path {
+	fill: var(--rosewood);
+}
+.fr-magnet.heart ellipse {
+	fill: #fff;
+	opacity: 0.5;
+}
+.fr-magnet.flower {
+	--petal-line: var(--night);
+	width: 1.7em;
+	margin-left: -0.85em;
+}
+
+@keyframes fr-thunk {
+	0% {
+		translate: 0 -8%;
+		opacity: 0;
+	}
+	55% {
+		translate: 0 0;
+		opacity: 1;
+		scale: 1.03 0.96;
+	}
+	75% {
+		scale: 0.99 1.02;
+	}
+}
+@keyframes fr-stick {
+	0% {
+		translate: 0 -2.6em;
+		scale: 1.2;
+		opacity: 0;
+	}
+	55% {
+		translate: 0 0.2em;
+		scale: 1;
+		opacity: 1;
+	}
+	78% {
+		translate: 0 -0.08em;
+	}
+}
+@keyframes fr-clack {
+	0% {
+		translate: 0 -1em;
+		scale: 1.5;
+		opacity: 0;
+	}
+	60% {
+		translate: 0 0;
+		scale: 0.85 1.15;
+		opacity: 1;
+	}
+}
+@keyframes fr-sway {
+	0%,
+	100% {
+		rotate: var(--tilt);
+	}
+	50% {
+		rotate: calc(var(--tilt) + 6deg);
+	}
+}
+@keyframes fr-jiggle {
+	30% {
+		translate: 0 -0.15em;
+		rotate: 6deg;
+	}
+	65% {
+		rotate: -12deg;
+	}
+}
+@keyframes fr-beat {
+	0%,
+	60%,
+	100% {
+		scale: 1;
+	}
+	30% {
+		scale: 1.25;
+	}
+}
+
+/* ---------- A photo held up big, and the camera: dialogs over a dimmed room ---------- */
+.fr-view,
+.fr-take {
+	width: min(32em, 100vw - 2em);
+	max-width: none;
+	max-height: calc(100dvh - 1em);
+	padding: 3em 0.5em 1em;
+	border: 0;
+	background: transparent;
+	color: var(--cream);
+	overflow: visible;
+}
+.fr-view[open],
+.fr-take[open] {
+	display: grid;
+	justify-items: center;
+	align-content: center;
+	gap: 0.9em;
+}
+.fr-view::backdrop,
+.fr-take::backdrop {
+	background: rgb(45 58 71 / 0.62);
+	-webkit-backdrop-filter: blur(4px);
+	backdrop-filter: blur(4px);
+}
+.fr-view-x {
+	position: absolute;
+	top: 0;
+	right: 0;
+	background: var(--cream);
+	box-shadow: none;
+}
+.fr-view-x:hover {
+	background: var(--paper);
+}
+
+.fr-big {
+	position: relative;
+	width: min-content;
+	margin: 0;
+	padding: 0.9em 0.9em 0;
+	border-radius: 0.15em;
+	background: var(--paper);
+	box-shadow: 0 1.6em 3em -1em rgb(0 0 0 / 0.6);
+	rotate: -2deg;
+	animation: fr-up 0.6s var(--spring) both;
+}
+.fr-big > .fr-magnet {
+	top: -0.9em;
+	width: 2.4em;
+	margin-left: -1.2em;
+	animation-delay: 0.35s;
+}
+.fr-big > .fr-magnet.flower {
+	width: 2.7em;
+	margin-left: -1.35em;
+}
+.fr-big-photo {
+	display: block;
+	min-width: 14em;
+	min-height: 14em;
+	background: var(--fog);
+}
+.fr-big-photo.in {
+	min-width: 0;
+	min-height: 0;
+}
+.fr-big img {
+	display: block;
+	max-width: min(28em, 100vw - 5em);
+	max-height: calc(100dvh - 17.5em);
+	opacity: 0;
+	transition: opacity 0.5s;
+}
+.fr-big-photo.in img {
+	opacity: 1;
+}
+.fr-big figcaption {
+	min-height: 2.4em;
+	padding: 0.4em 0.2em 0.5em;
+	color: var(--night);
+	font: 700 1.45em/1.05 var(--hand);
+	text-align: center;
+	overflow-wrap: anywhere;
+}
+/* theirs, opened for the first time: it turns over once the picture is here */
+.fr-big-back {
+	position: absolute;
+	inset: 0;
+	aspect-ratio: auto;
+	border-radius: inherit;
+	font-size: 2.2em;
+}
+.fr-big.turn:has(.fr-big-photo.in) {
+	animation:
+		fr-up 0.6s var(--spring) both,
+		fr-turn 0.9s ease-in-out 0.2s both;
+}
+.fr-big.turn:has(.fr-big-photo.in) .fr-big-back {
+	animation: fr-hide 0.9s 0.2s both;
+}
+.fr-view-meta {
+	margin: 0;
+	font: 700 1.35em/1 var(--hand);
+	animation: fr-up 0.6s var(--spring) 0.15s both;
+}
+.fr-view-acts,
+.fr-take-acts {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0.7em;
+}
+.fr-view-acts {
+	animation: fr-up 0.6s var(--spring) 0.25s both;
+}
+
+/* the camera: a blank polaroid to fill */
+.fr-take-h {
+	margin: 0;
+	font: 700 1.9em/1 var(--hand);
+	text-align: center;
+}
+.fr-take-card {
+	width: min(24em, 100vw - 4em);
+	padding: 0.9em 0.9em 0;
+	border-radius: 0.15em;
+	background: var(--paper);
+	box-shadow: 0 1.6em 3em -1em rgb(0 0 0 / 0.6);
+	rotate: 1.5deg;
+	animation: fr-up 0.55s var(--spring) both;
+	transition:
+		translate 0.6s cubic-bezier(0.5, 0, 0.75, 0),
+		rotate 0.6s ease-in,
+		scale 0.6s ease-in,
+		opacity 0.6s ease-in;
+}
+.fr-take-card.away {
+	translate: 0 70vh;
+	rotate: -24deg;
+	scale: 0.3;
+	opacity: 0;
+}
+.fr-take-photo {
+	position: relative;
+	display: grid;
+	place-items: center;
+	overflow: hidden;
+	background: #1f2933;
+}
+.fr-take-photo:has(.fr-take-empty) {
+	min-height: 15em;
+}
+.fr-take-photo:has(img) {
+	background: none; /* a tall photo: the polaroid's own paper either side */
+}
+.fr-take-photo video,
+.fr-take-photo img {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+	height: auto;
+	max-height: calc(100dvh - 19.5em);
+	object-fit: contain;
+}
+.fr-take-photo img {
+	width: auto;
+}
+.fr-finder {
+	scale: -1 1; /* like a mirror (and the photo comes out the same way) */
+}
+.fr-develop {
+	animation: fr-develop 2.4s ease-out both;
+}
+.fr-flash {
+	position: absolute;
+	inset: 0;
+	background: #fff;
+	pointer-events: none;
+	animation: fr-flash 0.5s ease-out both;
+}
+.fr-take-empty {
+	--focus: var(--cream);
+	display: grid;
+	justify-items: center;
+	gap: 0.4em;
+	padding: 2em;
+	border: 0;
+	background: none;
+	color: var(--fog);
+	font: 700 1.35em/1 var(--hand);
+	cursor: pointer;
+	transition: scale 0.3s var(--spring);
+}
+.fr-take-empty:hover {
+	scale: 1.06;
+}
+.fr-take-empty svg {
+	width: 2.6em;
+	height: 2.6em;
+}
+.fr-take-note {
+	--focus: var(--dusk);
+	width: 100%;
+	padding: 0.5em 0.2em 0.65em;
+	border: 0;
+	background: transparent;
+	color: var(--night);
+	font: 700 1.45em/1 var(--hand);
+	text-align: center;
+}
+.fr-take-note:focus-visible {
+	outline: none;
+	box-shadow: inset 0 -0.12em 0 var(--rosewood);
+}
+.fr-take-note::placeholder {
+	color: var(--steel);
+}
+.fr-take-note:disabled {
+	opacity: 0.6;
+}
+.fr-take-err {
+	max-width: 24em;
+	margin: 0;
+	padding: 0.45em 0.9em;
+	border-radius: 0.9em;
+	background: var(--rose-ink);
+	color: var(--cream);
+	text-align: center;
+}
+.fr-shutter {
+	--focus: var(--cream);
+	width: 4.2em;
+	height: 4.2em;
+	padding: 0.28em;
+	border: 0.3em solid var(--cream);
+	border-radius: 50%;
+	background: transparent;
+	cursor: pointer;
+	box-shadow: 0 0.6em 1.2em -0.6em rgb(0 0 0 / 0.6);
+}
+.fr-shutter i {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	background: var(--blush);
+	transition: scale 0.15s;
+}
+.fr-shutter:hover i {
+	background: #f3b9c6;
+}
+.fr-shutter:active i {
+	scale: 0.82;
+}
+
+/* the toast (the letter toast's look), stacked under the others when they show too */
+.lt-toast ~ .fr-toast {
+	top: 76px;
+}
+.lt-toast ~ .lt-toast ~ .fr-toast {
+	top: 136px;
+}
+.fr-toast > svg {
+	color: var(--dusk);
+}
+
+@keyframes fr-up {
+	from {
+		translate: 0 1.5em;
+		scale: 0.85;
+		opacity: 0;
+	}
+}
+@keyframes fr-turn {
+	50% {
+		scale: 0 1;
+	}
+}
+@keyframes fr-hide {
+	0%,
+	49% {
+		visibility: visible;
+	}
+	50%,
+	100% {
+		visibility: hidden;
+	}
+}
+@keyframes fr-develop {
+	from {
+		filter: brightness(1.9) sepia(0.7) contrast(0.5) blur(3px);
+	}
+	60% {
+		filter: brightness(1.12) sepia(0.2) contrast(0.92) blur(0);
+	}
+}
+@keyframes fr-flash {
+	from {
+		opacity: 0.95;
+	}
+	to {
+		opacity: 0;
+	}
+}
+
+/* reduced motion: everything simply there */
+@media (prefers-reduced-motion: reduce) {
+	.fr,
+	.fr *,
+	.fr-view *,
+	.fr-take *,
+	.fr-toast {
+		animation: none !important;
+		transition: none !important;
+	}
+	.fr-big-back {
+		display: none;
+	}
+}

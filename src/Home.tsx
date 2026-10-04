@@ -10,6 +10,7 @@ import { readLetters, unreadOf, writeLetter } from "./Letters";
 import { sendPoke, usePokeSent } from "./Theater";
 import { Garden } from "./Garden";
 import { Doodle, TableRadio } from "./Songs";
+import { Fridge } from "./Fridge";
 import "./home.css";
 
 const LINKS = [
@@ -175,17 +176,20 @@ export function Home() {
 					{!partnerOn && <p className="hm-lede">The lights come on when they're back.</p>}
 				</div>
 
-				<div className="hm-table">
-					<div className="hm-things">
-						<LetterOnTable room={room} />
-						<span className="hm-vase" aria-hidden="true">
-							<Flower className="hm-vase-flw" />
-							<i className="hm-vase-stem" />
-							<i className="hm-vase-glass" />
-						</span>
-						<TableRadio room={room} />
+				<div className="hm-scene">
+					<Fridge room={room} />
+					<div className="hm-table">
+						<div className="hm-things">
+							<LetterOnTable room={room} />
+							<span className="hm-vase" aria-hidden="true">
+								<Flower className="hm-vase-flw" />
+								<i className="hm-vase-stem" />
+								<i className="hm-vase-glass" />
+							</span>
+							<TableRadio room={room} />
+						</div>
+						<TableArt />
 					</div>
-					<TableArt />
 				</div>
 
 				<p className="hint hm-names">

@@ -18,6 +18,7 @@ import { Face, Flower } from "./Character";
 import { LetterListener } from "./Letters";
 import { JarReveal } from "./Memories";
 import { SongListener } from "./Songs";
+import { PicListener } from "./Fridge";
 import { profileOf, useRoom, type RoomState } from "./room";
 import { setCam, setMic, useCall, type CallState } from "./rtc";
 import {
@@ -123,6 +124,7 @@ export default function FaceCams() {
 			<LetterListener />
 			<JarReveal />
 			<SongListener />
+			<PicListener />
 		</>
 	);
 }

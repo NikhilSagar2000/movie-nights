@@ -36,6 +36,10 @@ export type Song = { id: string; vid: string; title: string; channel: string; fr
 export type SongHit = { vid: string; title: string; channel: string; secs: number };
 export type SongSearch = { hits: SongHit[] } | { error: "off" | "resting" | "failed" };
 
+/** A photo on the fridge: one each per day (India's date), swappable until the other person has opened it. The picture
+ *  itself is a JPEG at /api/pic/<id>, never in the snapshot. */
+export type Pic = { id: string; from: Who; day: string; note: string; at: number; seenAt?: number };
+
 /** Our little tuberose: points from time spent together (the Room hands them out, capped per day). */
 export type Garden = { pts: number };
 
@@ -119,6 +123,8 @@ export type ClientMsg =
 	/** Today's song for the other person (replaces today's until they've played it). */
 	| { t: "song:send"; vid: string; note: string }
 	| { t: "song:played"; id: string }
+	/** The recipient opened today's photo (posting one is a POST to /api/pic: it's too big for the socket). */
+	| { t: "pic:seen"; id: string }
 	| { t: "tube:load"; id: string }
 	| { t: "tube:queue"; id: string }
 	| { t: "tube:unqueue"; key: string }
@@ -148,6 +154,7 @@ export type Snapshot = {
 	stubs: Stub[];
 	letters: Letter[];
 	songs: Song[];
+	pics: Pic[];
 	tube: Tube | null;
 	garden: Garden;
 	game: Game | null;
@@ -167,6 +174,7 @@ export type ServerMsg =
 	| { t: "stubs"; stubs: Stub[] }
 	| { t: "letters"; letters: Letter[] }
 	| { t: "songs"; songs: Song[] }
+	| { t: "pics"; pics: Pic[] }
 	| { t: "tube"; tube: Tube | null }
 	| { t: "garden"; garden: Garden }
 	| { t: "game"; game: Game | null }
@@ -175,4 +183,4 @@ export type ServerMsg =
 	| { t: "looks"; looks: Looks };
 
 // Input limits, enforced by the Room (trust boundary) and mirrored in the UI.
-export const LIMITS = { name: 24, chat: 1000, title: 120, note: 400, answer: 40, relayBytes: 64_000, chatKeep: 200, letter: 800, lettersKeep: 200, tubeQueue: 30, songNote: 140, songsKeep: 800 };
+export const LIMITS = { name: 24, chat: 1000, title: 120, note: 400, answer: 40, relayBytes: 64_000, chatKeep: 200, letter: 800, lettersKeep: 200, tubeQueue: 30, songNote: 140, songsKeep: 800, picNote: 80, picBytes: 1_500_000 };

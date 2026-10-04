@@ -1,3 +1,4 @@
+import { LIMITS } from "../shared/types";
 import { matchPasscode, readCookie, sessionCookie, signToken, verifyToken } from "./auth";
 
 export { Room } from "./room";
@@ -59,6 +60,22 @@ export default {
 		if (url.pathname === "/api/songs") {
 			const res = await env.ROOM.get(env.ROOM.idFromName("us")).songSearch(url.searchParams.get("q")?.slice(0, 200) ?? "");
 			return Response.json(res, { headers: { "Cache-Control": "no-store" } });
+		}
+
+		// Send a pic: the JPEG is the body (the browser shrinks it first), the line written on it is ?note=.
+		if (url.pathname === "/api/pic" && req.method === "POST") {
+			if (Number(req.headers.get("Content-Length")) > LIMITS.picBytes) return Response.json({ error: "big" }, { status: 413 });
+			const bytes = await req.arrayBuffer();
+			if (bytes.byteLength > LIMITS.picBytes) return Response.json({ error: "big" }, { status: 413 });
+			const res = await env.ROOM.get(env.ROOM.idFromName("us")).postPic(who, bytes, url.searchParams.get("note")?.slice(0, 400) ?? "");
+			return Response.json(res, { status: "error" in res ? (res.error === "locked" ? 409 : 400) : 200 });
+		}
+		const picId = url.pathname.match(/^\/api\/pic\/([0-9a-f]{32})$/)?.[1];
+		if (picId) {
+			const bytes = await env.ROOM.get(env.ROOM.idFromName("us")).pic(picId);
+			if (!bytes) return Response.json({ error: "gone" }, { status: 404 });
+			// a new photo always gets a new id, so this one never changes
+			return new Response(bytes, { headers: { "Content-Type": "image/jpeg", "Cache-Control": "private, max-age=31536000, immutable" } });
 		}
 
 		if (url.pathname === "/ws") {
